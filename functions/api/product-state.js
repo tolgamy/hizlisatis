@@ -1,4 +1,4 @@
-import {authorizedAdmin} from './_admin-auth.js';
+import {authorizedAdmin} from '../../lib/admin-auth.js';
 /** Cloudflare Pages + D1 authoritative product changes.
  * Static bundled catalogue is a read-only baseline; all edits and status
  * changes live in D1. No browser storage is used as server-side authority.
