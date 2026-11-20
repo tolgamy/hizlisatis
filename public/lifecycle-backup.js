@@ -6,6 +6,12 @@ const BASELINE_KEY = 'hizlisatis:product-lifecycle:bulk-v1';
 const CHANGE_KEY = 'hizlisatis:product-lifecycle:edits-v1';
 
 const valid = new Set(['active','initial-inactive','later-inactive','deleted']);
+function storageOrNull(provided) {
+  if (provided !== undefined) return provided;
+  try { return globalThis.localStorage || null; }
+  catch { return null; }
+}
+
 function encode(product) {
   return [product.lifecycleStatus || 'active', Boolean(product.everActivated) ? 1 : 0,
     product.deletedFrom || '', product.statusChangedAt || ''];
@@ -27,8 +33,9 @@ function time(value) {
 }
 
 /** Keep even active states so re-activations cannot be reverted by the baseline. */
-export function rememberProductStatus(product, storage = globalThis.localStorage) {
+export function rememberProductStatus(product, storage = undefined) {
   try {
+    storage = storageOrNull(storage);
     if (!storage || !product?.id) return false;
     const changes = read(CHANGE_KEY, storage);
     changes[product.id] = encode(product);
@@ -38,8 +45,9 @@ export function rememberProductStatus(product, storage = globalThis.localStorage
 }
 
 /** Only used after a successfully committed initial bulk deactivation. */
-export function rememberBulkStatuses(products, storage = globalThis.localStorage) {
+export function rememberBulkStatuses(products, storage = undefined) {
   try {
+    storage = storageOrNull(storage);
     if (!storage || !Array.isArray(products)) return false;
     const baseline = {};
     for (const item of products) {
@@ -52,8 +60,9 @@ export function rememberBulkStatuses(products, storage = globalThis.localStorage
 }
 
 /** Restore a state only if it is demonstrably newer than IndexedDB's state. */
-export function overlayLifecycleBackup(products, storage = globalThis.localStorage) {
+export function overlayLifecycleBackup(products, storage = undefined) {
   if (!Array.isArray(products)) return [];
+  storage = storageOrNull(storage);
   const baseline = read(BASELINE_KEY, storage);
   const changes = read(CHANGE_KEY, storage);
   return products.map(product => {
@@ -70,7 +79,8 @@ export function overlayLifecycleBackup(products, storage = globalThis.localStora
   });
 }
 
-export function getBackupStatistics(storage = globalThis.localStorage) {
+export function getBackupStatistics(storage = undefined) {
+  storage = storageOrNull(storage);
   return { bulk: Object.keys(read(BASELINE_KEY,storage)).length,
     edits: Object.keys(read(CHANGE_KEY,storage)).length };
 }
