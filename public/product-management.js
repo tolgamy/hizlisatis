@@ -298,7 +298,18 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
         ' merkezi veritabanına aktarılacak. Önce JSON yedeği alın. Devam edilsin mi?'))return;
       if(first)await deactivateRemoteProducts();
       if(total)await importRemoteProducts(changed);
+      const verified=await fetchRemoteProducts();
+      const remoteById=new Map(verified.products.map(p=>[p.id,p]));
+      if(local.lifecycleMeta&&!verified.bulkAt)
+        throw Error('Merkezi toplu pasif durumu doğrulanamadı.');
+      if(changed.some(p=>remoteById.get(p.id)?.lifecycleStatus !== (p.lifecycleStatus||'active')))
+        throw Error('Aktarılan ürün durumları sunucudan doğrulanamadı. Eski yedeği silmeyin.');
       await refresh();
+      // Retire obsolete localStorage backups only after server verification.
+      try{
+        localStorage.removeItem('hizlisatis:product-lifecycle:bulk-v1');
+        localStorage.removeItem('hizlisatis:product-lifecycle:edits-v1');
+      }catch{/* legacy backup cleanup is optional */}
       channel?.postMessage('product-migrated');
       countsView();
       announce('Yerel ürün değişiklikleri sunucuya aktarıldı.','success');
