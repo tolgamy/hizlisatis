@@ -59,17 +59,21 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
   }
   function counts() {
     const counts=countStatuses(state.products);
+    const unavailable=Boolean(state.catalogLoading||state.catalogError||!state.products.length);
     $('manageStatusCounts').replaceChildren();
     for(const key of Object.values(PRODUCT_STATUS)){
       const button=document.createElement('button');
       button.type='button';
       button.className='manage-status-card'+(key===filter?' selected':'');
-      const number=document.createElement('strong');number.textContent=counts[key].toLocaleString('tr-TR');
+      const number=document.createElement('strong');number.textContent=unavailable?'—':counts[key].toLocaleString('tr-TR');
+      button.disabled=unavailable;
       const caption=document.createElement('small');caption.textContent=statusLabels[key];
       button.append(number,caption);
       button.addEventListener('click',()=>{filter=key;countsView();});
       $('manageStatusCounts').append(button);
     }
+    $('manageBulkDeactivate').disabled=unavailable;
+    $('manageNew').disabled=unavailable;
     $('manageBulkDeactivate').hidden=!!state.lifecycleMeta;
     $('manageBulkInfo').textContent=state.lifecycleMeta
       ? 'İlk toplu pasife alma '+new Date(state.lifecycleMeta.at).toLocaleString('tr-TR')+' tarihinde yapıldı.'
@@ -81,6 +85,15 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
     results.replaceChildren();
     const matching=state.products.filter(p=>productStatus(p)===filter &&
       (!q || [p.baslik,p.barkod,p.urunKodu,p.marka].some(v=>text(v).toLocaleLowerCase('tr-TR').includes(q))));
+    if(state.catalogLoading||state.catalogError||!state.products.length) {
+      $('manageResultCount').textContent=state.catalogLoading
+        ? 'Merkezi ürünler yükleniyor: '+Number(state.catalogProgress||0).toLocaleString('tr-TR')+' / 19.096'
+        : 'Merkezi ürünler yüklenemedi';
+      results.textContent=state.catalogLoading
+        ? 'Ürünler merkezi veritabanından alınıyor. Tamamlanınca listelenecek.'
+        : (state.catalogError||'Ürünler henüz yüklenmedi. Merkezi Veritabanından Yenile düğmesini kullanın.');
+      return;
+    }
     $('manageResultCount').textContent=matching.length.toLocaleString('tr-TR')+' ürün';
     for(const product of matching.slice(0,40)) {
       const button=document.createElement('button');button.type='button';
@@ -265,6 +278,9 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
     finally{$('passiveActivate').disabled=false;}
   }
   async function bulkDeactivate() {
+    if(state.catalogLoading||state.catalogError||state.products.length<19096) {
+      announce('Merkezi ürünler tamamen yüklenmeden toplu işlem yapılamaz.','error');return;
+    }
     if(state.lifecycleMeta){announce('İlk toplu işlem daha önce yapılmış.','error');return;}
     const yes=confirm('Tüm aktif ürünler Ana Pasif listesine taşınacak. Kayıtlar silinmez. Devam edilsin mi?');
     if(!yes)return;
