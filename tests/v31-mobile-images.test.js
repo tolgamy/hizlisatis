@@ -15,10 +15,11 @@ test('final owner Excel: 19,096 priced items, 14,525 original images and 20 chun
  assert.equal(manifest.withoutPrice,0);
  assert.equal(manifest.parts.length,20);
 });
-test('mobile main and subcategories are both three-column grids',()=>{
+test('mobile main and subcategories show readable two-column photo cards',()=>{
  assert.match(styles,/@media\(max-width:679px\)/);
  assert.match(styles,/\.home-category-shortcuts,\.category-photo-grid,\.category-grid-page\{/);
- assert.match(styles,/grid-template-columns:repeat\(3,minmax\(0,1fr\)\)!important/);
+ assert.match(styles,/grid-template-columns:repeat\(2,minmax\(0,1fr\)\)!important/);
+ assert.match(styles,/\.photo-category-name\{display:block!important/);
 });
 test('1D retail barcode decoding excludes QR and keeps external scanner input',()=>{
  assert.doesNotMatch(app,/['"]QR_CODE['"]/);

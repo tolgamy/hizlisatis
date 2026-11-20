@@ -46,6 +46,7 @@
         <h1>Ayarlar</h1>
         <div class="settings-links">
           <button id="settingsExcel" type="button"><span>▤</span> Excel Ürün Yükle <b>›</b></button>
+          <button id="settingsAdd" type="button"><span>＋</span> Yeni Ürün Ekle <b>›</b></button>
           <button id="settingsManage" type="button"><span>▦</span> Ürün Yönetimi <b>›</b></button>
           <button id="settingsHistory" type="button"><span>◷</span> Satış Geçmişi <b>›</b></button>
           <button id="settingsExport" type="button"><span>↓</span> Satışları CSV İndir <b>›</b></button>
@@ -124,8 +125,78 @@
   </dialog>
   <dialog id="manageDialog" class="sheet manage-sheet" aria-labelledby="manageTitle">
     <div class="sheet-header"><h2 id="manageTitle">Ürün Yönetimi</h2><button type="button" class="closebutton" data-close="manageDialog" aria-label="Kapat">×</button></div>
-    <div class="manage-body"><label class="sr-only" for="manageSearch">Ürün bul</label><input id="manageSearch" type="search" placeholder="Ürün adı veya barkod" autocomplete="off"><div id="manageResults" class="manage-results"></div>
-      <form id="manageEditForm" hidden><h3>Ürünü Düzenle</h3><p id="manageBarcode"></p><label>Ürün adı<input id="manageName" type="text" required></label><label>Satış fiyatı (₺)<input id="managePrice" type="text" inputmode="decimal" placeholder="Fiyat girilmedi"></label><label>Stok adedi <small>(boş bırakılırsa takip edilmez)</small><input id="manageStock" type="number" min="0" step="1" inputmode="numeric"></label><label>Kategori<input id="manageCategory" type="text"></label><label>Görsel URL<input id="manageImage" type="url"></label><div class="manage-form-actions"><button id="manageCancel" type="button">Vazgeç</button><button type="submit">Kaydet</button></div></form>
+    <div class="manage-body">
+      <section id="manageOverview">
+        <div id="manageStatusCounts" class="manage-status-grid" aria-label="Ürün durumlarına göre listeler"></div>
+        <div class="manage-actions">
+          <button id="manageNew" type="button" class="manage-main-action">＋ Yeni Ürün Ekle</button>
+          <button id="manageExportBackup" type="button">↓ Ürün Yedeğini İndir (JSON)</button>
+        </div>
+        <label for="manageSearch">Ürün adı veya barkod ara</label>
+        <input id="manageSearch" type="search" placeholder="Barkod veya ürün adı" autocomplete="off">
+        <div id="manageResultCount" class="manage-result-count"></div>
+        <div id="manageResults" class="manage-results"></div>
+        <div class="manage-danger-zone">
+          <h3>İlk Toplu Pasife Alma</h3>
+          <p id="manageBulkInfo"></p>
+          <button id="manageBulkDeactivate" class="manage-danger-button" type="button">Tüm Aktif Ürünleri Ana Pasife Al</button>
+          <small>İşlem yalnızca bir kez yapılır. Ürünler silinmez. Daha önce aktifleştirilmiş ürünler yeniden ana pasife taşınmaz.</small>
+        </div>
+      </section>
+      <form id="manageEditForm" hidden>
+        <h3 id="manageFormTitle">Ürünü Düzenle</h3>
+        <p id="manageCurrentStatus"></p>
+        <div class="manage-scan-row">
+          <label>Barkod<input id="manageBarcodeInput" type="text" inputmode="numeric" autocomplete="off" required></label>
+          <button id="manageScan" type="button">⌗ Oku</button>
+        </div>
+        <label>Ürün adı<input id="manageName" type="text" autocomplete="off" required maxlength="250"></label>
+        <label>Marka<input id="manageBrand" type="text" maxlength="120" placeholder="Marka girin"></label>
+        <div class="manage-two-col">
+          <label>Ana kategori<select id="manageMainCategory" required></select></label>
+          <label>Alt kategori<input id="manageSubCategory" list="manageSubSuggestions" required placeholder="Alt kategori seçin veya yazın"><datalist id="manageSubSuggestions"></datalist></label>
+        </div>
+        <div class="manage-two-col">
+          <label>Satış fiyatı (₺)<input id="managePrice" type="text" inputmode="decimal" required placeholder="0,00"></label>
+          <label>Alış fiyatı (₺)<input id="managePurchase" type="text" inputmode="decimal" placeholder="İsteğe bağlı"></label>
+        </div>
+        <div class="manage-two-col">
+          <label>KDV oranı<select id="manageVat"><option value="0">%0</option><option value="1">%1</option><option value="10">%10</option><option value="20">%20</option></select></label>
+          <label>Birim<select id="manageUnit"><option value="adet">Adet</option><option value="kg">Kilogram</option><option value="g">Gram</option><option value="litre">Litre</option><option value="paket">Paket</option></select></label>
+        </div>
+        <label class="manage-checkbox"><input id="manageVatExcluded" type="checkbox"> KDV hariç fiyat giriyorum</label>
+        <p class="manage-help">Varsayılan KDV dahildir. Hariç seçildiğinde satış fiyatına KDV eklenerek kaydedilir.</p>
+        <label>Stok miktarı (boş = takip yok)<input id="manageStock" type="number" min="0" step="any" inputmode="decimal"></label>
+        <label>Ürün fotoğrafı<input id="manageImageFile" type="file" accept="image/*"></label>
+        <img id="manageImagePreview" class="manage-image-preview" alt="Seçili ürün görseli" hidden>
+        <label>Görsel URL (isteğe bağlı)<input id="manageImage" type="url" placeholder="https://..."></label>
+        <label class="manage-checkbox"><input id="manageRemoveImage" type="checkbox"> Mevcut görseli kaldır</label>
+        <p class="manage-help">Yüklenen fotoğraf küçültülür ve bu cihazda saklanır.</p>
+        <div class="manage-form-actions">
+          <button id="manageCancel" type="button">‹ Listeye Dön</button>
+          <button type="submit">Kaydet</button>
+        </div>
+        <button id="manageSaveActivate" class="manage-inline-action" type="button">Kaydet ve Satışa Aç</button>
+        <div class="manage-state-actions">
+          <button id="manageActivate" type="button">✓ Aktifleştir</button>
+          <button id="manageDeactivate" type="button">Ⅱ Pasife Al</button>
+          <button id="manageRestore" type="button">↺ Geri Yükle</button>
+          <button id="manageDelete" type="button" class="manage-danger-button">Silinen Ürünlere Taşı</button>
+        </div>
+        <h4>İşlem Geçmişi</h4>
+        <div id="manageHistory" class="manage-history"></div>
+      </form>
+    </div>
+  </dialog>
+  <dialog id="passiveProductDialog" class="modal passive-product-dialog" aria-labelledby="passiveProductTitle">
+    <div class="sheet-header"><h2 id="passiveProductTitle">Pasif Ürün Bulundu</h2></div>
+    <div class="passive-product-body">
+      <strong id="passiveProductName"></strong>
+      <p id="passiveProductBarcode"></p><p id="passiveProductStatus"></p>
+      <p>Ürün pasif durumda. Aktifleştirip satışa açmak istiyor musunuz?</p>
+      <button id="passiveActivate" type="button" class="primary-button">Aktifleştir ve Satışa Ekle</button>
+      <button id="passiveEdit" type="button">Önce Ürünü Düzenle</button>
+      <button id="passiveCancel" type="button">Vazgeç</button>
     </div>
   </dialog>
   <dialog id="scanDialog" class="modal" aria-labelledby="scanTitle">

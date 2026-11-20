@@ -55,10 +55,10 @@ test('micro categories merge without changing raw sales catalog; irrelevant supp
   assert.equal(showCategoryInBrowse({path:'Ev & Yaşam > Mutfak Ürünleri',count:30}),true);
 });
 
-test('home is only 12 picture tiles: no decorative controls or category names in cards',()=>{
+test('home keeps the 12 photo categories and now displays their labels',()=>{
   const html=source('../public/index.html'), app=source('../public/app.js');
   assert.doesNotMatch(html,/id="homeStartSale"|id="homeBrowse"|id="homeAllCategories"|id="homeCategories"/);
   assert.match(app,/target\.append\(categoryTile/);
-  assert.match(app,/className = 'sr-only';/);
+  assert.match(app,/className = 'photo-category-name';/);
   assert.match(app,/sortCategoryNodes\(state\.categoryTreeData\)/);
 });

@@ -48,3 +48,14 @@ Ağ yazıcısında yazdırma iOS'ta AirPrint veya cihazın sistem yazdırma men�
 ## v3.2 — Kategori fotoğrafları
 
 Ana sayfa yalnızca 12 görsel kategori kartı gösterir. Kullanıcının belirlediği sıra korunur. Ana kategori görselleri yerel, yazısız, sıkıştırılmış WebP dosyalarıdır; alt kategoriler bağımsız, ürün fotoğrafı olmayan hafif SVG illüstrasyonlar kullanır. Mobilde her kategoride 3 sütun görünür. Açıkça yinelenen/çok küçük bazı kategori grupları yalnız gezinme görünümünde birleştirilmiştir; 19.096 ürün, barkodlar, stok, satış ve ham kategori alanları silinmez. Satış, QR engelleme, fiş yazdırma ve Excel katalog değişmemiştir.
+
+## v3.3 — Ürün yönetimi ve güvenli pasif arşiv
+
+- Ana ve alt kategori kartlarında görselin altında kategori adı görünür; alt kategoride mevcut ürün fotoğrafları varsa onlar kullanılır, yoksa SVG çizimi korunur.
+- Ayarlar → **Yeni Ürün Ekle** veya **Ürün Yönetimi**: barkodla/elle ekle, marka, ana/alt kategori, fiyat, alış fiyatı, stok, birim, görsel URL veya sıkıştırılmış fotoğraf, KDV oranı %0/%1/%10/%20; girilen fiyat varsayılan **KDV dahil**, istenirse “KDV hariç fiyat giriyorum” seçilir.
+- Ürünler **Aktif**, **Ana Pasif**, **Aktif Sonrası Pasif**, **Silinen** olarak dört ayrı mantıksal listede tutulur; ürün ve satış kayıtları fiziksel olarak dosyalara bölünmez. Aktif edilen ürünün daha sonra pasife alınması eski ana pasif havuzuna dönmesine yol açmaz.
+- **Tüm Aktif Ürünleri Ana Pasife Al** işlemi yalnızca Ayarlar üzerinden, iki ayrı onay sonrasında **bir kere** çalıştırılabilir; otomatik çalışmaz ve satış geçmişini silmez. Önce JSON ürün yedeği indirilmesi önerilir. Hâlihazırda aktifleştirilmiş ürün varsa ilk toplu işlemde ayrıca “Aktif Sonrası Pasif” durumuna geçirilir.
+- Barkod okutulduğunda pasif ürün için “Aktifleştir ve Satışa Ekle” veya “Önce Ürünü Düzenle” sorulur. Silinen ürünler doğrudan satılamaz; yönetimden pasife geri yüklenebilir.
+- Değişiklikler IndexedDB'de işlem geçmişiyle saklanır. Kurulu katalog güncellendiğinde pasif/silinen durum bilgileri korunur. İçe aktarımla aynı kimliğe gelen ürünün eski durumu da korunur.
+- **Önemli:** Yerel IndexedDB verileri cihaz/tarayıcı bazındadır; cihazlar arası otomatik senkronizasyon veya sunucuya yedekleme bu sürümde yoktur. Tek cihazdaki 19 bin ürünün pasif durumunu başka cihazın otomatik görmesi beklenmemelidir. Toplu pasife alma öncesinde JSON yedeği indirin.
+- Görseller yerel fotoğraf olarak yüklendiyse en fazla 512 piksele küçültülüp cihaz veritabanına kaydedilir; aynı görsel başka cihazda otomatik belirmez.
