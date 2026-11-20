@@ -1,6 +1,6 @@
 {
   "name": "cep-hizli-satis-pwa",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "private": true,
   "type": "module",
   "description": "Cloudflare Pages + Functions based offline-first Turkish mobile point of sale",

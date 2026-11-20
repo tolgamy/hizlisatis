@@ -492,8 +492,15 @@ function updatePayment() {
 }
 function renderAll() { renderHome(); renderFilters(); renderProducts(); renderCartBar(); setSyncStatus(); updateNavigation(); if (dom.cartDialog.open) renderCart(); }
 function exactProduct(raw) {
-  const code = raw.trim();
-  return state.byBarcode.get(code) || state.products.find(p => p.urunKodu && fold(p.urunKodu) === fold(code));
+  const code = String(raw ?? '').trim().replace(/[\r\n\t]/g, '');
+  const choices = [code];
+  // Some scanners return UPC-A (12 digits) and others EAN-13 (leading zero).
+  if (/^\d{12}$/.test(code)) choices.push('0' + code);
+  if (/^0\d{12}$/.test(code)) choices.push(code.slice(1));
+  for (const barcode of choices) {
+    if (state.byBarcode.has(barcode)) return state.byBarcode.get(barcode);
+  }
+  return state.products.find(p => p.urunKodu && fold(p.urunKodu) === fold(code));
 }
 async function syncCatalog(force = false, quiet = false) {
   if (state.syncing) return;
@@ -790,93 +797,161 @@ function chirp() {
 }
 let lastScanText = '', lastScanTime = 0;
 function scanned(raw) {
-  const text = String(raw).trim();
+  const value = String(raw ?? '').trim();
+  if (!value) return;
   const now = Date.now();
-  if (text === lastScanText && now - lastScanTime < 1500) return;
-  lastScanText = text; lastScanTime = now;
-  const product = exactProduct(text);
-  if (product) {
-    if (addToCart(product)) { chirp(); dom.scanMessage.textContent = `${product.baslik} sepete eklendi ✓`; }
-  } else { dom.scanMessage.textContent = `${text} barkodu katalogda bulunamadı.`; }
+  if (value === lastScanText && now - lastScanTime < 1300) return;
+  lastScanText = value; lastScanTime = now;
+  const product = exactProduct(value);
+  if (!product) {
+    dom.scanMessage.textContent = 'Barkod okundu (' + value + '), ancak katalogda ürün bulunamadı.';
+    return;
+  }
+  if (addToCart(product)) {
+    chirp();
+    $('scanManualBarcode').value = '';
+    dom.scanMessage.textContent = product.baslik + ' sepete eklendi ✓';
+  } else {
+    dom.scanMessage.textContent = product.baslik + ': Stok veya sepet limitini kontrol edin.';
+  }
 }
 async function stopScanner() {
-  const scanner = state.scanner;
+  const session = state.scanner;
+  if (!session) return;
+  session.active = false;
   state.scanner = null;
-  if (!scanner) return;
-  scanner.active = false;
-  if (scanner.timer) clearTimeout(scanner.timer);
-  if (scanner.stream) scanner.stream.getTracks().forEach(track => track.stop());
-  if (scanner.lib) {
-    try { await scanner.lib.stop(); } catch { /* may not have started */ }
-    try { scanner.lib.clear(); } catch { /* safe cleanup */ }
+  if (session.timer) clearTimeout(session.timer);
+  if (session.stream) session.stream.getTracks().forEach(track => track.stop());
+  if (session.lib) {
+    try { await session.lib.stop(); } catch { /* not started or photo mode */ }
+    try { session.lib.clear(); } catch { /* already cleared */ }
   }
-  const video = $('scanVideo'); video.pause(); video.srcObject = null;
+  const video = $('scanVideo');
+  video.pause();
+  video.srcObject = null;
 }
+let qrLibraryPromise;
 function ensureQrLibrary() {
   if (window.Html5Qrcode) return Promise.resolve();
-  return new Promise((resolve, reject) => {
+  if (qrLibraryPromise) return qrLibraryPromise;
+  qrLibraryPromise = new Promise((resolve, reject) => {
     const script = document.createElement('script');
     script.src = '/vendor/html5-qrcode.min.js';
-    script.onload = () => window.Html5Qrcode ? resolve() : reject(new Error('Barkod kütüphanesi bulunamadı.'));
-    script.onerror = () => reject(new Error('Yedek barkod modülü yüklenemedi.'));
-    document.head.append(script);
-  });
-}
-async function startScanner() {
-  if (!navigator.mediaDevices?.getUserMedia) {
-    dom.scanMessage.textContent = 'Tarayıcı kamera desteği sağlamıyor. HTTPS üzerinden açın.'; return;
-  }
-  await stopScanner();
-  const session = { active: true, stream: null, lib: null, timer: null };
-  state.scanner = session;
-  dom.scanMessage.textContent = 'Kamera başlatılıyor...';
-  $('scanVideo').style.display = '';
-  $('html5-reader').style.display = 'none';
-  try {
-    if (!('BarcodeDetector' in window)) throw new Error('Yerel barkod algılayıcı desteklenmiyor.');
-    const supported = typeof BarcodeDetector.getSupportedFormats === 'function' ?
-      await BarcodeDetector.getSupportedFormats() : [];
-    const preferred = ['ean_13','ean_8','upc_a','upc_e','code_128','code_39','qr_code'];
-    const formats = preferred.filter(format => supported.includes(format));
-    if (!formats.length) throw new Error('Yaygın barkod biçimleri desteklenmiyor.');
-    const detector = new BarcodeDetector({ formats });
-    session.stream = await navigator.mediaDevices.getUserMedia({
-      audio: false, video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 } }
-    });
-    if (!session.active) { session.stream.getTracks().forEach(t => t.stop()); return; }
-    const video = $('scanVideo'); video.srcObject = session.stream;
-    await video.play();
-    dom.scanMessage.textContent = 'Barkodu yeşil alanın içine hizalayın.';
-    const scanFrame = async () => {
-      if (!session.active) return;
-      try {
-        if (video.readyState >= 2) {
-          const detections = await detector.detect(video);
-          if (detections?.[0]?.rawValue) scanned(detections[0].rawValue);
-        }
-      } catch { /* transient frame decode error */ }
-      if (session.active) session.timer = setTimeout(scanFrame, 160);
+    script.onload = () => window.Html5Qrcode ? resolve() : reject(new Error('Barkod okuyucu kütüphanesi bulunamadı.'));
+    script.onerror = () => {
+      script.remove();
+      reject(new Error('Barkod modülü yüklenemedi.'));
     };
-    scanFrame();
-  } catch (nativeError) {
-    if (session.stream) session.stream.getTracks().forEach(t => t.stop());
-    session.stream = null;
+    document.head.append(script);
+  }).catch(error => { qrLibraryPromise = null; throw error; });
+  return qrLibraryPromise;
+}
+function cameraError(error) {
+  const name = error?.name || '';
+  const msg = String(error?.message || error || 'Bilinmeyen hata');
+  if (name === 'NotAllowedError' || /permission|denied|notallowed/i.test(msg)) return 'Kamera izni reddedildi; Safari site kamera iznini açın.';
+  if (name === 'NotFoundError' || /notfound|no camera/i.test(msg)) return 'Kamera bulunamadı.';
+  if (name === 'NotReadableError' || /notreadable|could not start video/i.test(msg)) return 'Kamera başka uygulamada açık olabilir.';
+  return msg.slice(0, 150);
+}
+function scanFormats() {
+  const supported = window.Html5QrcodeSupportedFormats || {};
+  return ['EAN_13', 'EAN_8', 'UPC_A', 'UPC_E', 'CODE_128', 'CODE_39', 'ITF', 'CODABAR', 'QR_CODE']
+    .map(name => supported[name]).filter(item => item != null);
+}
+async function startNativeScanner(session) {
+  if (!('BarcodeDetector' in window)) throw new Error('Native okuyucu desteklenmiyor.');
+  const supported = await BarcodeDetector.getSupportedFormats();
+  const formats = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'itf', 'qr_code']
+    .filter(format => supported.includes(format));
+  if (!formats.length) throw new Error('Uygun native barkod biçimi yok.');
+  const detector = new BarcodeDetector({ formats });
+  session.stream = await navigator.mediaDevices.getUserMedia({
+    audio: false, video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
+  });
+  if (!session.active) { session.stream.getTracks().forEach(track => track.stop()); return; }
+  const video = $('scanVideo');
+  $('html5-reader').style.display = 'none';
+  video.style.display = 'block';
+  video.srcObject = session.stream;
+  await video.play();
+  dom.scanMessage.textContent = 'Alternatif okuyucu açık. Barkodu hizalayın.';
+  const scanFrame = async () => {
     if (!session.active) return;
     try {
-      await ensureQrLibrary();
-      if (!session.active) return;
-      $('scanVideo').style.display = 'none';
-      $('html5-reader').style.display = 'block';
-      const scanner = new window.Html5Qrcode('html5-reader', { verbose: false });
-      session.lib = scanner;
-      await scanner.start({ facingMode: 'environment' },
-        { fps: 12, qrbox: { width: 250, height: 120 }, aspectRatio: 1.7778 },
-        decoded => scanned(decoded), () => {});
-      dom.scanMessage.textContent = 'Yedek okuyucu etkin. Barkodu hizalayın.';
-    } catch (fallbackError) {
-      dom.scanMessage.textContent = `Kamera başlatılamadı: ${fallbackError.message}`;
-      announce('Kamera iznini ve HTTPS bağlantısını kontrol edin.', 'error');
+      if (video.readyState >= 2) {
+        const detections = await detector.detect(video);
+        if (detections?.[0]?.rawValue) scanned(detections[0].rawValue);
+      }
+    } catch { /* one frame may fail */ }
+    if (session.active) session.timer = setTimeout(scanFrame, 180);
+  };
+  scanFrame();
+}
+async function startScanner() {
+  await stopScanner();
+  if (!dom.scanDialog.open) return;
+  if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
+    dom.scanMessage.textContent = 'Kamera erişimi yok. HTTPS üzerinden Safari/Chrome kullanın veya barkodu elle yazın.';
+    return;
+  }
+  const session = { active: true, stream: null, lib: null, timer: null };
+  state.scanner = session;
+  dom.scanMessage.textContent = 'Arka kamera açılıyor. İzin sorulursa onaylayın.';
+  $('scanVideo').style.display = 'none';
+  $('html5-reader').style.display = 'block';
+  try {
+    await ensureQrLibrary();
+    if (!session.active) return;
+    const formats = scanFormats();
+    const lib = new window.Html5Qrcode('html5-reader', {
+      verbose: false,
+      ...(formats.length ? { formatsToSupport: formats } : {}),
+      useBarCodeDetectorIfSupported: false
+    });
+    session.lib = lib;
+    // Use the full camera frame for long EAN/UPC barcodes; don't crop to a small QR region.
+    await lib.start({ facingMode: 'environment' },
+      { fps: 12, disableFlip: true },
+      code => { if (session.active) scanned(code); }, () => {});
+    if (!session.active) { try { await lib.stop(); } catch {} return; }
+    dom.scanMessage.textContent = 'Kamera açık: Barkod çizgilerinin tamamını gösterin. 15–25 cm mesafeden deneyin.';
+  } catch (error) {
+    if (!session.active) return;
+    if (session.lib) {
+      try { await session.lib.stop(); } catch {}
+      try { session.lib.clear(); } catch {}
+      session.lib = null;
     }
+    $('html5-reader').style.display = 'none';
+    try { await startNativeScanner(session); }
+    catch (otherError) {
+      if (!session.active) return;
+      dom.scanMessage.textContent = 'Kamera açılamadı: ' + cameraError(error) +
+        ' / ' + cameraError(otherError) + '. Fotoğraftan okutun veya barkodu aşağıya yazın.';
+    }
+  }
+}
+async function scanBarcodePhoto(file) {
+  if (!file) return;
+  await stopScanner();
+  dom.scanMessage.textContent = 'Fotoğraf okunuyor…';
+  $('scanVideo').style.display = 'none';
+  $('html5-reader').style.display = 'block';
+  try {
+    await ensureQrLibrary();
+    const formats = scanFormats();
+    const lib = new window.Html5Qrcode('html5-reader', {
+      verbose: false,
+      ...(formats.length ? { formatsToSupport: formats } : {}),
+      useBarCodeDetectorIfSupported: false
+    });
+    state.scanner = { active: true, lib, stream: null, timer: null };
+    const code = await lib.scanFile(file, false);
+    scanned(code);
+  } catch (error) {
+    dom.scanMessage.textContent = 'Fotoğraftaki barkod çözülemedi. Daha net fotoğraf deneyin veya barkodu elle girin. ' +
+      String(error?.message || error).slice(0, 100);
   }
 }
 
@@ -919,6 +994,15 @@ async function setup() {
     event.preventDefault(); barcodeAdd($('saleBarcode').value, $('saleBarcode'));
   });
   $('saleScanButton').addEventListener('click', openCamera);
+  $('scanRetry').addEventListener('click', startScanner);
+  $('scanManualForm').addEventListener('submit', event => {
+    event.preventDefault();
+    scanned($('scanManualBarcode').value);
+  });
+  $('scanPhotoFile').addEventListener('change', event => {
+    scanBarcodePhoto(event.target.files?.[0]);
+    event.target.value = '';
+  });
   $('detailAdd').addEventListener('click', () => {
     if (state.detailProduct && addToCart(state.detailProduct)) $('productDetailDialog').close();
   });

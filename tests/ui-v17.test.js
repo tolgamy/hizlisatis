@@ -19,7 +19,7 @@ test('v1.7 mobile navigation and sale scanner retain unique IDs', () => {
 });
 
 test('PWA offline shell remains enabled after UI upgrade', () => {
-  assert.match(sw, /cep-pos-shell-v8-/);
+  assert.match(sw, /cep-pos-shell-v\d+-/);
   assert.match(sw, /'\/app\.js'/);
   assert.match(sw, /'\/idb\.js'/);
   assert.match(sw, /'\/bundled-catalog\.js'/);
