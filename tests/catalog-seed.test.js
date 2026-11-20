@@ -20,37 +20,49 @@ test('catalogue import requires an actual DB binding',async()=>{
  const response=await onRequest({request:request(),env:{PRODUCT_WRITE_KEY:secret}});
  assert.equal(response.status,503);
 });
-test('catalogue import reads bundled Pages assets and never overwrites existing DB rows',async()=>{
- const sqls=[];
- const manifest={schema:1,version:'7f27e3a60ef04e77',count:19096,
-  parts:Array.from({length:20},(_,i)=>'/catalog/products-7f27e3a60ef04e77-'+String(i+1).padStart(2,'0')+'.json')};
+test('catalogue import uses DB without ASSETS and preserves previously edited rows',async()=>{
+ const statements=[];
  const p=['8692095346327','d7438852-0bd6-4877-8aad-834d3cdabb55','Test ürünü','Test','Manav > Sebze',22.1,1,'','TRY'];
  const db={
-  prepare(sql){return {sql,bind(...params){return {sql,params}},first:async()=>({n:0})}},
-  async batch(items){sqls.push(...items);}
+  prepare(sql){return {sql,bind(...params){return {sql,params}},first:async()=>sql.includes('COUNT(*)')?{n:0}:null}},
+  async batch(items){statements.push(...items);}
  };
- const env={DB:db,PRODUCT_WRITE_KEY:secret,ASSETS:{
-  async fetch(ask){
-   const path=new URL(ask.url).pathname;
-   return Response.json(path==='/catalog/manifest.json'?manifest:[p]);
-  }
- }};
- const page=await onRequest({request:request('POST',{part:0,offset:0}),env});
+ const env={DB:db,PRODUCT_WRITE_KEY:secret};
+ const status=await onRequest({request:request(),env});
+ assert.equal(status.status,200,'DB read must succeed without ASSETS');
+ assert.deepEqual(await status.json(),{count:0,ready:false});
+ const page=await onRequest({request:request('POST',{
+   part:0,offset:0,rows:[p],partTotal:1,version:'7f27e3a60ef04e77'
+ }),env});
  assert.equal(page.status,200);
  const result=await page.json();
  assert.equal(result.count,1);
+ assert.equal(result.nextOffset,1);
  assert.equal(result.partComplete,true);
- assert.equal(sqls.length,1);
- assert.match(sqls[0].sql,/ON CONFLICT\(id\) DO NOTHING/);
+ assert.equal(statements.length,1);
+ assert.match(statements[0].sql,/ON CONFLICT\\(id\\) DO NOTHING/);
 });
 
+test('catalogue import rejects invalid batch and mismatched source version',async()=>{
+ const env={PRODUCT_WRITE_KEY:secret,DB:{
+  prepare(){throw Error('No writes expected');},batch(){throw Error('No writes expected');}
+ }};
+ const mismatch=await onRequest({request:request('POST',{
+    version:'invalid',part:0,offset:0,partTotal:1,rows:[['x']]
+ }),env});
+ assert.equal(mismatch.status,409);
+ const invalid=await onRequest({request:request('POST',{
+    version:'7f27e3a60ef04e77',part:0,offset:0,partTotal:1,rows:[['x']]
+ }),env});
+ assert.equal(invalid.status,400);
+});
 
 test('UTF-8 Turkish administrator key is accepted through an ASCII-only request header',async()=>{
  const turkishKey='Şifre_ıöçğüş_Özel$Anahtar_987654321';
  const env={PRODUCT_WRITE_KEY:turkishKey,DB:{
   prepare(sql){return {first:async()=>sql.includes('COUNT(*)')?{n:0}:null};},
   async batch(){return [];}
- },ASSETS:{fetch:async()=>Response.json({})}};
+ }};
  const response=await onRequest({request:request('GET',null,turkishKey),env});
  assert.equal(response.status,200);
  const result=await response.json();
