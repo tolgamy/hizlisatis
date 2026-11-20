@@ -68,3 +68,9 @@ Ağ/AirPrint için fiş 80 mm (tercihe göre 58 mm) genişlikte ayrı bir önizl
 - Ürün yaşam döngüsü durumları katalogdan bağımsız `productLifecycle` IndexedDB deposuna da atomik kaydedilir. Eski durumlar veritabanı yükseltmesi sırasında taşınır ve Excel içe aktarımında korunur.
 - Barkod kamerası html5-qrcode kütüphanesinin farklı global adlarını destekler. Kamera seçimi başarısız olursa arka kameranın aygıt kimliğiyle yeniden denenir. QR kodu okuma desteklenen biçimler arasına eklenmez.
 - Çevrimdışı PWA kabuğunun sürümü yenilendi. Cihaz verileri yalnızca aynı tarayıcı/profilde korunur; gizli modda veya farklı cihazda otomatik senkronize olmaz.
+
+## v3.3.3 — Pasif durum yedekleme ve kayıt doğrulama
+- Kaydedilen ürün durumu veritabanından tekrar okunarak doğrulanır, kayıt hatası başarı olarak bildirilmez.
+- İlk toplu pasife alma sonrası durumlar ikinci bir tarayıcı yerel yedeğine alınır; tek ürünün sonraki değişiklikleri bu büyük yedekten bağımsız saklanır.
+- Sayfa açılışında bu yedekteki yeni durumlar, veritabanındaki eski ürün durumlarını düzeltebilir. Bu, cihazdan cihaza senkronizasyon değildir ve tarayıcı verileri temizlenirse yedek kaybolabilir.
+- PWA önbellek sürümü yenilendi. Önceki tek sürüme bağlı Pages preview adresleri otomatik yeni dağıtıma geçmeyebilir; ana alan adı kullanılmalıdır.

@@ -1,3 +1,5 @@
+import { overlayLifecycleBackup } from './lifecycle-backup.js';
+
 const DB_NAME = 'cep-hizli-satis-db';
 const DB_VERSION = 4;
 let singleton;
@@ -75,7 +77,7 @@ export async function getSnapshot() {
   const [stored, stock, statuses, bundled, imported, firstPass] =
     await Promise.all([products, adjustments, lifecycle, bundledMeta, excelMeta, lifecycleMeta]);
   const ledger = new Map(statuses.map(row => [row.id, row]));
-  const catalog = stored.map(product => mergeProductLifecycle(product, ledger.get(product.id)));
+  const catalog = overlayLifecycleBackup(stored.map(product => mergeProductLifecycle(product, ledger.get(product.id))));
   return { products: catalog, adjustments: stock, meta: null,
     excelCount: catalog.filter(p => p.source !== 'bundle').length,
     bundleCount: catalog.filter(p => p.source === 'bundle').length,

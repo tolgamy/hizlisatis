@@ -3,6 +3,7 @@ import { productCategoryPath } from './category-menu.js';
 import { parseLocaleNumber, safeImageUrl } from './normalize.js';
 import { getSnapshot, getManagedProductHistory, saveManagedProduct, initiallyDeactivateAll } from './idb.js';
 import { PRODUCT_STATUS, productStatus, isActive, countStatuses, nextProductStatus, priceWithVat } from './product-lifecycle.js';
+import { rememberProductStatus, rememberBulkStatuses } from './lifecycle-backup.js';
 
 const $ = id => document.getElementById(id);
 const text = value => String(value ?? '');
@@ -166,7 +167,12 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
   async function persist(product,action) {
     try {
       await serializeMutation(()=>saveManagedProduct(product,action));
-      await refresh();
+      const snapshot=await refresh();
+      const verified=snapshot.products.find(item=>item.id===product.id);
+      if(!verified || productStatus(verified)!==productStatus(product))
+        throw Error('Kaydedilen ürün durumu yeniden okunamadı. Ürün değiştirilmedi.');
+      if(!rememberProductStatus(product))
+        announce('Ürün veritabanına kaydedildi, ancak ek tarayıcı yedeği oluşturulamadı.','error');
       channel?.postMessage('product-managed');
       if(product.lifecycleStatus==='active')filter='active';
       else filter=product.lifecycleStatus;
@@ -238,7 +244,11 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
     try{
       const updated={...product,lifecycleStatus:'active',everActivated:true,source:'excel',statusChangedAt:now()};
       await serializeMutation(()=>saveManagedProduct(updated,'scan-activate'));
-      await refresh(); channel?.postMessage('product-activated');
+      const snapshot=await refresh();
+      if(productStatus(snapshot.products.find(item=>item.id===product.id))!=='active')
+        throw Error('Aktif durumu kalıcı olarak doğrulanamadı.');
+      rememberProductStatus(updated);
+      channel?.postMessage('product-activated');
       activationDialog.close();pendingSale=null;
       announce('Ürün aktifleştirildi.','success');
       addAfter?.(state.byId.get(product.id));
@@ -254,7 +264,12 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
     $('manageBulkDeactivate').disabled=true;
     try{
       const count=await serializeMutation(()=>initiallyDeactivateAll());
-      await refresh();channel?.postMessage('bulk-deactivated');filter='initial-inactive';
+      const snapshot=await refresh();
+      if(count > 0 && snapshot.products.filter(item=>productStatus(item)!=='active').length<count)
+        throw Error('Toplu pasife alma kontrolü başarısız. Lütfen yeniden yüklemeden önce yedek alın.');
+      if(!rememberBulkStatuses(snapshot.products))
+        announce('Toplu işlem kaydedildi ancak ek tarayıcı yedeği oluşturulamadı. JSON yedeği indirin.','error');
+      channel?.postMessage('bulk-deactivated');filter='initial-inactive';
       countsView();announce(count.toLocaleString('tr-TR')+' ürün ana pasife alındı.','success');
     }catch(error){announce('Toplu işlem başarısız: '+error.message,'error');}
     finally{$('manageBulkDeactivate').disabled=false;}

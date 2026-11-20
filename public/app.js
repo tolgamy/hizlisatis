@@ -1043,6 +1043,7 @@ async function refreshManagedData() {
   const snapshot=await getSnapshot();
   setCatalog(snapshot.products,snapshot.adjustments,snapshot.meta,
     snapshot.excelCount,snapshot.bundleCount,snapshot.lifecycleMeta);
+  return snapshot;
 }
 async function setup() {
   productManager=createProductManager({
