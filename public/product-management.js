@@ -288,14 +288,15 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
         throw Error('Merkezi veritabanında zaten kayıt var. Otomatik üzerine yazma güvenlik için engellendi.');
       }
       const changed=local.products.filter(p=>p.source!=='bundle'||
-        (p.lifecycleStatus&&p.lifecycleStatus!=='active'&&p.lifecycleStatus!=='initial-inactive')||
+        (p.lifecycleStatus&&p.lifecycleStatus!=='active'&&
+         !(p.lifecycleStatus==='initial-inactive'&&local.lifecycleMeta))||
         Boolean(p.everActivated));
       const total=changed.length;
       const first=remote.bulkAt===null && Boolean(local.lifecycleMeta);
       if(!first && !total)throw Error('Taşınacak yerel değişiklik bulunamadı.');
       if(!confirm('Bu cihazdaki '+total+' ürün düzenlemesi ve '+
         (first?'toplu pasif durumu':'mevcut ürün durumları')+
-        ' merkezi veritabanına aktarılacak. Önce JSON yedeği alın. Devam edilsin mi?'))return;
+        ' merkezi veritabanına aktarılacak. İşleme başlamadan önce aşağıdaki Yerel Yedek düğmesiyle yedek alın. Devam edilsin mi?'))return;
       if(first)await deactivateRemoteProducts();
       if(total)await importRemoteProducts(changed);
       const verified=await fetchRemoteProducts();
@@ -305,16 +306,25 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
       if(changed.some(p=>remoteById.get(p.id)?.lifecycleStatus !== (p.lifecycleStatus||'active')))
         throw Error('Aktarılan ürün durumları sunucudan doğrulanamadı. Eski yedeği silmeyin.');
       await refresh();
-      // Retire obsolete localStorage backups only after server verification.
-      try{
-        localStorage.removeItem('hizlisatis:product-lifecycle:bulk-v1');
-        localStorage.removeItem('hizlisatis:product-lifecycle:edits-v1');
-      }catch{/* legacy backup cleanup is optional */}
+      // Keep legacy local backups intact, even after server verification:
+      // customers can still recover them if a second device has stale edits.
       channel?.postMessage('product-migrated');
       countsView();
       announce('Yerel ürün değişiklikleri sunucuya aktarıldı.','success');
     }catch(error){announce('Taşıma başarısız: '+error.message,'error');}
     finally{button.disabled=false;}
+  }
+  async function exportLocalBackup() {
+    try {
+      const local=await getLocalSnapshot();
+      const blob=new Blob([JSON.stringify({exportedAt:now(),source:'device',
+        ...local})],{type:'application/json'});
+      const url=URL.createObjectURL(blob),a=document.createElement('a');
+      a.href=url;a.download='hizlisatis-eski-cihaz-yedegi.json';
+      document.body.append(a);a.click();a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),5000);
+      announce('Eski cihaz yedeği oluşturuldu. Dosyayı güvenli yerde saklayın.','success');
+    }catch(error){announce('Yerel yedek indirilemedi: '+error.message,'error');}
   }
   function exportBackup() {
     const payload={exportedAt:now(),products:state.products};
@@ -329,6 +339,9 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
     button.textContent='Eski Cihaz Kayıtlarını Veritabanına Taşı';
     $('manageExportBackup').after(button);
     button.addEventListener('click',migrateLocalData);
+    const backup=document.createElement('button');
+    backup.type='button';backup.textContent='Eski Cihaz Yedeğini İndir (JSON)';
+    button.after(backup);backup.addEventListener('click',exportLocalBackup);
     $('manageNew').addEventListener('click',()=>editProduct());
     $('manageBulkDeactivate').addEventListener('click',bulkDeactivate);
     $('manageExportBackup').addEventListener('click',exportBackup);
