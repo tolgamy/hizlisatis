@@ -12,27 +12,23 @@ jobs:
         run: |
           node <<'NODE'
           const root='https://hizlisatis.pages.dev/api/product-state';
-          for(const suffix of ['?health=1','?after=']){
+          let cursor='',total=0;
+          for(let page=0;page<40;page++){
             try{
-              const response=await fetch(root+suffix, {signal:AbortSignal.timeout(20000)});
+              const response=await fetch(root+'?after='+encodeURIComponent(cursor),{
+                signal:AbortSignal.timeout(20000)});
               const txt=await response.text();
-              let data=null;
-              try{data=JSON.parse(txt)}catch{}
-              console.log(JSON.stringify({
-                endpoint:suffix,status:response.status,
-                bytes:new TextEncoder().encode(txt).length,
-                contentType:response.headers.get('content-type'),
-                items:Array.isArray(data?.products)?data.products.length:null,
-                hasNext:Boolean(data?.next),error:data?.error||null,
-                count:data?.count||null
-              }));
-              if(suffix==='?after=' && response.ok && data?.next){
-                const next=await fetch(root+'?after='+encodeURIComponent(data.next),{signal:AbortSignal.timeout(20000)});
-                const second=await next.json().catch(()=>null);
-                console.log(JSON.stringify({endpoint:'second_page',status:next.status,
-                  items:Array.isArray(second?.products)?second.products.length:null,
-                  hasNext:Boolean(second?.next),error:second?.error||null}));
-              }
-            }catch(e){console.log(JSON.stringify({endpoint:suffix,error:String(e?.message||e)}))}
+              let data=null;try{data=JSON.parse(txt)}catch{}
+              const n=Array.isArray(data?.products)?data.products.length:null;
+              total+=n||0;
+              console.log(JSON.stringify({page:page+1,status:response.status,
+                bytes:new TextEncoder().encode(txt).length,items:n,total,
+                hasNext:Boolean(data?.next),error:data?.error||null}));
+              if(!response.ok||n===null)process.exit(1);
+              if(!data.next){console.log('Total fetched '+total);process.exit(total>=19096?0:1)}
+              if(data.next===cursor){console.log('Repeated cursor');process.exit(1)}
+              cursor=data.next;
+            }catch(e){console.log(JSON.stringify({page:page+1,error:String(e?.message||e)}));process.exit(1)}
           }
+          process.exit(1);
           NODE
