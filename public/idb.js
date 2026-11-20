@@ -1,5 +1,5 @@
 import { overlayLifecycleBackup } from './lifecycle-backup.js';
-import { fetchRemoteProducts, saveRemoteProduct, deactivateRemoteProducts, importRemoteProducts } from './remote-products.js';
+import { fetchRemoteProducts, saveRemoteProduct, deactivateRemoteProducts, importRemoteProducts, checkRemoteProductStates } from './remote-products.js';
 
 const DB_NAME = 'cep-hizli-satis-db';
 const DB_VERSION = 4;
@@ -199,6 +199,14 @@ export async function upsertExcelProducts(products, filename) {
 }
 
 export async function saveSale(record) {
+  // Refresh server state before sale. Local lifecycle flags may be stale on a
+  // second phone and must not override D1.
+  const current=await checkRemoteProductStates(record.items.map(item=>item.id));
+  for(const item of record.items) {
+    const product=current.products.get(item.id);
+    const status=product?.lifecycleStatus||(current.bulkAt?'initial-inactive':'active');
+    if(status!=='active')throw Error('Ürün artık aktif değil. Listeyi yenileyin.');
+  }
   const db=await openDB();
   return new Promise((resolve,reject)=>{
     const tx=db.transaction(['sales','adjustments','excelProducts'],'readwrite');
@@ -210,8 +218,9 @@ export async function saveSale(record) {
     for(const item of record.items) {
       const productReq=catalog.get(item.id);
       productReq.onsuccess=()=>{
-        const product=productReq.result;
-        if(!product || product.lifecycleStatus && product.lifecycleStatus !== 'active') {tx.abort();return;}
+        const product=current.products.get(item.id)||productReq.result;
+        if(!product) {tx.abort();return;}
+        if(!productReq.result)catalog.put(product);
         const stockReq=stock.get(item.id);
         stockReq.onsuccess=()=>{
           const sold=stockReq.result?.soldQuantity||0;
