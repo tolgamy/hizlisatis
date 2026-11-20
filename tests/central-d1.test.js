@@ -15,7 +15,7 @@ function mockDb(){
      sql,
      bind(...args){return {sql,args,
        first:async()=>({value:'19096'}),all:async()=>({results:[]})}},
-     first:async()=>sql.includes('COUNT(*)')?{count:19096}:{value:sql.includes('catalog_seed_count')?'19096':null},
+     first:async()=>sql.includes('COUNT(*)')?{count:19096}:(sql.includes('catalog_seed_count')?{value:'19096'}:null),
      all:async()=>({results:[]})
    }},
    batch:async(items)=>{batches.push(items);return []}
