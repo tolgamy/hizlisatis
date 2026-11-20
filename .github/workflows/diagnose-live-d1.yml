@@ -12,6 +12,22 @@ jobs:
         run: |
           node <<'NODE'
           const root='https://hizlisatis.pages.dev/api/product-state';
+          let deployed=false;
+          for(let attempt=1;attempt<=15;attempt++){
+            try{
+              const html=await (await fetch('https://hizlisatis.pages.dev/index.html',
+                {signal:AbortSignal.timeout(12000)})).text();
+              const api=await (await fetch(root+'?after=',{
+                signal:AbortSignal.timeout(12000)})).json();
+              const htmlReady=html.includes('Mobil POS · v3.4.1');
+              const serverReady=api.expected===19096 && api.products?.length===1000;
+              console.log(JSON.stringify({attempt,htmlReady,serverReady,
+                apiExpected:api.expected||null,pageSize:api.products?.length||null}));
+              if(htmlReady&&serverReady){deployed=true;break}
+            }catch(e){console.log('deploy check',attempt,String(e.message||e))}
+            await new Promise(resolve=>setTimeout(resolve,5000));
+          }
+          if(!deployed){console.error('Mobile D1 v3.4.1 not confirmed on Production');process.exit(1)}
           let cursor='',total=0;
           for(let page=0;page<40;page++){
             try{
