@@ -1,4 +1,4 @@
-import {validAdminKey,makeSessionCookie,clearSessionCookie,allowAdminRequestOrigin} from './_admin-auth.js';
+import {validAdminKey,makeSessionCookie,clearSessionCookie,allowAdminRequestOrigin} from '../../lib/admin-auth.js';
 const shared={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'};
 export async function onRequestPost({request,env}) {
   if(!allowAdminRequestOrigin(request))return Response.json({error:'İzin verilmeyen kaynak.'},{status:403,headers:shared});
