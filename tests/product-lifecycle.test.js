@@ -9,7 +9,7 @@ test('legacy products remain active until initial mass action is explicitly appr
   const idb=readFileSync(new URL('../public/idb.js',import.meta.url),'utf8');
   const ui=readFileSync(new URL('../public/product-management.js',import.meta.url),'utf8');
   assert.match(idb,/export async function initiallyDeactivateAll/);
-  assert.match(ui,/prompt\('Güvenlik onayı: PASİF yazın'\)/);
+  assert.match(ui,/authorizePassiveAction\(\)/);
   assert.doesNotMatch(readFileSync(new URL('../public/app.js',import.meta.url),'utf8'),/initiallyDeactivateAll\(/);
 });
 test('initially inactive -> active -> later inactive never returns to initial pool',()=>{
