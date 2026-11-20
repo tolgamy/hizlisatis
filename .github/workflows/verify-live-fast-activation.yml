@@ -1,0 +1,38 @@
+name: Verify live fast activation without modifying products
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/verify-live-fast-activation.yml'
+jobs:
+  check-production:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check v3.4.2 and protected D1 writes on Production
+        run: |
+          node <<'NODE'
+          const base='https://hizlisatis.pages.dev';
+          let success=false;
+          for(let attempt=1;attempt<=30;attempt++){
+            try{
+              const html=await (await fetch(base+'/',{signal:AbortSignal.timeout(12000)})).text();
+              const health=await (await fetch(base+'/api/product-state?health=1',{
+                signal:AbortSignal.timeout(12000)})).json();
+              const unauthorized=await fetch(base+'/api/admin-session',{
+                method:'POST',headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({key:'definitely-not-the-secret'}),
+                signal:AbortSignal.timeout(12000)
+              });
+              const ready=html.includes('Mobil POS · v3.4.2') &&
+                health.ready===true&&health.count>=19096&&
+                unauthorized.status===401;
+              console.log(JSON.stringify({attempt,pageV342:html.includes('Mobil POS · v3.4.2'),
+                centralHealthy:health.ready===true,productCount:health.count||0,
+                rejectedWrongKey:unauthorized.status===401}));
+              if(ready){success=true;break;}
+            }catch(error){console.log('Attempt '+attempt+' failed: '+String(error.message||error))}
+            await new Promise(resolve=>setTimeout(resolve,5000));
+          }
+          if(!success)process.exit(1);
+          console.log('LIVE v3.4.2 and secured admin endpoint confirmed. No products mutated.');
+          NODE
