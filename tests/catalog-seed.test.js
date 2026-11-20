@@ -1,3 +1,5 @@
+import {readFileSync} from 'node:fs';
+import {Script} from 'node:vm';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { onRequest } from '../functions/api/catalog-seed.js';
@@ -81,4 +83,13 @@ test('short/missing production secret explains Cloudflare configuration instead 
  const short=await onRequest({request:request('GET',null,'a-long-enough-user-entered-key'),env:{PRODUCT_WRITE_KEY:'123456789'}});
  assert.equal(short.status,503);
  assert.match((await short.json()).error,/Production/);
+});
+
+test('admin import inline JavaScript parses and validates static catalog URLs',()=>{
+ const html=readFileSync(new URL('../public/admin-import.html',import.meta.url),'utf8');
+ const inline=html.match(/<script type="module">([\\s\\S]*?)<\\/script>/)?.[1];
+ assert.ok(inline,'inline importer module must exist');
+ assert.doesNotThrow(()=>new Script(inline),'client-side code must be syntactically valid');
+ assert.match(inline,/partTotal:rows.length/);
+ assert.match(inline,/part,offset,rows:batch/);
 });
