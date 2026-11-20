@@ -92,26 +92,22 @@ export async function getLocalSnapshot() {
  * Legacy local statuses can be read with getLocalSnapshot solely for migration.
  */
 export async function getSnapshot() {
-  const local=await getLocalSnapshot();
-  const remote=await fetchRemoteProducts(); // Must succeed: do not silently fall back to local state.
-  if(!remote.bulkAt && local.lifecycleMeta) {
-    throw Error('Bu cihazda eski toplu pasif kayıtları var ama sunucuya aktarılmamış. Ayarlar > Ürün Yönetimi > Eski Cihaz Kayıtlarını Veritabanına Taşı.');
-  }
-  const merged=new Map(local.products.map(product=>[product.id,{
-    ...product,
-    lifecycleStatus:remote.bulkAt?'initial-inactive':'active',
-    everActivated:false,deletedFrom:null,statusChangedAt:remote.bulkAt||null
-  }]));
-  for(const product of remote.products) {
-    merged.set(product.id,{...(merged.get(product.id)||{
-      lifecycleStatus:remote.bulkAt?'initial-inactive':'active',
-      everActivated:false,deletedFrom:null,statusChangedAt:remote.bulkAt||null
-    }),...product});
-  }
-  const products=[...merged.values()];
-  return {...local,products,excelCount:products.filter(p=>p.source!=='bundle').length,
+  // Products are *only* loaded from D1. Device files are kept for sales,
+  // stock adjustments, and explicit migration; never blended into catalog.
+  const [local,remote]=await Promise.all([getLocalSnapshot(),fetchRemoteProducts()]);
+  if(remote.products.length<19096)
+    throw Error('Merkezi D1 kataloğu eksik görünüyor. Yerel ürünler otomatik yüklenmedi.');
+  const products=remote.products.map(p=>({
+    ...p,
+    lifecycleStatus:p.lifecycleStatus||(remote.bulkAt?'initial-inactive':'active'),
+    everActivated:Boolean(p.everActivated)
+  }));
+  return {...local,products,
+    excelCount:products.filter(p=>p.source!=='bundle').length,
     bundleCount:products.filter(p=>p.source==='bundle').length,
-    lifecycleMeta:remote.bulkAt?{at:remote.bulkAt}:null};
+    lifecycleMeta:remote.bulkAt?{at:remote.bulkAt}:null,
+    legacyPending:Boolean(local.lifecycleMeta||local.products.some(p=>
+      p.source!=='bundle'||p.everActivated||(p.lifecycleStatus&&p.lifecycleStatus!=='active')))};
 }
 
 /** Atomically replace only bundled products and remove the deprecated XML store.
@@ -210,7 +206,8 @@ export async function saveSale(record) {
   const current=await checkRemoteProductStates(record.items.map(item=>item.id));
   for(const item of record.items) {
     const product=current.products.get(item.id);
-    const status=product?.lifecycleStatus||(current.bulkAt?'initial-inactive':'active');
+    if(!product)throw Error('Ürün merkezi veritabanında bulunamadı. Listeyi yenileyin.');
+    const status=product.lifecycleStatus||(current.bulkAt?'initial-inactive':'active');
     if(status!=='active')throw Error('Ürün artık aktif değil. Listeyi yenileyin.');
   }
   const db=await openDB();
@@ -250,8 +247,10 @@ export async function saveManagedProduct(product, action = 'edit') {
   // Persist to D1 first; IndexedDB below is a disposable local cache.
   const result=await saveRemoteProduct(product,action);
   product=result.product;
-  const db = await openDB();
-  return new Promise((resolve,reject) => {
+  // Server commit succeeds before any optional local cache writes.
+  try {
+    const db = await openDB();
+    await new Promise((resolve,reject) => {
     const tx=db.transaction(['excelProducts','productHistory','productLifecycle'],'readwrite');
     const store=tx.objectStore('excelProducts'), history=tx.objectStore('productHistory');
     const lifecycle=tx.objectStore('productLifecycle');
@@ -275,7 +274,11 @@ export async function saveManagedProduct(product, action = 'edit') {
       };
       else write();
     };
-  });
+    });
+  } catch(error) {
+    console.warn('Local product cache unavailable; central D1 write already succeeded:',error);
+  }
+  return result.product;
 }
 
 /** This one-time operation never deletes records and never reclassifies later-passive items. */
