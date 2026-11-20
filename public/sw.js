@@ -1,4 +1,4 @@
-const VERSION = 'cep-pos-shell-v5-category-drawer';
+const VERSION = 'cep-pos-shell-v6-category-drawer';
 const SHELL = [
   '/', '/index.html', '/styles.css', '/app.js', '/idb.js',
   '/normalize.js', '/xml-local.js', '/category-menu.js', '/xlsx-reader.js', '/excel-products.js', '/urun-yukleme-sablonu.xlsx', '/manifest.json',
