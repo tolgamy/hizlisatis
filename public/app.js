@@ -135,7 +135,9 @@ function renderProducts() {
     if (!imageHealth) return;
     imageHealth.textContent = `${linked}/${visibleItems.length} resim adresi` +
       (failedImages ? ` · ${failedImages} resim açılamadı` : '');
-    imageHealth.title = 'XML/Excel görsel bağlantıları ve yükleme durumları';
+    imageHealth.title = failedImages
+      ? 'Adresler kaydedilmiş ancak resim sunucusu bazı resimleri açmıyor. Görsele dokunarak bağlantıyı kontrol edebilirsiniz.'
+      : 'XML veya Excel ürünlerindeki resim adresi sayısı';
   };
   updateImageHealth();
   if (!items.length) {
@@ -159,19 +161,21 @@ function renderProducts() {
       <button class="add-button" type="button" ${available ? '' : 'disabled'}>${available ? '+ Ekle' : 'Tükendi'}</button></div>`;
     const image = row.querySelector('img');
     image.alt = p.gorsel ? `${p.baslik} ürün görseli` : `${p.baslik} · görsel yok`;
+    // Default/origin referrer is needed by some CDN hotlink policies.
     image.referrerPolicy = 'strict-origin-when-cross-origin';
     image.addEventListener('error', () => {
       if (image.dataset.fallback === 'yes') return;
       image.dataset.fallback = 'yes';
       if (p.gorsel) { failedImages++; updateImageHealth(); }
-      image.title = p.gorsel ? `Resim yüklenemedi: ${p.gorsel}` : 'Resim URL yok';
+      image.title = p.gorsel ? `Görsel yüklenemedi: ${p.gorsel}` : 'Üründe görsel URL yok';
       image.src = '/icons/placeholder.svg';
     });
     image.addEventListener('click', () => {
+      // The source URL can be inspected when an image host blocks embedding.
       if (p.gorsel) window.open(p.gorsel, '_blank', 'noopener,noreferrer');
     });
-    image.title = p.gorsel ? 'Resim URL bağlantısını aç' : 'Resim URL yok';
-    if (p.gorsel) image.style.cursor = 'pointer';
+    image.title = p.gorsel ? 'Görseli tam boy aç' : 'Görsel URL yok';
+    if (p.gorsel) { image.style.cursor = 'pointer'; image.tabIndex = 0; }
     image.src = p.gorsel || '/icons/placeholder.svg';
     row.querySelector('button').addEventListener('click', () => addToCart(p));
     fragment.append(row);
@@ -366,7 +370,6 @@ async function selectExcelFile(file) {
   state.excelPreview = null;
   $('confirmExcelImport').disabled = true;
   $('excelSummary').textContent = 'Excel dosyası okunuyor...';
-  $('excelSummary').classList.remove('error');
   $('excelErrors').hidden = true;
   $('excelPreview').replaceChildren();
   $('excelDialog').showModal();
@@ -428,6 +431,7 @@ async function confirmExcelImport() {
     $('confirmExcelImport').disabled = !state.excelPreview || state.excelPreview.errors.length > 0;
   }
 }
+
 async function completeSale() {
   if (state.saving || !state.cart.size) return;
   const sum = totals();

@@ -38,13 +38,11 @@ test('invalid URL, stock and price are reported without importing broken rows', 
   assert.equal(parsed.errors.length,3);
 });
 
-
-test('Excel Resim URL column D imports while older template format stays supported', () => {
-  const headers=['Ürün Kodu','Barkod','Ürün Adı','Resim URL','Marka','Kategori','Açıklama',
-    'Beden','Renk','Stok','Satış Fiyatı','Piyasa Fiyatı','KDV (%)','Para Birimi'];
-  const row=['SKU-77','00112233','Ürün 77','https://cdn.example.com/77.jpg','Marka',
-    'Gıda > Çikolata','','','','11','49,90','','20','TRY'];
-  const result=parseExcelProducts([['Yönerge'],headers,row]);
-  assert.deepEqual(result.errors,[]);
-  assert.equal(result.products[0].gorsel,'https://cdn.example.com/77.jpg');
+test('visible D-column Resim URL template imports without changing the old template support', () => {
+  const visible = ['Ürün Kodu','Barkod','Ürün Adı','Resim URL','Marka','Kategori','Açıklama','Beden','Renk','Stok','Satış Fiyatı','Piyasa Fiyatı','KDV (%)','Para Birimi'];
+  const row = ['SKU-77','00112233','Ürün 77','https://cdn.example.com/77.jpg','Marka','Kozmetik > Sabun','','','','11','49,90','','20','TRY'];
+  const imported = parseExcelProducts([['Açıklama'],visible,row]);
+  assert.deepEqual(imported.errors, []);
+  assert.equal(imported.products[0].gorsel, 'https://cdn.example.com/77.jpg');
+  assert.equal(imported.products[0].satisFiyati, 49.90);
 });

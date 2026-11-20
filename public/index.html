@@ -98,7 +98,7 @@
   <dialog id="excelDialog" class="sheet excel-sheet" aria-labelledby="excelTitle">
     <div class="sheet-header"><h2 id="excelTitle">Excel Ürün Yükleme</h2><button type="button" class="closebutton" data-close="excelDialog" aria-label="Kapat">×</button></div>
     <div class="excel-import-body">
-      <p class="hint"><strong>Resim URL: Excel şablonunun D sütunu.</strong> Dosyadaki ürünler bu cihazın yerel kataloğuna eklenir. Aynı barkoda sahip ürün güncellenir. XML ürünleri, resim URL'leri ve satış geçmişi silinmez.</p>
+      <p class="hint"><strong>Resim URL alanı Excel şablonunun D sütunundadır.</strong> Gerçek resim bağlantılarını girin. Dosyadaki ürünler bu cihazın yerel kataloğuna eklenir. Aynı barkoda sahip ürün güncellenir. XML ürünleri, resim URL'leri ve satış geçmişi silinmez.</p>
       <div id="excelSummary" class="excel-summary" role="status"></div>
       <div id="excelErrors" class="excel-errors" hidden></div>
       <div id="excelPreview" class="excel-preview"></div>
@@ -106,6 +106,7 @@
       <p class="hint">Not: Yüklenen Excel ürünleri yalnızca bu tarayıcı/cihazda saklanır; diğer cihazlara otomatik aktarılmaz.</p>
     </div>
   </dialog>
+
   <dialog id="scanDialog" class="modal" aria-labelledby="scanTitle">
     <div class="sheet-header"><h2 id="scanTitle">Barkod Okuyucu</h2><button type="button" class="closebutton" data-close="scanDialog" aria-label="Kapat">×</button></div>
     <p id="scanMessage" class="scan-message" role="status">Kameraya barkodu gösterin.</p>

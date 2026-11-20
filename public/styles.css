@@ -18,7 +18,7 @@ dialog{border:0;padding:0;color:var(--ink);background:#fff}dialog::backdrop{back
 
 .stepper input{min-width:0;width:100%;height:40px;text-align:center;border:0;background:white;font-weight:900;font-size:15px;appearance:textfield;-moz-appearance:textfield}.stepper input::-webkit-outer-spin-button,.stepper input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 
-/* Local Excel import, narrow mobile POS controls and preview */
+/* Local Excel import — narrow mobile POS controls and preview */
 .sync-actions{flex-wrap:wrap}.template-link{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;color:#fff}
 .excel-button{background:#167454;border-color:#259b74;color:#fff}
 .excel-sheet{max-height:82dvh}.excel-import-body{padding:14px 16px 24px}
@@ -29,5 +29,6 @@ dialog{border:0;padding:0;color:var(--ink);background:#fff}dialog::backdrop{back
 .excel-preview-line small{display:block;color:var(--muted);margin-top:4px;font-size:11px}
 @media(max-width:480px){.sync-actions{gap:6px}.sync-actions .smallbutton,.sync-actions .template-link{font-size:11px;padding:8px 9px}}
 
-/* XML image URL diagnostics */
+/* Image diagnostics are visible without covering the POS controls. */
 .catalog-heading{flex-wrap:wrap}.image-health{margin-left:auto;font-weight:750;color:#476d88;font-size:11px}
+.product-thumb[title]{cursor:help}

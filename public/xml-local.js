@@ -11,11 +11,12 @@ function elementText(parent, tag) {
 }
 function readImages(element) {
   if (!element) return { url: [] };
-  const containers = [...element.children].filter(node =>
+  const imageContainers = [...element.children].filter(node =>
     /^(?:Gorseller|Görseller|Resimler|Gorsel|Resim|Images|Image)$/i.test(node.localName));
   const result = [];
-  for (const container of containers) {
-    for (const node of [container,...container.getElementsByTagName('*')]) {
+  for (const container of imageContainers) {
+    const descendants = [container, ...container.getElementsByTagName('*')];
+    for (const node of descendants) {
       if (/^(?:url|src|href|Gorsel|Resim|Image)$/i.test(node.localName) &&
           ![...node.children].length && node.textContent?.trim()) {
         result.push(node.textContent.trim());
@@ -24,7 +25,6 @@ function readImages(element) {
   }
   return { url: result };
 }
-
 function nodeAsVariant(element) {
   const keys = ['Barkod', 'Stok', 'Beden', 'Renk', 'PiyasaFiyati',
     'SatisFiyati', 'KDV', 'ParaBirimi'];
