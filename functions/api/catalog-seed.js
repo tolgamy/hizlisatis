@@ -44,7 +44,12 @@ async function manifest(env,request) {
 }
 export async function onRequest({request,env}) {
   if(!['GET','POST'].includes(request.method))return respond({error:'İzin verilmeyen yöntem.'},405);
-  if(!await permitted(request,env))return respond({error:'Yönetim anahtarı yanlış.'},401);
+  // Missing/short runtime configuration is not a user's incorrect password.
+  // Pages secrets take effect only on deployments made after the secret is saved.
+  if(String(env?.PRODUCT_WRITE_KEY||'').length<24)
+    return respond({error:'Cloudflare Pages Production ortamındaki PRODUCT_WRITE_KEY bu dağıtımda tanımlı değil veya 24 karakterden kısa. Secret kaydını ve yeniden dağıtımı kontrol edin.'},503);
+  if(!await permitted(request,env))
+    return respond({error:'Girilen anahtar bu dağıtımdaki Cloudflare Production Secret ile eşleşmiyor. Secret değiştiyse yeni Production dağıtımı yapın; şifreyi bu sohbete göndermeyin.'},401);
   let db;
   try{db=provider(env);}
   catch(e){return respond({error:e.message},503);}

@@ -10,7 +10,9 @@ const request=(method='GET',body=null,key=secret)=>new Request(url,{
 });
 test('catalogue import rejects absent and incorrect administrator keys before DB access',async()=>{
  const without=await onRequest({request:request('GET',null,''),env:{}});
- assert.equal(without.status,401);
+ assert.equal(without.status,503);
+ const config=await without.json();
+ assert.match(config.error,/PRODUCT_WRITE_KEY/);
  const wrong=await onRequest({request:request('POST',{part:0,offset:0},'1453'),env:{PRODUCT_WRITE_KEY:secret}});
  assert.equal(wrong.status,401);
 });
@@ -61,4 +63,10 @@ test('Malformed percent-encoded admin header is rejected safely',async()=>{
  const bad=new Request(url,{headers:{'X-Product-Key':'%E0%A4%A'}});
  const response=await onRequest({request:bad,env:{PRODUCT_WRITE_KEY:secret}});
  assert.equal(response.status,401);
+});
+
+test('short/missing production secret explains Cloudflare configuration instead of blaming the user',async()=>{
+ const short=await onRequest({request:request('GET',null,'a-long-enough-user-entered-key'),env:{PRODUCT_WRITE_KEY:'123456789'}});
+ assert.equal(short.status,503);
+ assert.match((await short.json()).error,/Production/);
 });
