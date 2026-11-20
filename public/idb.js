@@ -113,7 +113,13 @@ async function getDeviceState() {
  */
 export async function getSnapshot(onProgress) {
   const [device,remote]=await Promise.all([
-    getDeviceState(),fetchRemoteProducts(onProgress)
+    getDeviceState().catch(error=>{
+      // The shared product catalog must remain viewable even if a browser
+      // blocks or has a damaged local sales/cache database.
+      console.warn('Local sales cache unavailable:',error);
+      return {adjustments:[],meta:null,lifecycleMeta:null,oldDeviceEdits:false,
+        localUnavailable:true};
+    }),fetchRemoteProducts(onProgress)
   ]);
   if(!remote.products.length)
     throw Error('Merkezi D1 kataloğu eksik. Eski cihaz ürünleri otomatik yüklenmedi.');
