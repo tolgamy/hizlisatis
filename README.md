@@ -88,17 +88,28 @@ Ağ/AirPrint için fiş 80 mm (tercihe göre 58 mm) genişlikte ayrı bir önizl
 
 Bu sürümde **ürün yönetimi, fiyat/KDV/kategori/görsel düzenlemeleri, aktif/pasif/silinen durumları ve toplu pasife alma** Cloudflare D1'e yazılır. Tarayıcıdaki IndexedDB **yalnız katalog/cihaz satışları için önbellek ve eski kayıtların taşınması** amacıyla kullanılır. `localStorage`'a artık **ürün durumu yazılmaz**. Merkezi API kullanılamıyorsa ürün düzenleme başarısız olur; yerel kayıt başarı gibi gösterilmez.
 
-**Önemli sınır:** Önceden yayınlanan 19.096 ürünün salt-okunur başlangıç kataloğu halen `public/catalog/` altında statik dosyalardan kurulur. **Bu ürünlerdeki her düzenleme D1'e kaydolur**; sıfırdan eklenen yeni ürünler de D1'dedir. Satış fişleri, satış geçmişi ve cihaz stok düşümleri bu sürümde hâlâ IndexedDB'dedir; henüz merkezi satış/stok senkronizasyonu yoktur. Merkezi ürün durumu için uygulama çevrimiçi olmalıdır.
+**Merkezi katalog:** Başlangıçtaki **19.096 ürünün tamamı** `npm run d1:seed` ile D1'e yüklenir. Statik `public/catalog/` dosyaları yalnızca başlangıç/çevrimdışı katalog önbelleği olarak kalır; çevrimiçi ürün verisi ve düzenlemelerde D1 önceliklidir. Ürünlerdeki her düzenleme ve yeni ürün D1'e kaydedilir. Satış fişleri, satış geçmişi ve cihaz stok düşümleri bu sürümde hâlâ IndexedDB'dedir; henüz merkezi satış/stok senkronizasyonu yoktur. Merkezi ürün durumu için uygulama çevrimiçi olmalıdır.
 
 ### Canlıya alma — D1 olmadan yayımlamayın
 
 1. Cloudflare Dashboard → **D1** → yeni veritabanı oluşturun (örneğin `hizlisatis-products`).
 2. D1 SQL Editor üzerinde `migrations/0001_product_state.sql` dosyasının içeriğini **production veritabanına** uygulayın. Şema kurulmadan API çalışmaz.
-3. Workers & Pages → **hizlisatis** → Settings → **Bindings** → D1 binding ekleyin. Değişkenin adı tam olarak **`DB`** olmalı; oluşturulan veritabanını seçin. Preview ortamında ayrı D1 veritabanı tercih edin.
-4. Settings → Variables and Secrets → secret olarak **`PRODUCT_WRITE_KEY`** tanımlayın. En az 24 karakter, güçlü ve rastgele bir değer seçin; `1453` bu sunucu anahtarı **olamaz**. İstemci koduna veya GitHub'a koymayın. İşlem PIN'i `1453` uygulamadaki ek onaydır; tek başına sunucu güvenliği sağlamaz.
-5. Bu dalı üretime almadan önce veritabanı bağlantısını ve SQL tablolarını doğrulayın. Deploy'dan sonra `/api/product-state` adresi geçerli JSON (`products`, `bulkAt`, `next`) vermeli; HTTP 503 verirse **prod'a geçmeyin**. Sunucu yönetim anahtarı, ilk yazmada sorulur ve yalnız sekme belleğinde tutulur.
-6. Daha önce bu cihazda pasife aldığınız veya düzenlediğiniz ürünleri kaybetmemek için önce **Ayarlar → Ürün Yönetimi → Ürün Yedeğini İndir**, ardından **Eski Cihaz Kayıtlarını Veritabanına Taşı** düğmesini kullanın. Taşıma boş veritabanına göre tasarlanmıştır; mevcut merkezi kayıtların üzerine otomatik yazmaz. Eski `localStorage` kayıtlarını taşıma tamamlanmadan silmeyin.
-7. İki farklı cihazda aynı barkodun aktif/pasif durumunu ve fiyatını doğrulayın. Toplu pasife almayı **bir kere** çalıştırın; diğer cihazı yenileyin. Kamera, paylaşım ve PDF ayrıca gerçek cihazda doğrulanmalıdır.
+3. **19.096 ürünün tamamını D1'e yükleyin**: depoda `npm run d1:seed` çalıştırın. `d1-seed-generated/` altında oluşturulan `seed-001.sql`... dosyalarını sırayla, **`seed-999-ready.sql` en son** çalışacak şekilde D1 SQL Editor veya Wrangler ile yükleyin. Wrangler ile örnek:
+
+   ```bash
+   npm run d1:seed
+   set -e
+   for file in d1-seed-generated/seed-*.sql; do
+     npx wrangler d1 execute hizlisatis-products --remote --file="$file"
+   done
+   ```
+
+   Cloudflare hesabınızda D1 veritabanı adınız farklıysa `hizlisatis-products` kısmını değiştirin. Bu işlem idempotenttir, mevcut değiştirilmiş ürünleri SQL `ON CONFLICT DO NOTHING` ile ezmez. API seed tamamlanmadan HTTP 503 döndürür.
+4. Workers & Pages → **hizlisatis** → Settings → **Bindings** → D1 binding ekleyin. Değişkenin adı tam olarak **`DB`** olmalı; oluşturulan veritabanını seçin. Preview ortamında ayrı D1 veritabanı tercih edin.
+5. Settings → Variables and Secrets → secret olarak **`PRODUCT_WRITE_KEY`** tanımlayın. En az 24 karakter, güçlü ve rastgele bir değer seçin; `1453` bu sunucu anahtarı **olamaz**. İstemci koduna veya GitHub'a koymayın. İşlem PIN'i `1453` uygulamadaki ek onaydır; tek başına sunucu güvenliği sağlamaz.
+6. Bu dalı üretime almadan önce veritabanı bağlantısını ve SQL tablolarını doğrulayın. Deploy'dan sonra `/api/product-state` adresi geçerli JSON (`products`, `bulkAt`, `next`) vermeli; HTTP 503 verirse **prod'a geçmeyin**. Sunucu yönetim anahtarı, ilk yazmada sorulur ve yalnız sekme belleğinde tutulur.
+7. Daha önce bu cihazda pasife aldığınız veya düzenlediğiniz ürünleri kaybetmemek için önce **Ayarlar → Ürün Yönetimi → Ürün Yedeğini İndir**, ardından **Eski Cihaz Kayıtlarını Veritabanına Taşı** düğmesini kullanın. Taşıma boş veritabanına göre tasarlanmıştır; mevcut merkezi kayıtların üzerine otomatik yazmaz. Eski `localStorage` kayıtlarını taşıma tamamlanmadan silmeyin.
+8. İki farklı cihazda aynı barkodun aktif/pasif durumunu ve fiyatını doğrulayın. Toplu pasife almayı **bir kere** çalıştırın; diğer cihazı yenileyin. Kamera, paylaşım ve PDF ayrıca gerçek cihazda doğrulanmalıdır.
 
 D1 schema kodu: `migrations/0001_product_state.sql`. API: `functions/api/product-state.js`. İstemci: `public/remote-products.js`.
 
