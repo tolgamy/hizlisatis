@@ -103,7 +103,10 @@ export async function getSnapshot() {
     everActivated:false,deletedFrom:null,statusChangedAt:remote.bulkAt||null
   }]));
   for(const product of remote.products) {
-    merged.set(product.id,{...(merged.get(product.id)||{}),...product});
+    merged.set(product.id,{...(merged.get(product.id)||{
+      lifecycleStatus:remote.bulkAt?'initial-inactive':'active',
+      everActivated:false,deletedFrom:null,statusChangedAt:remote.bulkAt||null
+    }),...product});
   }
   const products=[...merged.values()];
   return {...local,products,excelCount:products.filter(p=>p.source!=='bundle').length,
