@@ -48,6 +48,22 @@ export async function onRequestGet({request,env}) {
   if(!db) return error('D1 veritabanı bağlı değil. DB binding gerekli.',503);
   try {
     const url=new URL(request.url);
+    if(url.searchParams.has('ids')) {
+      let ids;
+      try {ids=JSON.parse(url.searchParams.get('ids'));}
+      catch {return error('Geçersiz ürün kimlikleri.');}
+      if(!Array.isArray(ids)||ids.length<1||ids.length>60||
+          ids.some(id=>typeof id!=='string'||!id||id.length>180))
+        return error('Geçersiz ürün kimlikleri.');
+      const placeholders=ids.map(()=>'?').join(',');
+      const [rows,meta]=await Promise.all([
+        db.prepare('SELECT id,payload FROM product_changes WHERE id IN ('+placeholders+')')
+          .bind(...ids).all(),
+        db.prepare("SELECT value FROM app_meta WHERE key='bulk_at'").first()
+      ]);
+      return json({products:(rows.results||[]).map(row=>JSON.parse(row.payload)),
+        bulkAt:meta?.value||null});
+    }
     const cursor=url.searchParams.get('after')||'';
     if(cursor.length>180) return error('Geçersiz sayfalama anahtarı.');
     const [rows,meta]=await Promise.all([
