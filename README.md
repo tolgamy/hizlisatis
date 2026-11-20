@@ -74,3 +74,12 @@ Ağ/AirPrint için fiş 80 mm (tercihe göre 58 mm) genişlikte ayrı bir önizl
 - İlk toplu pasife alma sonrası durumlar ikinci bir tarayıcı yerel yedeğine alınır; tek ürünün sonraki değişiklikleri bu büyük yedekten bağımsız saklanır.
 - Sayfa açılışında bu yedekteki yeni durumlar, veritabanındaki eski ürün durumlarını düzeltebilir. Bu, cihazdan cihaza senkronizasyon değildir ve tarayıcı verileri temizlenirse yedek kaybolabilir.
 - PWA önbellek sürümü yenilendi. Önceki tek sürüme bağlı Pages preview adresleri otomatik yeni dağıtıma geçmeyebilir; ana alan adı kullanılmalıdır.
+
+
+## v3.3.4 — Pasif işlem şifresi, çizgili barkod ve PDF paylaşımı
+
+- Ana pasife alma, tek ürün pasife alma, aktivasyon (barkodla satış sırasında dahil) ve pasiften geri yükleme işlemleri için **1453** işlem PIN'i sorulur. Bu PIN cihaz üzerinde uygulanan basit bir onaydır; sunucu tarafında kimlik doğrulaması değildir.
+- **EAN-13, EAN-8, UPC ve Code 128** gibi çizgili ürün barkodları için tarayıcı biçim numaraları düzeltildi. **QR kod okumak hâlâ kapalıdır.** Kamera erişimi HTTPS, tarayıcı izinleri ve cihaza bağlıdır.
+- Satış tamamlandı ekranında WhatsApp metin paylaşımına ek olarak **PDF Yap ve Paylaş** seçeneği vardır. Çevrimdışı PDF oluşturur. Cihaz dosya paylaşımını destekliyorsa gerçek .pdf dosyasını WhatsApp'a veya diğer uygulamalara paylaşır; desteklemiyorsa PDF indirilir.
+- Ürün durumları yerel IndexedDB ve ilave yerel yedek içinde korunur; katalog güncellenince sıfırlanmamalıdır. Otomatik test, aynı cihazın IndexedDB'si yeniden açıldığında ve katalog güncellendiğinde durumu denetler.
+- **Not:** Farklı cihazlar/tarayıcılar arasında ürün durumları otomatik eşitlenmez. Tarayıcı verisi silinirse kayıtlar kaybolabilir; düzenli JSON yedeği alın.
