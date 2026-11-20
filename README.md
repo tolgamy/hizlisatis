@@ -43,3 +43,8 @@ Uygulama önce yerel IndexedDB'de kayıtlı ürünleri gösterir. Yeni yerleşik
 ## Yazıcı notu
 
 Ağ yazıcısında yazdırma iOS'ta AirPrint veya cihazın sistem yazdırma menüsüne bağlıdır. Web Bluetooth ile doğrudan bağlanma iPhone Safari tarafından desteklenmeyebilir; uyumlu üretici uygulamasından yazdırılmalıdır. WhatsApp paylaşımı cihazın paylaşım ekranını açar.
+
+
+## v3.2 — Kategori fotoğrafları
+
+Ana sayfa yalnızca 12 görsel kategori kartı gösterir. Kullanıcının belirlediği sıra korunur. Ana kategori görselleri yerel, yazısız, sıkıştırılmış WebP dosyalarıdır; alt kategoriler bağımsız, ürün fotoğrafı olmayan hafif SVG illüstrasyonlar kullanır. Mobilde her kategoride 3 sütun görünür. Açıkça yinelenen/çok küçük bazı kategori grupları yalnız gezinme görünümünde birleştirilmiştir; 19.096 ürün, barkodlar, stok, satış ve ham kategori alanları silinmez. Satış, QR engelleme, fiş yazdırma ve Excel katalog değişmemiştir.

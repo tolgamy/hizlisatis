@@ -17,7 +17,7 @@
 <body>
   <div id="app">
     <header class="topbar clean-topbar">
-      <div class="brandline"><div class="brandmark" aria-hidden="true">₺</div><div><strong>Hizlisatis</strong><small>Mobil POS · v3.1</small></div><span id="connectionStatus" class="connection" role="status"></span></div>
+      <div class="brandline"><div class="brandmark" aria-hidden="true">₺</div><div><strong>Hizlisatis</strong><small>Mobil POS · v3.2</small></div><span id="connectionStatus" class="connection" role="status"></span></div>
       <div class="searchline"><label for="search" class="sr-only">Ürün veya barkod ara</label><div class="searchbox"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><input id="search" type="search" placeholder="Ürün veya barkod ara" autocomplete="off" enterkeyhint="search"></div><button id="scanButton" class="iconbutton scanbutton" type="button" aria-label="Barkod okut">⌗</button></div>
       <span id="syncLabel" class="sr-only" role="status"></span>
       <input id="excelFile" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
@@ -25,10 +25,8 @@
 
     <main class="content clean-content" id="mainContent">
       <section id="homeView" class="home-view clean-home" aria-label="Ana sayfa">
-        <div class="clean-home-actions"><button id="homeStartSale" class="clean-primary" type="button">⌗ Satış Yap</button><button id="homeBrowse" type="button" class="clean-secondary">▦ Ürünler</button></div>
-        <div class="clean-section-title"><h1>Kategoriler</h1><button id="homeAllCategories" type="button">Tümü ›</button></div>
-        <div id="homeCategoryShortcuts" class="home-category-shortcuts category-photo-grid"></div>
-        <button id="homeCategories" class="clean-see-all" type="button">Tüm Kategoriler</button>
+        <h1 class="sr-only">Ana kategoriler</h1>
+        <div id="homeCategoryShortcuts" class="home-category-shortcuts category-photo-grid" aria-label="12 ana kategori"></div>
       </section>
       <section id="catalogView" class="catalog-view clean-catalog" aria-label="Ürünler" hidden>
         <section id="categoryBrowser" class="clean-categories">

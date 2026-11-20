@@ -2,7 +2,8 @@ import { getSnapshot, upsertExcelProducts, installBundledProducts, saveSale, get
 import { readXlsxRows } from './xlsx-reader.js';
 import { parseExcelProducts } from './excel-products.js';
 import { parseLocaleNumber, safeImageUrl } from './normalize.js';
-import { buildCategoryTree, categoryMatches } from './category-menu.js';
+import { buildCategoryTree, categoryMatches, showCategoryInBrowse } from './category-menu.js';
+import { categoryArtwork, sortCategoryNodes } from './category-art.js';
 import { categorizeProduct, productPictureEmoji } from './catalog-taxonomy.js';
 import { receiptAsText, escPosReceipt } from './receipt-share.js';
 import { fetchBundledCatalog } from './bundled-catalog.js';
@@ -16,7 +17,7 @@ const state = {
   search: '', meta: null, sales: [], lastSale: null,
   saving: false, scanner: null,
   excelCount: 0, bundleCount: 0, bundleLoading: false, categoryPage: '', excelPreview: null, excelUploading: false, browseAll: false,
-  view: 'home', catalogMode: 'categories', categoryTreeData: [], categoryCovers: new Map(),
+  view: 'home', catalogMode: 'categories', categoryTreeData: [],
   productLayout: 'grid', stockOnly: false, sort: 'name', visibleLimit: 48, detailProduct: null, manageSelection: null
 };
 const dom = {
@@ -97,19 +98,12 @@ function setCatalog(products, adjustments, meta, excelCount = 0, bundleCount = 0
   state.sold = new Map(adjustments.map(item => [item.id, item.soldQuantity]));
   state.meta = meta;
   state.categoryTreeData = buildCategoryTree(products);
-  state.categoryCovers = new Map();
-  for(const p of products) if(p.gorsel) {
-    let path = '';
-    for(const segment of (p.kategoriYolu||[])) {
-      path = path ? `${path} > ${segment}` : segment;
-      if(!state.categoryCovers.has(path)) state.categoryCovers.set(path,p.gorsel);
-    }
-  }
   renderAll();
 }
 
 /** Navigation and home dashboard never replace IndexedDB records. */
 function updateNavigation() {
+  document.body.classList.toggle('view-home', state.view === 'home');
   $('homeView').hidden = state.view !== 'home';
   $('catalogView').hidden = state.view !== 'catalog';
   $('settingsView').hidden = state.view !== 'settings';
@@ -200,28 +194,39 @@ function categoryEmoji(path) {
   if (/elektronik/.test(name)) return '🔌';
   return '🛍️';
 }
-function categoryCover(path) { return state.categoryCovers.get(path) || ''; }
+function categoryCover(path) { return categoryArtwork(path); }
 function categoryTile(node, hasChildren = false) {
   const button = document.createElement('button');
   button.type = 'button'; button.className = 'photo-category-tile';
   button.setAttribute('aria-label', `${node.name}, ${node.count} ürün`);
+  button.title = node.name;
   const photo = document.createElement('span'); photo.className = 'photo-category-image';
   const fallback = document.createElement('span'); fallback.className = 'photo-category-fallback';
   fallback.textContent = categoryEmoji(node.path); photo.append(fallback);
   const url = categoryCover(node.path);
   if (url) {
     const img = document.createElement('img');
-    applyProductImage(img,url,256); photo.append(img);
+    img.alt = '';
+    applyProductImage(img,url,320,'high');
+    photo.append(img);
   }
-  const title = document.createElement('span'); title.className = 'photo-category-name';
-  title.textContent = node.name;
-  button.append(photo,title);
+  if (hasChildren) {
+    const badge = document.createElement('span');
+    badge.className = 'photo-category-badge';
+    badge.setAttribute('aria-hidden', 'true');
+    badge.textContent = '›';
+    photo.append(badge);
+  }
+  const sr = document.createElement('span');
+  sr.className = 'sr-only';
+  sr.textContent = node.name;
+  button.append(photo, sr);
   button.addEventListener('click', () => hasChildren ? openCategoryMenu(node.path) : selectCategory(node.path));
   return button;
 }
 function renderHome() {
   const target=$('homeCategoryShortcuts');target.replaceChildren();
-  for(const node of state.categoryTreeData) target.append(categoryTile(node,Boolean(node.children.length)));
+  for(const node of sortCategoryNodes(state.categoryTreeData)) target.append(categoryTile(node,Boolean(node.children.length)));
 }
 function openProductDetail(product) {
   state.detailProduct = product;
@@ -278,7 +283,8 @@ function renderCategoryTree(search = '') {
   visit(state.categoryTreeData);
   const current=all.find(x=>x.path===state.categoryPage);
   const term=fold(search);
-  const visible=term ? all.filter(x=>fold(x.path).includes(term)).slice(0,100) : (current?current.children:state.categoryTreeData);
+  const baseVisible = term ? all.filter(x=>fold(x.path).includes(term)).slice(0,100) : (current?current.children:state.categoryTreeData);
+  const visible = sortCategoryNodes(baseVisible.filter(showCategoryInBrowse), current?.path || '');
   $('categoryTrailName').textContent=current?.name||'Kategoriler';
   $('categoryBack').hidden=!current;
   for(const node of visible) target.append(categoryTile(node,!term&&node.children.length>0));
@@ -983,10 +989,6 @@ async function setup() {
   $('navProducts').addEventListener('click',()=>openCategoryMenu());
   $('navSale').addEventListener('click',openSale);
   $('navSettings').addEventListener('click',()=>setView('settings'));
-  $('homeStartSale').addEventListener('click',openSale);
-  $('homeBrowse').addEventListener('click',showAllProducts);
-  $('homeCategories').addEventListener('click',()=>openCategoryMenu());
-  $('homeAllCategories').addEventListener('click',()=>openCategoryMenu());
   $('categoryBack').addEventListener('click',()=>{
     const parent=state.categoryPage.split(' > ').slice(0,-1).join(' > ');openCategoryMenu(parent);
   });
