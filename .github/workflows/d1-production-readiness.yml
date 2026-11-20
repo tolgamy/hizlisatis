@@ -1,0 +1,32 @@
+name: Central D1 production readiness
+on:
+  pull_request:
+    paths:
+      - 'functions/api/product-state.js'
+      - 'public/idb.js'
+      - 'public/remote-products.js'
+      - '.github/workflows/d1-production-readiness.yml'
+jobs:
+  verify-central-d1:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Verify live Pages D1 catalog count without credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 12); do
+            data="$(curl --connect-timeout 8 --max-time 12 -fsS 'https://hizlisatis.pages.dev/api/central-health' || true)"
+            if [ -n "$data" ] && printf '%s' "$data" | node -e '
+              let txt="";
+              process.stdin.on("data",chunk=>txt+=chunk);
+              process.stdin.on("end",()=>{try{
+                const p=JSON.parse(txt);
+                console.log("D1 readiness:",{ready:p.ready,count:p.count,expected:p.expected});
+                process.exit(p.ready===true && p.count>=19096 && p.expected===19096 ? 0 : 1);
+              }catch{process.exit(1)}})
+            '; then exit 0; fi
+            sleep 6
+          done
+          echo 'Central D1 production binding or seed not yet ready.' >&2
+          exit 1

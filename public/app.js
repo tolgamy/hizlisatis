@@ -13,10 +13,11 @@ import { applyProductImage, detectImageResizing } from './image-delivery.js';
 import { isActive, productStatus } from './product-lifecycle.js';
 import { getBarcodeLibrary, supportedBarcodeFormats, acceptsBarcodeResult } from './barcode-scanner.js';
 import { createProductManager } from './product-management.js';
+import { checkRemoteProductStates } from './remote-products.js';
 
 const $ = id => document.getElementById(id);
 const state = {
-  products: [], byId: new Map(), byBarcode: new Map(), categoryProductPhotos: new Map(), lifecycleMeta: null,
+  products: [], byId: new Map(), byBarcode: new Map(), categoryProductPhotos: new Map(), lifecycleMeta: null, legacyPending: false,
   sold: new Map(), cart: new Map(), category: '', brand: '',
   search: '', meta: null, sales: [], lastSale: null,
   saving: false, scanner: null, scanPurpose: 'sale',
@@ -280,7 +281,7 @@ async function installBuiltInCatalog() {
     }
   } catch (error) {
     console.warn('Built-in catalogue unavailable:', error);
-    if (!state.products.length) announce('Yerleşik katalog açılamadı. İnternet bağlantısını kontrol edip sayfayı yenileyin.', 'error');
+    if (!state.products.length) announce('Katalog veya merkezi ürün veritabanı açılamadı. D1 bağlantısını kontrol edin.', 'error');
   } finally { state.bundleLoading = false; }
 }
 
@@ -1075,8 +1076,27 @@ async function scanBarcodePhoto(file) {
 }
 
 
-async function refreshManagedData() {
+async function refreshManagedData(productId=null) {
+  if(productId && state.products.length) {
+    // Refresh only one edited product. Reloading the full 19,096-row catalogue
+    // after each edit would waste D1 read quota and mobile data.
+    const remote=await checkRemoteProductStates([productId]);
+    const record=remote.products.get(productId);
+    if(!record)throw Error('Merkezi veritabanında kaydedilen ürün bulunamadı.');
+    if((remote.bulkAt||null)===(state.lifecycleMeta?.at||null)) {
+      const product={...record,
+        lifecycleStatus:record.lifecycleStatus||(remote.bulkAt?'initial-inactive':'active')};
+      const products=state.products.filter(p=>p.id!==productId);
+      products.push(product);
+      const adjustments=[...state.sold].map(([id,soldQuantity])=>({id,soldQuantity}));
+      const excelCount=products.filter(p=>p.source!=='bundle').length;
+      const bundleCount=products.length-excelCount;
+      setCatalog(products,adjustments,state.meta,excelCount,bundleCount,state.lifecycleMeta);
+      return {products,lifecycleMeta:state.lifecycleMeta};
+    }
+  }
   const snapshot=await getSnapshot();
+  state.legacyPending=Boolean(snapshot.legacyPending);
   setCatalog(snapshot.products,snapshot.adjustments,snapshot.meta,
     snapshot.excelCount,snapshot.bundleCount,snapshot.lifecycleMeta);
   return snapshot;
@@ -1163,8 +1183,10 @@ async function setup() {
   if('serviceWorker'in navigator&&window.isSecureContext)navigator.serviceWorker.register('/sw.js').catch(()=>{});
   try{
     await openDB();const snapshot=await getSnapshot();
+    state.legacyPending=Boolean(snapshot.legacyPending);
     setCatalog(snapshot.products,snapshot.adjustments,null,snapshot.excelCount,snapshot.bundleCount,snapshot.lifecycleMeta);
-  }catch(error){announce(`Yerel veritabanı açılamadı: ${error.message}`,'error');dom.complete.disabled=true;}
+    if(state.legacyPending)announce('Bu cihazda henüz merkeze taşınmamış ürün değişiklikleri bulunuyor. Ayarlar > Ürün Yönetimi > Eski Cihaz Yedeğini İndir ve Kayıtları Taşı.','error');
+  }catch(error){announce(`Merkezi ürün veritabanı açılamadı: ${error.message}`,'error');dom.complete.disabled=true;}
   applyRoute();installBuiltInCatalog();
   channel?.addEventListener('message',async()=>{
     try{const snapshot=await getSnapshot();setCatalog(snapshot.products,snapshot.adjustments,null,snapshot.excelCount,snapshot.bundleCount,snapshot.lifecycleMeta);}

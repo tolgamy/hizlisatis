@@ -1,9 +1,9 @@
 import { MAIN_CATEGORY_ORDER } from './category-art.js';
 import { productCategoryPath } from './category-menu.js';
 import { parseLocaleNumber, safeImageUrl } from './normalize.js';
-import { getSnapshot, getManagedProductHistory, saveManagedProduct, initiallyDeactivateAll } from './idb.js';
+import { getLocalSnapshot, getManagedProductHistory, saveManagedProduct, initiallyDeactivateAll } from './idb.js';
+import { fetchRemoteProducts, deactivateRemoteProducts, importRemoteProducts } from './remote-products.js';
 import { PRODUCT_STATUS, productStatus, isActive, countStatuses, nextProductStatus, priceWithVat } from './product-lifecycle.js';
-import { rememberProductStatus, rememberBulkStatuses } from './lifecycle-backup.js';
 import { verifyPassivePin } from './passive-auth.js';
 
 const $ = id => document.getElementById(id);
@@ -159,6 +159,8 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
   function openManage(product=null,barcode='') {
     search.value='';filter=product?productStatus(product):'active';
     if(!managementDialog.open)managementDialog.showModal();
+    if(state.legacyPending)
+      announce('Bu cihazdaki bazı eski ürün değişiklikleri henüz merkezde değil. Önce Eski Cihaz Yedeğini İndir, sonra Kayıtları Taşı.','error');
     if(product||barcode)editProduct(product,barcode);else showOverview();
   }
   async function updateStatus(action) {
@@ -175,12 +177,10 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
   async function persist(product,action) {
     try {
       await serializeMutation(()=>saveManagedProduct(product,action));
-      const snapshot=await refresh();
+      const snapshot=await refresh(product.id);
       const verified=snapshot.products.find(item=>item.id===product.id);
       if(!verified || productStatus(verified)!==productStatus(product))
         throw Error('Kaydedilen ürün durumu yeniden okunamadı. Ürün değiştirilmedi.');
-      if(!rememberProductStatus(product))
-        announce('Ürün veritabanına kaydedildi, ancak ek tarayıcı yedeği oluşturulamadı.','error');
       channel?.postMessage('product-managed');
       if(product.lifecycleStatus==='active')filter='active';
       else filter=product.lifecycleStatus;
@@ -254,10 +254,9 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
     try{
       const updated={...product,lifecycleStatus:'active',everActivated:true,source:'excel',statusChangedAt:now()};
       await serializeMutation(()=>saveManagedProduct(updated,'scan-activate'));
-      const snapshot=await refresh();
+      const snapshot=await refresh(product.id);
       if(productStatus(snapshot.products.find(item=>item.id===product.id))!=='active')
         throw Error('Aktif durumu kalıcı olarak doğrulanamadı.');
-      rememberProductStatus(updated);
       channel?.postMessage('product-activated');
       activationDialog.close();pendingSale=null;
       announce('Ürün aktifleştirildi.','success');
@@ -276,12 +275,58 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
       const snapshot=await refresh();
       if(count > 0 && snapshot.products.filter(item=>productStatus(item)!=='active').length<count)
         throw Error('Toplu pasife alma kontrolü başarısız. Lütfen yeniden yüklemeden önce yedek alın.');
-      if(!rememberBulkStatuses(snapshot.products))
-        announce('Toplu işlem kaydedildi ancak ek tarayıcı yedeği oluşturulamadı. JSON yedeği indirin.','error');
       channel?.postMessage('bulk-deactivated');filter='initial-inactive';
       countsView();announce(count.toLocaleString('tr-TR')+' ürün ana pasife alındı.','success');
     }catch(error){announce('Toplu işlem başarısız: '+error.message,'error');}
     finally{$('manageBulkDeactivate').disabled=false;}
+  }
+  async function migrateLocalData() {
+    const button=$('migrateLocalToServer');
+    button.disabled=true;
+    try {
+      const local=await getLocalSnapshot();
+      const remote=await fetchRemoteProducts();
+      if(remote.products.some(p=>p.source!=='bundle'||p.lifecycleStatus) || (remote.bulkAt&&!local.lifecycleMeta)) {
+        throw Error('Merkezi veritabanında zaten kayıt var. Otomatik üzerine yazma güvenlik için engellendi.');
+      }
+      const changed=local.products.filter(p=>p.source!=='bundle'||
+        (p.lifecycleStatus&&p.lifecycleStatus!=='active'&&
+         !(p.lifecycleStatus==='initial-inactive'&&local.lifecycleMeta))||
+        Boolean(p.everActivated));
+      const total=changed.length;
+      const first=remote.bulkAt===null && Boolean(local.lifecycleMeta);
+      if(!first && !total)throw Error('Taşınacak yerel değişiklik bulunamadı.');
+      if(!confirm('Bu cihazdaki '+total+' ürün düzenlemesi ve '+
+        (first?'toplu pasif durumu':'mevcut ürün durumları')+
+        ' merkezi veritabanına aktarılacak. İşleme başlamadan önce aşağıdaki Yerel Yedek düğmesiyle yedek alın. Devam edilsin mi?'))return;
+      if(first)await deactivateRemoteProducts();
+      if(total)await importRemoteProducts(changed);
+      const verified=await fetchRemoteProducts();
+      const remoteById=new Map(verified.products.map(p=>[p.id,p]));
+      if(local.lifecycleMeta&&!verified.bulkAt)
+        throw Error('Merkezi toplu pasif durumu doğrulanamadı.');
+      if(changed.some(p=>remoteById.get(p.id)?.lifecycleStatus !== (p.lifecycleStatus||'active')))
+        throw Error('Aktarılan ürün durumları sunucudan doğrulanamadı. Eski yedeği silmeyin.');
+      await refresh();
+      // Keep legacy local backups intact, even after server verification:
+      // customers can still recover them if a second device has stale edits.
+      channel?.postMessage('product-migrated');
+      countsView();
+      announce('Yerel ürün değişiklikleri sunucuya aktarıldı.','success');
+    }catch(error){announce('Taşıma başarısız: '+error.message,'error');}
+    finally{button.disabled=false;}
+  }
+  async function exportLocalBackup() {
+    try {
+      const local=await getLocalSnapshot();
+      const blob=new Blob([JSON.stringify({exportedAt:now(),source:'device',
+        ...local})],{type:'application/json'});
+      const url=URL.createObjectURL(blob),a=document.createElement('a');
+      a.href=url;a.download='hizlisatis-eski-cihaz-yedegi.json';
+      document.body.append(a);a.click();a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),5000);
+      announce('Eski cihaz yedeği oluşturuldu. Dosyayı güvenli yerde saklayın.','success');
+    }catch(error){announce('Yerel yedek indirilemedi: '+error.message,'error');}
   }
   function exportBackup() {
     const payload={exportedAt:now(),products:state.products};
@@ -291,6 +336,23 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
     document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),5000);
   }
   function attach() {
+    const button=document.createElement('button');
+    button.id='migrateLocalToServer';button.type='button';
+    button.textContent='Eski Cihaz Kayıtlarını Veritabanına Taşı';
+    $('manageExportBackup').after(button);
+    button.addEventListener('click',migrateLocalData);
+    const backup=document.createElement('button');
+    backup.type='button';backup.textContent='Eski Cihaz Yedeğini İndir (JSON)';
+    button.after(backup);backup.addEventListener('click',exportLocalBackup);
+    const sync=document.createElement('button');sync.type='button';
+    sync.textContent='Merkezi Veritabanından Yenile';
+    backup.after(sync);
+    sync.addEventListener('click',async()=>{
+      sync.disabled=true;
+      try {await refresh();countsView();announce('Ürünler merkezi veritabanından yenilendi.','success');}
+      catch(error){announce('Yenileme başarısız: '+error.message,'error');}
+      finally{sync.disabled=false;}
+    });
     $('manageNew').addEventListener('click',()=>editProduct());
     $('manageBulkDeactivate').addEventListener('click',bulkDeactivate);
     $('manageExportBackup').addEventListener('click',exportBackup);
