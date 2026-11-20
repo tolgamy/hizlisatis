@@ -44,6 +44,12 @@ export async function fetchRemoteProducts() {
   }
   throw Error('Merkezi ürün verisi beklenen sınırı aştı.');
 }
+export async function checkRemoteProductStates(ids) {
+  if(!Array.isArray(ids)||!ids.length||ids.length>60)throw Error('Sepet ürün sayısı geçersiz.');
+  const data=await call('GET',null,'?ids='+encodeURIComponent(JSON.stringify(ids)));
+  if(!data||!Array.isArray(data.products))throw Error('Merkezi stok doğrulaması yapılamadı.');
+  return {products:new Map(data.products.map(p=>[p.id,p])),bulkAt:data.bulkAt};
+}
 export function saveRemoteProduct(product,reason) {
   return call('POST',{action:'upsert',product,reason});
 }
