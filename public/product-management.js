@@ -300,5 +300,5 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
     activationDialog.addEventListener('close',()=>{pendingSale=null;});
   }
   attach();
-  return {openManage,manageScannedBarcode,offerSaleActivation,render:countsView};
+  return {openManage,openNew:()=>{openManage();editProduct();},manageScannedBarcode,offerSaleActivation,render:countsView};
 }
