@@ -1,4 +1,4 @@
-const VERSION = 'cep-pos-shell-v21-cloudflare-d1-products';
+const VERSION = 'cep-pos-shell-v22-central-d1-mobile-load';
 const SHELL = [
   '/', '/index.html', '/styles.css', '/app.js', '/idb.js',
   '/normalize.js', '/remote-products.js', '/product-lifecycle.js', '/product-management.js', '/lifecycle-backup.js', '/passive-auth.js', '/receipt-pdf.js', '/barcode-scanner.js', '/category-art.js', '/image-delivery.js', '/receipt-share.js', '/catalog-taxonomy.js', '/category-menu.js', '/barcode-lookup.js', '/bundled-catalog.js', '/xlsx-reader.js', '/excel-products.js', '/urun-yukleme-sablonu.xlsx', '/manifest.json',
@@ -17,23 +17,8 @@ self.addEventListener('install', event => {
       const response = await fetch(url, { cache: 'reload' });
       if (response.ok) await cache.put(url, response);
     }));
-    // Cache the catalogue alongside the shell for offline use on every device.
-    // A failed catalogue fetch never prevents the POS shell from installing.
-    try {
-      const response = await fetch('/catalog/manifest.json', { cache: 'reload' });
-      if (response.ok) {
-        const manifest = await response.clone().json();
-        await cache.put('/catalog/manifest.json', response);
-        if (Array.isArray(manifest.parts) && manifest.parts.length <= 30) {
-          await Promise.allSettled(manifest.parts.filter(path =>
-            typeof path === 'string' && /^\/catalog\/products-[0-9a-f]{16}-\d{2}\.json$/i.test(path))
-            .map(async path => {
-              const resource = await fetch(path, { cache: 'reload' });
-              if (resource.ok) await cache.put(path, resource);
-            }));
-        }
-      }
-    } catch { /* offline shell still works; an earlier IndexedDB catalogue survives */ }
+    // Central D1 is authoritative. Do not download 20 large obsolete JSON
+    // catalogue files during SW install: it competes with the D1 mobile fetch.
     await self.skipWaiting();
   })());
 });

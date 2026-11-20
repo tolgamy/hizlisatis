@@ -91,32 +91,44 @@ export async function getLocalSnapshot() {
  * Local IndexedDB is only a seed/cache for the versioned catalogue and sales.
  * Legacy local statuses can be read with getLocalSnapshot solely for migration.
  */
-export async function getSnapshot() {
-  // Products are *only* loaded from D1. Device files are kept for sales,
-  // stock adjustments, and explicit migration; never blended into catalog.
-  const [local,remote]=await Promise.all([getLocalSnapshot(),fetchRemoteProducts()]);
+/** Cheap device-only sale state. Avoid reading 19,096 redundant local products
+ * while the authoritative D1 catalogue is being loaded on a phone.
+ * Full device products are still accessible to explicit backup/migration.
+ */
+async function getDeviceState() {
+  const db=await openDB();
+  const tx=db.transaction(['adjustments','meta','productHistory'],'readonly');
+  const [adjustments,bulk,excelMeta,history]=await Promise.all([
+    requestPromise(tx.objectStore('adjustments').getAll()),
+    requestPromise(tx.objectStore('meta').get('initialDeactivation')),
+    requestPromise(tx.objectStore('meta').get('excelImport')),
+    requestPromise(tx.objectStore('productHistory').count())
+  ]);
+  return {adjustments,meta:null, lifecycleMeta:bulk?.value||null,
+    oldDeviceEdits:Boolean(history || excelMeta?.value)};
+}
+
+/** Every product is authoritative from D1. Old IndexedDB products are NOT
+ * allowed to override the central catalog; they remain for explicit backup.
+ */
+export async function getSnapshot(onProgress) {
+  const [device,remote]=await Promise.all([
+    getDeviceState().catch(error=>{
+      // The shared product catalog must remain viewable even if a browser
+      // blocks or has a damaged local sales/cache database.
+      console.warn('Local sales cache unavailable:',error);
+      return {adjustments:[],meta:null,lifecycleMeta:null,oldDeviceEdits:false,
+        localUnavailable:true};
+    }),fetchRemoteProducts(onProgress)
+  ]);
   if(!remote.products.length)
-    throw Error('Merkezi D1 kataloğu eksik görünüyor. Yerel ürünler otomatik yüklenmedi.');
-  const products=remote.products.map(p=>({
-    ...p,
-    lifecycleStatus:p.lifecycleStatus||(remote.bulkAt?'initial-inactive':'active'),
-    everActivated:Boolean(p.everActivated)
-  }));
-  const centralById=new Map(products.map(p=>[p.id,p]));
-  const legacyPending=Boolean((local.lifecycleMeta&&!remote.bulkAt)||
-    local.products.some(old=>{
-      const current=centralById.get(old.id);
-      if(!current)return true;
-      if((old.lifecycleStatus||'active')!==current.lifecycleStatus)return true;
-      return old.source!=='bundle' &&
-        ['baslik','barkod','marka','kategori','satisFiyati','kdv','gorsel'].some(
-          key=>old[key]!==current[key]);
-    }));
-  return {...local,products,
+    throw Error('Merkezi D1 kataloğu eksik. Eski cihaz ürünleri otomatik yüklenmedi.');
+  const products=remote.products;
+  return {...device,products,
     excelCount:products.filter(p=>p.source!=='bundle').length,
     bundleCount:products.filter(p=>p.source==='bundle').length,
     lifecycleMeta:remote.bulkAt?{at:remote.bulkAt}:null,
-    legacyPending};
+    legacyPending:Boolean((device.lifecycleMeta&&!remote.bulkAt)||device.oldDeviceEdits)};
 }
 
 /** Atomically replace only bundled products and remove the deprecated XML store.
