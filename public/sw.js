@@ -1,7 +1,7 @@
-const VERSION = 'cep-pos-shell-v10-minimal-sale';
+const VERSION = 'cep-pos-shell-v11-grid-receipts-torch';
 const SHELL = [
   '/', '/index.html', '/styles.css', '/app.js', '/idb.js',
-  '/normalize.js', '/xml-local.js', '/category-menu.js', '/bundled-catalog.js', '/xlsx-reader.js', '/excel-products.js', '/urun-yukleme-sablonu.xlsx', '/manifest.json',
+  '/normalize.js', '/receipt-share.js', '/xml-local.js', '/category-menu.js', '/bundled-catalog.js', '/xlsx-reader.js', '/excel-products.js', '/urun-yukleme-sablonu.xlsx', '/manifest.json',
   '/icons/icon-192.png', '/icons/icon-512.png', '/icons/placeholder.svg',
   '/vendor/html5-qrcode.min.js'
 ];

@@ -4,6 +4,7 @@ import { parseExcelProducts, compareExcelWithXml } from './excel-products.js';
 import { parseLocalXml } from './xml-local.js';
 import { parseLocaleNumber } from './normalize.js';
 import { buildCategoryTree, categoryMatches } from './category-menu.js';
+import { receiptAsText, escPosReceipt } from './receipt-share.js';
 import { fetchBundledCatalog } from './bundled-catalog.js';
 
 const $ = id => document.getElementById(id);
@@ -12,7 +13,7 @@ const state = {
   sold: new Map(), cart: new Map(), category: '', brand: '',
   search: '', meta: null, sales: [], lastSale: null,
   syncing: false, saving: false, scanner: null, syncGeneration: 0,
-  excelCount: 0, bundleCount: 0, bundleLoading: false, excelPreview: null, excelUploading: false, browseAll: false,
+  excelCount: 0, bundleCount: 0, bundleLoading: false, categoryPage: '', excelPreview: null, excelUploading: false, browseAll: false,
   view: 'home', productLayout: 'grid', stockOnly: false, sort: 'name', visibleLimit: 48, detailProduct: null
 };
 const dom = {
@@ -122,11 +123,31 @@ function setView(view, showAll = false) {
 }
 function openSale() {
   renderCart();
-  dom.cartDialog.showModal();
+  if(!dom.cartDialog.open)dom.cartDialog.showModal();
   updateNavigation();
 }
+function renderProductPicker(){
+ const query=fold($('pickProductSearch').value), target=$('pickProductResults');target.replaceChildren();
+ const items=state.products.filter(p=>remaining(p)>0&&(!query||[p.baslik,p.barkod,p.urunKodu,p.marka].some(v=>fold(v).includes(query))));
+ for(const product of items.slice(0,60)){
+   const b=document.createElement('button');b.type='button';b.className='picker-product';
+   const img=document.createElement('img');img.loading='lazy';img.alt='';img.src=product.gorsel||'/icons/placeholder.svg';img.onerror=()=>{img.onerror=null;img.src='/icons/placeholder.svg';};
+   const title=document.createElement('span');title.textContent=product.baslik;
+   const price=document.createElement('strong');price.textContent=money(product.satisFiyati,product.paraBirimi);
+   b.append(img,title,price);
+   b.addEventListener('click',()=>{if(addToCart(product)){$('pickProductDialog').close();renderCart();}});
+   target.append(b);
+ }
+ if(!items.length)target.textContent='Ürün bulunamadı';
+}
+function openProductPicker(){
+ $('pickProductSearch').value='';renderProductPicker();
+ if(!$('pickProductDialog').open)$('pickProductDialog').showModal();
+ $('pickProductSearch').focus({preventScroll:true});
+}
 function openCamera() {
-  if (!dom.scanDialog.open) dom.scanDialog.showModal();
+  unlockScanAudio();
+  if(!dom.scanDialog.open)dom.scanDialog.showModal();
   startScanner();
 }
 function barcodeAdd(raw, sourceInput) {
@@ -138,24 +159,45 @@ function barcodeAdd(raw, sourceInput) {
     announce(`${product.baslik} sepete eklendi ✓`, 'success');
   } else if (!product) announce(`${code} barkodlu ürün bulunamadı.`, 'error');
 }
+
+function photoCategoryEmoji(path) {
+ const n=fold(path);
+ if(/süt|sut|kahvalt|peynir|yoğurt/.test(n))return '🥛';
+ if(/içecek|icecek|su|gazoz|kahve/.test(n))return '🥤';
+ if(/atıştır|atistir|çikolata|cikolata/.test(n))return '🍫';
+ if(/meyve|sebze|manav/.test(n))return '🥬';
+ if(/fırın|firin|ekmek/.test(n))return '🥐';
+ if(/temizlik|bakım|bakim/.test(n))return '🧼';
+ if(/kasap|et|tavuk/.test(n))return '🥩';
+ if(/bebek/.test(n))return '🍼';
+ if(/dondurma/.test(n))return '🍦';
+ if(/pet|hayvan/.test(n))return '🐾';
+ if(/elektronik/.test(n))return '🔌';
+ return '🛍️';
+}
+function photoCategoryTile(node, drill = false) {
+ const tile=document.createElement('button');tile.type='button';tile.className='photo-category-tile';
+ const art=document.createElement('span');art.className='photo-category-image';
+ const emoji=document.createElement('span');emoji.className='photo-category-fallback';emoji.textContent=photoCategoryEmoji(node.path);art.append(emoji);
+ const cover=state.products.find(p=>p.gorsel && categoryMatches(p,node.path));
+ if(cover){
+   const img=document.createElement('img');img.loading='lazy';img.alt='';
+   img.referrerPolicy='strict-origin-when-cross-origin';img.onerror=()=>img.remove();img.src=cover.gorsel;art.append(img);
+ }
+ const name=document.createElement('span');name.className='photo-category-name';name.textContent=node.name;
+ tile.append(art,name);tile.setAttribute('aria-label',node.name+', '+node.count+' ürün');
+ tile.addEventListener('click',()=>drill ? openCategoryMenu(node.path):selectCategory(node.path));
+ return tile;
+}
+
 function renderHome() {
   $('homeProductCount').textContent = state.products.length.toLocaleString('tr-TR');
   $('homeImageCount').textContent = state.products.filter(p => Boolean(p.gorsel)).length.toLocaleString('tr-TR');
   $('homeStockCount').textContent = state.products.filter(p => remaining(p) > 0).length.toLocaleString('tr-TR');
   const target = $('homeCategoryShortcuts');
   target.replaceChildren();
-  const categories = buildCategoryTree(state.products)
-    .sort((a, b) => b.count - a.count).slice(0, 8);
-  const names = ['▤', '◉', '◈', '⌂', '◐', '✦', '▣', '◌'];
-  for (const [index, node] of categories.entries()) {
-    const tile = document.createElement('button'); tile.type = 'button'; tile.className = 'home-category-tile';
-    const glyph = document.createElement('span'); glyph.className = 'category-shortcut-icon'; glyph.textContent = names[index % names.length];
-    const label = document.createElement('span'); label.textContent = node.name;
-    const count = document.createElement('small'); count.textContent = `${node.count.toLocaleString('tr-TR')} ürün`;
-    tile.append(glyph, label, count);
-    tile.addEventListener('click', () => selectCategory(node.path));
-    target.append(tile);
-  }
+  const categories = buildCategoryTree(state.products).sort((a,b)=>a.name.localeCompare(b.name,'tr'));
+  for(const node of categories) target.append(photoCategoryTile(node,node.children.length>0));
   if (!categories.length) {
     const info = document.createElement('p'); info.className = 'home-empty';
     info.textContent = 'Katalog yüklenince kategoriler burada görünecek.';
@@ -197,11 +239,12 @@ async function installBuiltInCatalog() {
   } finally { state.bundleLoading = false; }
 }
 
-function openCategoryMenu() {
+function openCategoryMenu(path='') {
+  state.categoryPage=typeof path==='string'?path:'';
+  $('menuCategorySearch').value='';
+  if(!dom.categoryDialog.open)dom.categoryDialog.showModal();
   renderCategoryTree();
-  $('menuCategorySearch').value = '';
-  dom.categoryDialog.showModal();
-  $('menuCategorySearch').focus({ preventScroll: true });
+  if(matchMedia('(pointer:fine)').matches)$('menuCategorySearch').focus({preventScroll:true});
 }
 function closeCategoryMenu() {
   if (dom.categoryDialog.open) dom.categoryDialog.close();
@@ -224,46 +267,18 @@ function showAllProducts() {
   setView('catalog');
   renderFilters(); renderProducts();
 }
-function renderCategoryTree(search = '') {
-  const tree = buildCategoryTree(state.products);
-  const target = dom.categoryTree;
-  target.replaceChildren();
-  const query = fold(search);
-  function entry(node, depth = 0, parentMatches = false) {
-    const matches = !query || parentMatches || fold(node.name).includes(query) || fold(node.path).includes(query);
-    const children = node.children.map(child => entry(child, depth + 1, matches)).filter(Boolean);
-    if (!matches && !children.length) return null;
-    const item = document.createElement('div'); item.className = 'category-node';
-    const line = document.createElement('div'); line.className = 'category-node-row';
-    const select = document.createElement('button'); select.type = 'button';
-    select.className = 'category-select' + (state.category === node.path ? ' selected' : '');
-    const name = document.createElement('span'); name.textContent = node.name;
-    const count = document.createElement('small'); count.textContent = node.count.toLocaleString('tr-TR');
-    select.append(name, count); select.addEventListener('click', () => selectCategory(node.path));
-    line.append(select);
-    if (children.length) {
-      const expander = document.createElement('button'); expander.type = 'button';
-      expander.className = 'category-expand'; expander.textContent = '›';
-      expander.setAttribute('aria-label', `${node.name} alt kategorileri`);
-      expander.setAttribute('aria-expanded', String(Boolean(query)));
-      const nested = document.createElement('div'); nested.className = 'category-children';
-      nested.hidden = !query; nested.append(...children);
-      expander.addEventListener('click', () => {
-        nested.hidden = !nested.hidden;
-        expander.setAttribute('aria-expanded', String(!nested.hidden));
-      });
-      line.append(expander); item.append(line, nested);
-    } else item.append(line);
-    if (depth) item.classList.add('sub-category');
-    return item;
-  }
-  const nodes = tree.map(node => entry(node)).filter(Boolean);
-  if (nodes.length) target.append(...nodes);
-  else {
-    const empty = document.createElement('p'); empty.className = 'category-empty';
-    empty.textContent = state.products.length ? 'Kategori bulunamadı.' : 'Ürünleri görmek için Excel veya XML yükleyin.';
-    target.append(empty);
-  }
+function renderCategoryTree(search='') {
+ const tree=buildCategoryTree(state.products),target=dom.categoryTree;
+ target.replaceChildren();
+ const all=(nodes)=>nodes.flatMap(node=>[node,...all(node.children)]);
+ const flat=all(tree),term=fold(search);
+ const current=flat.find(n=>n.path===state.categoryPage);
+ const visible=term?flat.filter(n=>fold(n.name).includes(term)||fold(n.path).includes(term)):(current?current.children:tree);
+ $('categoryTrail').hidden=!current&&!term;
+ $('categoryTrailName').textContent=term?'Arama':(current?.name||'');
+ $('menuAllProducts').firstChild.textContent=current&&!term?'Bu kategorinin ürünleri':'Tüm ürünler';
+ for(const node of visible)target.append(photoCategoryTile(node,!term&&node.children.length>0));
+ if(!visible.length){const p=document.createElement('p');p.className='category-empty';p.textContent='Kategori bulunamadı';target.append(p);}
 }
 function renderFilters() {
   const brands = [...new Set(state.products.map(p => p.marka).filter(Boolean))]
@@ -422,7 +437,8 @@ function updateCart(id, field, value) {
   if (!line) return;
   if (field === 'quantity') {
     const num = Number(value);
-    if (!Number.isInteger(num) || num <= 0) { announce('Adet en az 1 olmalı.', 'error'); renderCart(); return; }
+    if(!Number.isInteger(num)||num<0){announce('Geçersiz adet','error');renderCart();return;}
+    if(num===0){state.cart.delete(id);renderCartBar();renderCart();return;}
     if (num > remaining(state.byId.get(id) || line.product)) {
       announce('İstenen adet kullanılabilir stoğu aşıyor.', 'error'); renderCart(); return;
     }
@@ -711,7 +727,9 @@ async function completeSale() {
     renderProducts(); renderCartBar(); renderHome();
     channel?.postMessage('sale-updated');
     announce(`Satış kaydedildi: ${money(record.total, record.currency)}`, 'success');
-    if ($('autoPrint').checked) printSale(record);
+    $('receiptActionsTotal').textContent=money(record.total,record.currency);
+    $('receiptActionStatus').textContent='';
+    $('receiptActionsDialog').showModal();
   } catch (error) { announce(`Satış kaydedilemedi: ${error.message}`, 'error'); }
   finally { state.saving = false; renderCart(); }
 }
@@ -746,6 +764,39 @@ function renderReceipt(sale) {
     <div class="receipt-center receipt-small">Teşekkür ederiz!<br>Bu belge yasal mali fiş yerine geçmez.</div>`;
 }
 function printSale(sale) { renderReceipt(sale); window.print(); }
+
+async function printBluetoothReceipt(sale){
+ if(!navigator.bluetooth?.requestDevice)
+    throw Error('Bu tarayıcı Bluetooth yazıcı bağlantısını desteklemiyor. iPhone için AirPrint veya yazıcının uygulamasını kullanın.');
+ const UART='6e400001-b5a3-f393-e0a9-e50e24dcca9e',TX='6e400002-b5a3-f393-e0a9-e50e24dcca9e';
+ const profiles=[{service:UART,char:TX},{service:0xffe0,char:0xffe1},{service:0xff00,char:0xff02}];
+ const device=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:profiles.map(p=>p.service)});
+ const server=await device.gatt.connect();
+ try {
+    let characteristic;
+    for(const p of profiles){
+      try {const service=await server.getPrimaryService(p.service);characteristic=await service.getCharacteristic(p.char);if(characteristic)break;}
+      catch {}
+    }
+    if(!characteristic)throw Error('Yazıcının BLE ESC/POS profili desteklenmiyor. AirPrint veya üretici uygulamasını kullanın.');
+    const bytes=escPosReceipt(sale);
+    for(let i=0;i<bytes.length;i+=20){
+       const part=bytes.slice(i,i+20);
+       if(characteristic.writeValueWithoutResponse)await characteristic.writeValueWithoutResponse(part);
+       else await characteristic.writeValue(part);
+       if((i/20)%4===3)await new Promise(done=>setTimeout(done,35));
+    }
+ } finally {if(server.connected)server.disconnect();}
+}
+async function shareReceiptWhatsApp(sale){
+ const text=receiptAsText(sale);
+ if(navigator.share){
+   try {await navigator.share({title:'Hizlisatis Fişi',text});return;}
+   catch(e){if(e.name==='AbortError')return;}
+ }
+ window.open('https://wa.me/?text='+encodeURIComponent(text),'_blank','noopener,noreferrer');
+}
+
 async function showHistory() {
   try {
     state.sales = (await getSales()).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
@@ -787,19 +838,27 @@ function exportHistory() {
   document.body.append(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(href), 1000);
 }
-function chirp() {
-  try {
-    const Context = window.AudioContext || window.webkitAudioContext;
-    if (Context) {
-      const audio = new Context();
-      const oscillator = audio.createOscillator(); const gain = audio.createGain();
-      oscillator.type = 'sine'; oscillator.frequency.value = 950;
-      gain.gain.value = 0.045; oscillator.connect(gain); gain.connect(audio.destination);
-      oscillator.start(); oscillator.stop(audio.currentTime + 0.075);
-      oscillator.onended = () => audio.close();
-    }
-  } catch { /* audio optional */ }
-  navigator.vibrate?.(70);
+let scanSoundContext;
+function unlockScanAudio(){
+ try {
+   const C=window.AudioContext||window.webkitAudioContext;if(!C)return;
+   scanSoundContext ||= new C();
+   if(scanSoundContext.state==='suspended')scanSoundContext.resume().catch(()=>{});
+ } catch {}
+}
+function chirp(){
+ try {
+   unlockScanAudio();const audio=scanSoundContext;
+   if(audio){
+      const at=audio.currentTime,g=audio.createGain(),o=audio.createOscillator();
+      g.gain.setValueAtTime(.001,at);g.gain.exponentialRampToValueAtTime(.25,at+.012);
+      g.gain.exponentialRampToValueAtTime(.001,at+.23);
+      o.type='square';o.frequency.setValueAtTime(980,at);o.frequency.setValueAtTime(1360,at+.11);
+      o.connect(g);g.connect(audio.destination);o.start(at);o.stop(at+.24);
+      o.onended=()=>{o.disconnect();g.disconnect();};
+   }
+ } catch {}
+ navigator.vibrate?.([90,45,90]);
 }
 let lastScanText = '', lastScanTime = 0;
 function scanned(raw) {
@@ -821,7 +880,37 @@ function scanned(raw) {
     dom.scanMessage.textContent = product.baslik + ': Stok veya sepet limitini kontrol edin.';
   }
 }
+
+function updateTorchButton(active=false,on=false){
+ const b=$('scanTorch');b.disabled=!active;b.setAttribute('aria-pressed',String(on));
+ b.setAttribute('aria-label',on?'Flaşı kapat':'Flaşı aç');b.textContent=on?'⚡ Açık':'⚡ Flaş';
+}
+function torchFeature(session){
+ try {
+   const f=session.lib?.getRunningTrackCameraCapabilities?.()?.torchFeature?.();
+   if(f?.isSupported?.())return {apply:on=>f.apply(on)};
+ } catch {}
+ const track=session.stream?.getVideoTracks?.()[0];
+ if(track?.getCapabilities?.()?.torch)return {apply:on=>track.applyConstraints({advanced:[{torch:on}]})};
+ try {
+   const caps=session.lib?.getRunningTrackCapabilities?.();
+   if(caps?.torch && session.lib?.applyVideoConstraints)
+     return {apply:on=>session.lib.applyVideoConstraints({advanced:[{torch:on}]})};
+ } catch {}
+ return null;
+}
+async function toggleTorch(){
+ const session=state.scanner;if(!session?.active)return;
+ const feature=torchFeature(session);
+ if(!feature){dom.scanMessage.textContent='Bu cihazda flaş desteklenmiyor.';updateTorchButton();return;}
+ try {
+   const turnOn=!session.torchOn;await feature.apply(turnOn);
+   session.torchOn=turnOn;updateTorchButton(true,turnOn);
+ } catch { dom.scanMessage.textContent='Flaş açılamadı.';updateTorchButton(); }
+}
+
 async function stopScanner() {
+  updateTorchButton();
   const session = state.scanner;
   if (!session) return;
   session.active = false;
@@ -881,7 +970,8 @@ async function startNativeScanner(session) {
   video.style.display = 'block';
   video.srcObject = session.stream;
   await video.play();
-  dom.scanMessage.textContent = 'Alternatif okuyucu açık. Barkodu hizalayın.';
+  dom.scanMessage.textContent = 'Barkodu kadraja tutun';
+  updateTorchButton(Boolean(torchFeature(session)));
   const scanFrame = async () => {
     if (!session.active) return;
     try {
@@ -901,7 +991,7 @@ async function startScanner() {
     dom.scanMessage.textContent = 'Kamera erişimi yok. HTTPS üzerinden Safari/Chrome kullanın veya barkodu elle yazın.';
     return;
   }
-  const session = { active: true, stream: null, lib: null, timer: null };
+  const session = { active: true, stream: null, lib: null, timer: null, torchOn: false };
   state.scanner = session;
   dom.scanMessage.textContent = 'Arka kamera açılıyor. İzin sorulursa onaylayın.';
   $('scanVideo').style.display = 'none';
@@ -921,7 +1011,8 @@ async function startScanner() {
       { fps: 12, disableFlip: true },
       code => { if (session.active) scanned(code); }, () => {});
     if (!session.active) { try { await lib.stop(); } catch {} return; }
-    dom.scanMessage.textContent = 'Kamera açık: Barkod çizgilerinin tamamını gösterin. 15–25 cm mesafeden deneyin.';
+    dom.scanMessage.textContent = 'Barkodu kadraja tutun';
+    updateTorchButton(Boolean(torchFeature(session)));
   } catch (error) {
     if (!session.active) return;
     if (session.lib) {
@@ -997,10 +1088,14 @@ async function setup() {
   });
   $('quickScanButton').addEventListener('click', openCamera);
   $('saleBarcodeForm').addEventListener('submit', event => {
-    event.preventDefault(); barcodeAdd($('saleBarcode').value, $('saleBarcode'));
+    event.preventDefault();
+    const value=$('saleBarcode').value.trim();
+    if(value)barcodeAdd(value,$('saleBarcode'));else openProductPicker();
   });
+  $('pickProductSearch').addEventListener('input',renderProductPicker);
   $('saleScanButton').addEventListener('click', openCamera);
   $('scanRetry').addEventListener('click', startScanner);
+  $('scanTorch').addEventListener('click', toggleTorch);
   $('scanManualForm').addEventListener('submit', event => {
     event.preventDefault();
     scanned($('scanManualBarcode').value);
@@ -1019,7 +1114,11 @@ async function setup() {
   $('welcomeCategories').addEventListener('click', openCategoryMenu);
   $('closeCategories').addEventListener('click', closeCategoryMenu);
   $('showAllProducts').addEventListener('click', showAllProducts);
-  $('menuAllProducts').addEventListener('click', showAllProducts);
+  $('menuAllProducts').addEventListener('click',()=>state.categoryPage?selectCategory(state.categoryPage):showAllProducts());
+  $('categoryBack').addEventListener('click',()=>{
+    state.categoryPage=state.categoryPage.split(' > ').slice(0,-1).join(' > ');
+    $('menuCategorySearch').value='';renderCategoryTree();
+  });
   $('menuCategorySearch').addEventListener('input', () => renderCategoryTree($('menuCategorySearch').value));
   $('menuExcelImport').addEventListener('click', () => { closeCategoryMenu(); $('excelFile').click(); });
   dom.categoryDialog.addEventListener('click', event => {
@@ -1049,9 +1148,26 @@ async function setup() {
   document.querySelectorAll('input[name="payment"]').forEach(el => el.addEventListener('change', updatePayment));
   dom.cash.addEventListener('input', () => { dom.cash.dataset.edited = 'true'; updatePayment(); });
   dom.complete.addEventListener('click', completeSale);
+  $('receiptNetworkPrint').addEventListener('click',()=>{
+    if(state.lastSale)printSale(state.lastSale);
+  });
+  $('receiptBluetoothPrint').addEventListener('click',async()=>{
+    if(!state.lastSale)return;
+    const btn=$('receiptBluetoothPrint');btn.disabled=true;
+    $('receiptActionStatus').textContent='Bluetooth aranıyor…';
+    try {await printBluetoothReceipt(state.lastSale);$('receiptActionStatus').textContent='Fiş yazıcıya gönderildi.';}
+    catch(e){$('receiptActionStatus').textContent=e.message;}
+    finally {btn.disabled=false;}
+  });
+  $('receiptWhatsApp').addEventListener('click',async()=>{
+    if(state.lastSale)await shareReceiptWhatsApp(state.lastSale);
+  });
+  $('receiptClose').addEventListener('click',()=>{
+    $('receiptActionsDialog').close();openSale();
+  });
   $('historyButton').addEventListener('click', showHistory);
   $('exportSales').addEventListener('click', exportHistory);
-  for (const dialog of [dom.cartDialog, dom.scanDialog, dom.historyDialog, $('excelDialog'), $('productDetailDialog')]) {
+  for (const dialog of [dom.cartDialog, dom.scanDialog, dom.historyDialog, $('excelDialog'), $('productDetailDialog'), $('pickProductDialog'), $('receiptActionsDialog')]) {
     dialog.addEventListener('click', event => {
       if (event.target === dialog) dialog.close();
     });

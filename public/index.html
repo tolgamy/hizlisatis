@@ -18,7 +18,7 @@
     <header class="topbar">
       <div class="brandline">
         <div class="brandmark" aria-hidden="true">₺</div>
-        <div><strong>Cep Hızlı Satış</strong><small>Mobil POS · v1.9</small></div>
+        <div><strong>Cep Hızlı Satış</strong><small>Mobil POS · v2.0</small></div>
         <span id="connectionStatus" class="connection" role="status">Bağlanıyor</span>
       </div>
       <div class="searchline">
@@ -146,8 +146,9 @@
         <input id="menuCategorySearch" type="search" placeholder="Kategori ara..." autocomplete="off">
       </div>
       <nav aria-label="Ürün kategorileri" class="category-nav">
-        <button id="menuAllProducts" type="button" class="menu-all-products">Tüm ürünleri göster <span aria-hidden="true">›</span></button>
-        <div id="categoryTree" class="category-tree"></div>
+        <div id="categoryTrail" class="category-trail" hidden><button id="categoryBack" type="button">‹ Geri</button><strong id="categoryTrailName"></strong></div>
+        <button id="menuAllProducts" type="button" class="menu-all-products">Tüm ürünler <span aria-hidden="true">›</span></button>
+        <div id="categoryTree" class="category-tree category-photo-grid"></div>
         <details class="menu-brands"><summary>Markaya göre filtrele</summary><div id="brandFilters" class="drawer-chips" aria-label="Marka filtreleri"></div></details>
       </nav>
     </div>
@@ -161,7 +162,7 @@
     <form id="saleBarcodeForm" class="sale-scanner">
       <label for="saleBarcode" class="sr-only">Barkod</label>
       <input id="saleBarcode" type="text" inputmode="search" placeholder="Barkod / ürün kodu" autocomplete="off" enterkeyhint="done">
-      <button class="sale-manual-add" type="submit" aria-label="Ürün ekle">+</button>
+      <button class="sale-manual-add" type="submit" aria-label="Barkodla veya ürün seçerek ekle">+</button>
       <button id="saleScanButton" type="button" aria-label="Kamerayla barkod oku">⌗</button>
     </form>
     <div id="cartItems" class="cart-items" aria-label="Sepetteki ürünler"></div>
@@ -188,7 +189,7 @@
         <summary>Fiş</summary>
         <div class="print-options"><label for="receiptWidth" class="sr-only">Fiş genişliği</label>
           <select id="receiptWidth"><option value="80">80 mm</option><option value="58">58 mm</option></select>
-          <label class="autoprint"><input id="autoPrint" type="checkbox"> Otomatik yazdır</label>
+
         </div>
       </details>
       <button id="completeSale" class="primary-button" type="button">Satışı Tamamla</button>
@@ -213,7 +214,7 @@
   </dialog>
 
   <dialog id="scanDialog" class="modal" aria-labelledby="scanTitle">
-    <div class="sheet-header"><h2 id="scanTitle">Barkod Okuyucu</h2><button type="button" class="closebutton" data-close="scanDialog" aria-label="Kapat">×</button></div>
+    <div class="sheet-header"><h2 id="scanTitle">Barkod Tara</h2><div class="scan-header-actions"><button id="scanTorch" type="button" class="scan-torch" aria-label="Flaşı aç" aria-pressed="false" disabled>⚡ Flaş</button><button type="button" class="closebutton" data-close="scanDialog" aria-label="Kapat">×</button></div></div>
     <p id="scanMessage" class="scan-message" role="status">Kameraya barkodu gösterin.</p>
     <div id="scannerView" class="scanner-view"><video id="scanVideo" playsinline muted autoplay></video><div id="html5-reader"></div><div class="target-frame" aria-hidden="true"></div></div>
     <form id="scanManualForm" class="scan-manual" autocomplete="off">
@@ -221,9 +222,26 @@
       <div class="scan-manual-row"><input id="scanManualBarcode" type="text" inputmode="numeric" autocomplete="off" enterkeyhint="done" placeholder="Örn. 8690123456789"><button type="submit">Sepete Ekle</button></div>
     </form>
     <div class="scan-tools"><button id="scanRetry" type="button">↻ Kamerayı Yeniden Dene</button><label class="scan-photo-button">▣ Fotoğraftan Oku<input id="scanPhotoFile" type="file" accept="image/*" capture="environment" hidden></label></div>
-    <p class="hint">Barkodu yatay tutup tüm çizgilerini kameraya gösterin. El terminali okuyucusu satış ekranındaki barkod alanıyla da çalışır.</p>
+
   </dialog>
 
+  <dialog id="pickProductDialog" class="sheet product-picker" aria-labelledby="pickProductTitle">
+    <div class="sheet-header"><h2 id="pickProductTitle">Ürün Ekle</h2><button type="button" class="closebutton" data-close="pickProductDialog" aria-label="Kapat">×</button></div>
+    <div class="picker-search"><input id="pickProductSearch" type="search" placeholder="Ürün adı / barkod ara" autocomplete="off" aria-label="Ürün ara"></div>
+    <div id="pickProductResults" class="picker-results"></div>
+  </dialog>
+  <dialog id="receiptActionsDialog" class="sheet receipt-actions-dialog" aria-labelledby="receiptActionsTitle">
+    <div class="sheet-header"><h2 id="receiptActionsTitle">Satış Tamamlandı ✓</h2><button type="button" class="closebutton" data-close="receiptActionsDialog" aria-label="Kapat">×</button></div>
+    <div class="receipt-actions-body"><div id="receiptActionsTotal" class="receipt-actions-total">₺0,00</div>
+      <div class="receipt-actions-grid">
+        <button id="receiptNetworkPrint" type="button">▤ <span>Ağ / AirPrint</span></button>
+        <button id="receiptBluetoothPrint" type="button">ᛒ <span>Bluetooth</span></button>
+        <button id="receiptWhatsApp" type="button">↗ <span>WhatsApp</span></button>
+      </div>
+      <p id="receiptActionStatus" class="receipt-action-status" role="status" aria-live="polite"></p>
+      <button id="receiptClose" type="button" class="receipt-action-close">Yeni Satış</button>
+    </div>
+  </dialog>
   <dialog id="historyDialog" class="sheet" aria-labelledby="historyTitle">
     <div class="sheet-header"><h2 id="historyTitle">Satış Geçmişi</h2><button type="button" class="closebutton" data-close="historyDialog" aria-label="Kapat">×</button></div>
     <div class="history-actions"><span id="historyCount">0 satış</span><button id="exportSales" class="smallbutton secondary" type="button">CSV Dışa Aktar</button></div>
