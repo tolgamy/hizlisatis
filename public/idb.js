@@ -76,9 +76,11 @@ export async function installBundledProducts(products, version) {
     request.onsuccess=()=>{
       const saved=request.result;
       const existing=new Map(saved.map(p=>[p.id,p]));
+      const editedBarcodes=new Set(saved.filter(p=>p.source!=='bundle').map(p=>p.barkod).filter(Boolean));
       for(const old of saved) if(old.source==='bundle'&&!incoming.has(old.id)&&!old.lifecycleStatus) manual.delete(old.id);
       for(const product of products) {
         const prior=existing.get(product.id);
+        if(!prior&&editedBarcodes.has(product.barkod)) continue;
         if(!prior||prior.source==='bundle') manual.put(prior ? { ...product,
           lifecycleStatus: prior.lifecycleStatus, everActivated: prior.everActivated,
           deletedFrom: prior.deletedFrom, statusChangedAt: prior.statusChangedAt } : product);
@@ -122,12 +124,13 @@ export async function upsertExcelProducts(products, filename) {
     tx.onerror = () => {};
     const store = tx.objectStore('excelProducts');
     for (const product of products) {
-      const oldReq = store.get(product.id);
+      const oldReq = product.barkod ? store.index('barkod').get(product.barkod) : store.get(product.id);
       oldReq.onsuccess = () => {
         const old = oldReq.result;
-        store.put(old && product.lifecycleStatus === undefined ? { ...product,
+        const target = old && old.id !== product.id ? { ...product, id:old.id } : product;
+        store.put(old && product.lifecycleStatus === undefined ? { ...target,
           lifecycleStatus: old.lifecycleStatus, everActivated: old.everActivated,
-          deletedFrom: old.deletedFrom, statusChangedAt: old.statusChangedAt } : product);
+          deletedFrom: old.deletedFrom, statusChangedAt: old.statusChangedAt } : target);
       };
     }
     tx.objectStore('meta').put({ key: 'excelImport', value: {
