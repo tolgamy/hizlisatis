@@ -60,24 +60,30 @@ $('start').addEventListener('click',async()=>{
   const res=await fetch('/catalog/manifest.json',{cache:'no-cache'});
   if(!res.ok)throw Error('Ürün kataloğu indirilemedi.');
   const manifest=await res.json();
-  if(manifest.count!==total||!Array.isArray(manifest.parts)||manifest.parts.length!==20)
+  if(manifest.count!==total||manifest.version!=='7f27e3a60ef04e77'||
+     !Array.isArray(manifest.parts)||manifest.parts.length!==20||
+     manifest.parts.some(path=>typeof path!=='string'||
+      !/^\/catalog\/products-[a-f0-9]{16}-\d{2}\.json$/i.test(path)))
     throw Error('Ürün kataloğu sürümü doğru değil.');
   let progressed=0;
   for(let part=0;part<manifest.parts.length;part++){
-   let offset=0;
-   for(let attempt=0;attempt<10;attempt++){
-    const done=await api({part,offset},secret);
-    if(!Number.isInteger(done.count)||done.count<1)throw Error('Aktarım yanıtı geçersiz.');
+   const response=await fetch(manifest.parts[part],{cache:'no-cache'});
+   if(!response.ok)throw Error('Ürün kataloğu parçası indirilemedi.');
+   const rows=await response.json();
+   if(!Array.isArray(rows)||!rows.length||rows.length>1000)
+     throw Error('Katalog parçası geçersiz.');
+   for(let offset=0;offset<rows.length;offset+=100){
+    const batch=rows.slice(offset,offset+100);
+    const done=await api({part,offset,rows:batch,partTotal:rows.length,version:manifest.version},secret);
+    if(done.count!==batch.length||done.nextOffset!==offset+batch.length||
+       done.partComplete!==(offset+batch.length>=rows.length))
+      throw Error('Merkezi sunucudan geçersiz aktarım yanıtı alındı.');
     progressed+=done.count;
     $('progress').value=Math.min(total,progressed);
     $('info').textContent=progressed.toLocaleString('tr-TR')+' / 19.096 ürün işleniyor...';
-    if(done.partComplete){offset=-1;break;}
-    if(!Number.isInteger(done.nextOffset)||done.nextOffset<=offset)
-      throw Error('Aktarımda sayfa ilerlemesi durdu.');
-    offset=done.nextOffset;
    }
-   if(offset!==-1)throw Error('Bir katalog parçası tamamlanamadı.');
   }
+  if(progressed!==total)throw Error('Beklenen katalog ürün sayısı tutmadı: '+progressed);
   await api({action:'finish'},secret);
   const verified=await api(null,secret);
   if(!verified.ready||verified.count!==total)throw Error('Sunucu ürün sayısı doğrulanamadı.');

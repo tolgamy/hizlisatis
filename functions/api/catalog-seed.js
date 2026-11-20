@@ -1,10 +1,14 @@
 /** Administrative first-time D1 catalogue seeding for Cloudflare Pages.
- * Uses Pages ASSETS to read the exact bundled catalogue deployed on the same site.
- * Never accepts a user-provided catalogue URL or writes to browser storage.
+ * Product rows are read from deployed static catalogue by the authorized admin UI;
+ * the API validates bounded batches and writes to D1 (no ASSETS binding needed).
+ * Never accepts catalogue URLs or writes to browser storage.
  */
 import { productFromBundledRow } from '../../public/bundled-catalog.js';
 
-const PAGE_SIZE=250;
+const PAGE_SIZE=100;
+const CATALOG_VERSION='7f27e3a60ef04e77';
+const CATALOG_TOTAL=19096;
+const CATALOG_PARTS=20;
 function respond(value,status=200) {
   return Response.json(value,{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
 }
@@ -26,21 +30,9 @@ async function permitted(request,env) {
   return different===0;
 }
 function provider(env) {
-  if(!env?.DB?.prepare||!env?.DB?.batch||!env?.ASSETS?.fetch)throw Error('Cloudflare DB veya ASSETS bağlantısı bulunamadı.');
+  if(!env?.DB?.prepare||!env?.DB?.batch)
+    throw Error('Cloudflare Pages Production ortamında DB adlı D1 bağlantısı bulunamadı. hizlisatis.pages.dev Pages projesinde Settings → Bindings → DB ayarını kontrol edin ve yeniden dağıtın.');
   return env.DB;
-}
-async function assetJSON(path,env,request) {
-  const url=new URL(path,new URL(request.url).origin);
-  const res=await env.ASSETS.fetch(new Request(url.href));
-  if(!res.ok)throw Error('Katalog dosyası bulunamadı: '+path);
-  return res.json();
-}
-async function manifest(env,request) {
-  const data=await assetJSON('/catalog/manifest.json',env,request);
-  if(data?.schema!==1||data.count!==19096||!Array.isArray(data.parts)||data.parts.length!==20||
-    data.parts.some(path=>typeof path!=='string'||!/^\/catalog\/products-[a-f0-9]{16}-\d{2}\.json$/i.test(path)))
-    throw Error('19.096 ürünün başlangıç kataloğu doğrulanamadı.');
-  return data;
 }
 export async function onRequest({request,env}) {
   if(!['GET','POST'].includes(request.method))return respond({error:'İzin verilmeyen yöntem.'},405);
@@ -62,27 +54,33 @@ export async function onRequest({request,env}) {
       return respond({count:Number(count?.n||0),ready:Number(ready?.value)===19096});
     }
     const body=await request.json();
-    const data=await manifest(env,request);
+    if(Number(request.headers.get('content-length')||0)>400000)
+      return respond({error:'Aktarım paketi çok büyük.'},413);
     if(body?.action==='finish') {
       const row=await db.prepare('SELECT COUNT(*) AS n FROM product_changes').first();
       const count=Number(row?.n||0);
-      if(count!==data.count)return respond({
+      if(count!==CATALOG_TOTAL)return respond({
         error:'Veritabanında '+count+' ürün var. Beklenen 19096. Önce eksikleri aktarın.'
       },409);
       await db.batch([
-        db.prepare("INSERT INTO app_meta(key,value) VALUES('catalog_seed_version',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").bind(data.version),
-        db.prepare("INSERT INTO app_meta(key,value) VALUES('catalog_seed_count',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").bind(String(data.count))
+        db.prepare("INSERT INTO app_meta(key,value) VALUES('catalog_seed_version',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").bind(CATALOG_VERSION),
+        db.prepare("INSERT INTO app_meta(key,value) VALUES('catalog_seed_count',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").bind(String(CATALOG_TOTAL))
       ]);
       return respond({ok:true,ready:true,count});
     }
-    const part=body?.part,offset=body?.offset;
-    if(!Number.isInteger(part)||part<0||part>=data.parts.length||
-        !Number.isInteger(offset)||offset<0||offset>1000||offset%PAGE_SIZE!==0)
-      return respond({error:'Geçersiz aktarım paketi.'},400);
-    const rows=await assetJSON(data.parts[part],env,request);
-    if(!Array.isArray(rows)||rows.length===0||rows.length>1000||offset>=rows.length)
-      return respond({error:'Geçersiz katalog sayfası veya sayfa konumu.'},400);
-    const batch=rows.slice(offset,offset+PAGE_SIZE).map(productFromBundledRow);
+    const part=body?.part,offset=body?.offset,rows=body?.rows,partTotal=body?.partTotal;
+    if(body?.version!==CATALOG_VERSION)
+      return respond({error:'Katalog sürümü uyuşmuyor; sayfayı yenileyin.'},409);
+    if(!Number.isInteger(part)||part<0||part>=CATALOG_PARTS||
+        !Number.isInteger(partTotal)||partTotal<1||partTotal>1000||
+        !Number.isInteger(offset)||offset<0||offset>=partTotal||offset%PAGE_SIZE!==0||
+        !Array.isArray(rows)||rows.length!==Math.min(PAGE_SIZE,partTotal-offset))
+      return respond({error:'Geçersiz katalog aktarım paketi.'},400);
+    // Restrict raw rows to the nine scalar fields of our bundled catalogue.
+    if(rows.some(row=>!Array.isArray(row)||row.length!==9||
+        row.some(value=>value!==null&&!['string','number'].includes(typeof value))))
+      return respond({error:'Geçersiz ürün satırı.'},400);
+    const batch=rows.map(productFromBundledRow);
     // Re-runs are idempotent and never overwrite any existing product edits.
     const timestamp='1970-01-01T00:00:00.000Z';
     await db.batch(batch.map(p=>db.prepare(
@@ -90,7 +88,7 @@ export async function onRequest({request,env}) {
     ).bind(p.id,p.barkod,JSON.stringify(p),timestamp)));
     const next=offset+batch.length;
     return respond({ok:true,count:batch.length,part,offset,nextOffset:next,
-      partComplete:next>=rows.length,partTotal:rows.length,partsTotal:data.parts.length});
+      partComplete:next>=partTotal,partTotal,partsTotal:CATALOG_PARTS});
   }catch(e){
     return respond({error:e?.message||'D1 katalog aktarımı başarısız.'},503);
   }
