@@ -12,7 +12,8 @@ test('bundled scanner UMD namespaces are supported without enabling QR', () => {
   ]) {
     assert.equal(getBarcodeLibrary(root).Reader, Reader);
     const formats = supportedBarcodeFormats(root);
-    assert.ok(formats.includes(9) && formats.includes(6));
+    assert.ok(formats.includes(9) && formats.includes(5));
+    assert.ok(!formats.includes(6), 'Data Matrix must not masquerade as Code 128');
     assert.ok(!formats.includes(0), 'QR must not be enabled');
   }
   assert.equal(acceptsBarcodeResult({result:{format:{format:0, formatName:'QR_CODE'}}}),false);
