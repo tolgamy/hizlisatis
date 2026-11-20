@@ -1,32 +1,45 @@
 /** All mutable product data belongs to Cloudflare D1.
  * Product catalog JSON and IndexedDB may cache reads but must never authorize writes.
  */
-let writeKey='';
+/** Reads stay public. Writes require a signed HttpOnly admin session.
+ * On a new device (or after 30 days), authenticate once; no secret is saved
+ * in localStorage, IndexedDB, or JavaScript memory between operations.
+ */
 async function call(method='GET',body=null,query='') {
-  const headers={'Accept':'application/json'};
-  if(body&&typeof body==='object'){ 
-    if(!writeKey){
-      const answer=window.prompt('Merkezi veritabanı yönetim anahtarını girin (Cloudflare PRODUCT_WRITE_KEY):');
-      if(!answer) throw Error('Sunucu yönetim anahtarı gerekli. Kayıt yapılmadı.');
-      writeKey=answer.trim();
-    }
-    headers['Content-Type']='application/json';
-    headers['X-Product-Key']=encodeURIComponent(writeKey);
+  const isWrite=body&&typeof body==='object';
+  const options={
+    method,headers:{'Accept':'application/json',...(isWrite?{'Content-Type':'application/json'}:{})},
+    body:isWrite?JSON.stringify(body):undefined,
+    cache:'no-store',credentials:'same-origin'
+  };
+  const run=async()=>{
+    try{return await fetch('/api/product-state'+query,options)}
+    catch{throw Error('Merkezi veritabanına bağlanılamıyor. İnternet bağlantısını kontrol edin.')}
+  };
+  let response=await run();
+  if(isWrite && response.status===401) {
+    const key=window.prompt('Bu cihaz için bir kez merkezi yönetim anahtarını girin. Güvenli oturum 30 gün açık kalır:');
+    if(!key)throw Error('Yönetim oturumu açılmadı. Ürün değiştirilmedi.');
+    let login;
+    try {
+      login=await fetch('/api/admin-session',{
+        method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},
+        body:JSON.stringify({key}),cache:'no-store',credentials:'same-origin'
+      });
+    }catch{throw Error('Yönetim oturumu açılamadı. İnternet bağlantısını kontrol edin.')}
+    const data=await login.json().catch(()=>null);
+    if(!login.ok)throw Error(data?.error||'Yönetim anahtarı doğrulanamadı.');
+    response=await run();
   }
-  let response;
-  try {
-    response=await fetch('/api/product-state'+query,{
-      method,headers,body:body&&typeof body==='object'?JSON.stringify(body):undefined,
-      cache:'no-store',credentials:'same-origin'
-    });
-  } catch {throw Error('Merkezi veritabanına bağlanılamıyor. İnternet bağlantısını kontrol edin.');}
-  const json=await response.json().catch(()=>null);
-  if(!response.ok){
-    if(response.status===401)writeKey='';
-    throw Error(json?.error||'Merkezi veritabanı hatası: HTTP '+response.status);
-  }
-  return json;
+  const data=await response.json().catch(()=>null);
+  if(!response.ok)throw Error(data?.error||'Merkezi veritabanı hatası: HTTP '+response.status);
+  return data;
 }
+export async function logoutAdminSession() {
+  const result=await fetch('/api/admin-session',{method:'DELETE',credentials:'same-origin',cache:'no-store'});
+  if(!result.ok)throw Error('Yönetim oturumu kapatılamadı.');
+}
+
 export async function fetchRemoteProducts(onProgress) {
   const products=[],seen=new Set();
   let after='',bulkAt=null,expected=0;

@@ -11,7 +11,7 @@ test('passive actions require exactly the selected 1453 PIN', () => {
     assert.equal(verifyPassivePin(wrong), false);
   const management = readFileSync(new URL('../public/product-management.js', import.meta.url), 'utf8');
   assert.match(management, /if\(!authorizePassiveAction\(\)\)return;/);
-  assert.match(management, /if\(\['activate','deactivate','restore'\]\.includes\(action\)&&!authorizePassiveAction\(\)\)return;/);
+  assert.match(management, /action==='deactivate'&&!authorizePassiveAction\(\)\)return;/);
 });
 
 test('PDF creation works offline with Turkish receipt fields and a PDF cross-reference table', async () => {

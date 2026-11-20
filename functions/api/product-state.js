@@ -1,3 +1,4 @@
+import {authorizedAdmin} from '../../lib/admin-auth.js';
 /** Cloudflare Pages + D1 authoritative product changes.
  * Static bundled catalogue is a read-only baseline; all edits and status
  * changes live in D1. No browser storage is used as server-side authority.
@@ -9,23 +10,7 @@ function json(data, status=200) {
 }
 function error(message, status=400) { return json({error:message},status); }
 function database(env) { return env?.DB?.prepare ? env.DB : null; }
-async function authorized(request, env) {
-  const expected=String(env?.PRODUCT_WRITE_KEY||'');
-  const encoded=request.headers.get('X-Product-Key')||'';
-  // UTF-8 secrets are percent-encoded for ASCII-only HTTP headers.
-  if(encoded.length>2048)return false;
-  let supplied;
-  try { supplied=decodeURIComponent(encoded); } catch { return false; }
-  // Never activate a public write endpoint without a configured strong secret.
-  if(expected.length<24 || supplied.length>256 || supplied.length!==expected.length) return false;
-  const encoder=new TextEncoder();
-  const [a,b]=await Promise.all([expected,supplied].map(v=>
-    crypto.subtle.digest('SHA-256',encoder.encode(v))));
-  const aa=new Uint8Array(a),bb=new Uint8Array(b);
-  let diff=0;
-  for(let i=0;i<aa.length;i++)diff|=aa[i]^bb[i];
-  return diff===0;
-}
+
 function validateProduct(product) {
   if(!product || typeof product!=='object' || Array.isArray(product)) throw Error('Ürün kaydı geçersiz.');
   if(typeof product.id!=='string'||!product.id.trim()||product.id.length>180) throw Error('Ürün kimliği geçersiz.');
@@ -97,7 +82,7 @@ export async function onRequestPost({request,env}) {
   const seeded=await db.prepare("SELECT value FROM app_meta WHERE key='catalog_seed_count'").first().catch(()=>null);
   if(!seeded || Number(seeded.value)!==19096)
     return error('D1 katalog başlangıç verisi yüklenmemiş.',503);
-  if(!await authorized(request,env)) return error('Sunucu yönetim anahtarı geçersiz.',401);
+  if(!await authorizedAdmin(request,env)) return error('Yönetim oturumu gerekli.',401);
   if(Number(request.headers.get('content-length')||0)>3500000)
     return error('Tek istekte çok fazla veri var.',413);
   let body;
