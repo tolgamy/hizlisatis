@@ -284,7 +284,7 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
     try {
       const local=await getLocalSnapshot();
       const remote=await fetchRemoteProducts();
-      if(remote.products.length || (remote.bulkAt&&!local.lifecycleMeta)) {
+      if(remote.products.some(p=>p.source!=='bundle'||p.lifecycleStatus) || (remote.bulkAt&&!local.lifecycleMeta)) {
         throw Error('Merkezi veritabanında zaten kayıt var. Otomatik üzerine yazma güvenlik için engellendi.');
       }
       const changed=local.products.filter(p=>p.source!=='bundle'||
