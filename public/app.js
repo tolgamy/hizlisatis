@@ -303,7 +303,7 @@ function renderCategoryTree(search = '') {
   const term=fold(search);
   const baseVisible = term ? all.filter(x=>fold(x.path).includes(term)).slice(0,100) : (current?current.children:state.categoryTreeData);
   const visible = sortCategoryNodes(baseVisible.filter(showCategoryInBrowse), current?.path || '');
-  $('categoryTrailName').textContent=current?.name||'Kategoriler';
+  $('categoryTrailName').textContent=current?.path||'Kategoriler';
   $('categoryBack').hidden=!current;
   for(const node of visible) target.append(categoryTile(node,!term&&node.children.length>0));
   if(!visible.length) target.innerHTML='<p class="clean-empty">Kategori bulunamadı</p>';
@@ -328,7 +328,7 @@ function renderProducts() {
     if(state.sort==='stock')return (b.stokBelirsiz?-1:remaining(b))-(a.stokBelirsiz?-1:remaining(a));
     return av||a.baslik.localeCompare(b.baslik,'tr');
   });
-  $('browseHeading').textContent=state.category?.split(' > ').at(-1)||(query?'Arama Sonuçları':'Ürünler');
+  $('browseHeading').textContent=state.category||(query?'Arama Sonuçları':'Ürünler');
   dom.count.textContent=items.length.toLocaleString('tr-TR');
   for(const [id,mode] of [['viewGrid','grid'],['viewList','list']]) {
     $(id).setAttribute('aria-pressed',String(state.productLayout===mode));$(id).classList.toggle('active',state.productLayout===mode);
@@ -536,7 +536,7 @@ async function confirmExcelImport() {
   try {
     await serializeMutation(() => upsertExcelProducts(pending.products, pending.filename));
     const snapshot = await getSnapshot();
-    setCatalog(snapshot.products, snapshot.adjustments, snapshot.meta, snapshot.excelCount, snapshot.bundleCount);
+    setCatalog(snapshot.products, snapshot.adjustments, snapshot.meta, snapshot.excelCount, snapshot.bundleCount, snapshot.lifecycleMeta);
     channel?.postMessage('excel-updated');
     state.excelPreview = null;
     $('excelDialog').close();
@@ -1044,11 +1044,11 @@ async function setup() {
   if('serviceWorker'in navigator&&window.isSecureContext)navigator.serviceWorker.register('/sw.js').catch(()=>{});
   try{
     await openDB();const snapshot=await getSnapshot();
-    setCatalog(snapshot.products,snapshot.adjustments,null,snapshot.excelCount,snapshot.bundleCount);
+    setCatalog(snapshot.products,snapshot.adjustments,null,snapshot.excelCount,snapshot.bundleCount,snapshot.lifecycleMeta);
   }catch(error){announce(`Yerel veritabanı açılamadı: ${error.message}`,'error');dom.complete.disabled=true;}
   applyRoute();installBuiltInCatalog();
   channel?.addEventListener('message',async()=>{
-    try{const snapshot=await getSnapshot();setCatalog(snapshot.products,snapshot.adjustments,null,snapshot.excelCount,snapshot.bundleCount);}
+    try{const snapshot=await getSnapshot();setCatalog(snapshot.products,snapshot.adjustments,null,snapshot.excelCount,snapshot.bundleCount,snapshot.lifecycleMeta);}
     catch{/* other tab closing */}
   });
 }
