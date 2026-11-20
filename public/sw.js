@@ -1,7 +1,7 @@
-const VERSION = 'cep-pos-shell-v4-image-url';
+const VERSION = 'cep-pos-shell-v5-category-drawer';
 const SHELL = [
   '/', '/index.html', '/styles.css', '/app.js', '/idb.js',
-  '/normalize.js', '/xml-local.js', '/xlsx-reader.js', '/excel-products.js', '/urun-yukleme-sablonu.xlsx', '/manifest.json',
+  '/normalize.js', '/xml-local.js', '/category-menu.js', '/xlsx-reader.js', '/excel-products.js', '/urun-yukleme-sablonu.xlsx', '/manifest.json',
   '/icons/icon-192.png', '/icons/icon-512.png', '/icons/placeholder.svg',
   '/vendor/html5-qrcode.min.js'
 ];

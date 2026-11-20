@@ -11,7 +11,7 @@
   <link rel="apple-touch-icon" href="/icons/icon-192.png">
   <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg">
   <link rel="stylesheet" href="/styles.css">
-  <title>Cep Hızlı Satış · POS</title>
+  <title>Hizlisatis · Mobil POS</title>
 </head>
 <body>
   <div id="app">
@@ -32,28 +32,37 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M8 9v6m3-8v10m3-8v6m3-6v6"/></svg>
         </button>
       </div>
-      <div class="syncline">
-        <span id="syncLabel" class="sync-label">Yerel katalog kontrol ediliyor...</span>
-        <div class="sync-actions">
-          <button id="refreshButton" type="button" class="smallbutton">↻ XML'i Şimdi Yenile</button>
-          <button id="importButton" type="button" class="smallbutton secondary">↑ Yerel XML Yükle</button>
-          <a class="smallbutton secondary template-link" href="/urun-yukleme-sablonu.xlsx?v=3" download="Hizlisatis_Resim_URL_Excel_Sablonu.xlsx">↓ Excel Şablonu</a>
-          <button id="excelImportButton" type="button" class="smallbutton excel-button">↑ Excel Ürün Yükle</button>
-          <input id="excelFile" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
-          <input id="xmlFile" type="file" accept=".xml,text/xml,application/xml" hidden>
-        </div>
+      <div class="quick-actions">
+        <button id="excelImportButton" class="excel-quick" type="button">▤ Excel Ürün Yükle</button>
+        <details class="manage-details">
+          <summary>⚙ Ürün Yönetimi</summary>
+          <div class="sync-actions">
+            <a class="smallbutton secondary template-link" href="/urun-yukleme-sablonu.xlsx?v=5" download="Hizlisatis_Urun_Sablonu.xlsx">↓ Excel Şablonu</a>
+            <button id="refreshButton" type="button" class="smallbutton">↻ XML'i Şimdi Yenile</button>
+            <button id="importButton" type="button" class="smallbutton secondary">↑ Yerel XML Yükle</button>
+          </div>
+        </details>
+        <input id="excelFile" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
+        <input id="xmlFile" type="file" accept=".xml,text/xml,application/xml" hidden>
       </div>
+      <div class="syncline"><span id="syncLabel" class="sync-label">Yerel katalog kontrol ediliyor...</span></div>
     </header>
 
     <main class="content">
       <section class="catalog-header" aria-label="Ürün kataloğu">
-        <div class="catalog-heading"><h1>Ürünler</h1><span id="resultCount">0 ürün</span><span id="imageHealth" class="image-health" aria-live="polite"></span></div>
-        <div class="filter-label">Kategoriler</div>
-        <div id="categoryFilters" class="chips" aria-label="Kategori filtreleri"></div>
-        <div class="filter-label">Markalar</div>
-        <div id="brandFilters" class="chips" aria-label="Marka filtreleri"></div>
+        <div class="catalog-heading"><h1 id="browseHeading">Kategorilerden ürün seçin</h1><span id="resultCount">0 ürün</span><span id="imageHealth" class="image-health" aria-live="polite"></span></div>
+        <div class="browse-buttons">
+          <button id="openCategories" class="browse-menu-button" type="button" aria-haspopup="dialog" aria-controls="categoryDialog">☰ Kategoriler</button>
+          <button id="showAllProducts" class="browse-all-button" type="button">Tüm Ürünler</button>
+        </div>
       </section>
-      <section id="productList" class="products" aria-label="Filtrelenen ürünler"></section>
+      <section id="browseWelcome" class="browse-welcome" aria-label="Ürünleri keşfet">
+        <span class="welcome-icon" aria-hidden="true">☰</span>
+        <h2>Ürünler kategorilerde</h2>
+        <p>Bir kategori seçin veya yukarıdan barkod / ürün adı arayın. Hızlı satış için sepet her zaman erişilebilir.</p>
+        <button id="welcomeCategories" type="button" class="browse-menu-button">Kategorileri Aç</button>
+      </section>
+      <section id="productList" class="products" aria-label="Filtrelenen ürünler" hidden></section>
       <p id="productLimit" class="product-limit" hidden></p>
     </main>
 
@@ -70,6 +79,25 @@
       </button>
     </div>
   </div>
+
+  <dialog id="categoryDialog" class="category-dialog" aria-labelledby="categoryTitle">
+    <div class="category-panel">
+      <div class="category-panel-top">
+        <button id="closeCategories" type="button" class="category-close" aria-label="Kapat">×</button>
+        <strong id="categoryTitle">Hizlisatis</strong>
+        <button id="menuExcelImport" type="button" class="category-excel">▤ Excel</button>
+      </div>
+      <div class="category-search-wrap">
+        <label for="menuCategorySearch" class="sr-only">Kategori ara</label>
+        <input id="menuCategorySearch" type="search" placeholder="Kategori ara..." autocomplete="off">
+      </div>
+      <nav class="category-nav" aria-label="Ürün kategorileri">
+        <button id="menuAllProducts" type="button" class="menu-all-products">Tüm ürünleri göster <span aria-hidden="true">›</span></button>
+        <div id="categoryTree" class="category-tree"></div>
+        <details class="menu-brands"><summary>Markaya göre filtrele</summary><div id="brandFilters" class="drawer-chips"></div></details>
+      </nav>
+    </div>
+  </dialog>
 
   <dialog id="cartDialog" class="sheet" aria-labelledby="cartTitle">
     <div class="sheet-header"><h2 id="cartTitle">Sepet</h2><button type="button" class="closebutton" data-close="cartDialog" aria-label="Kapat">×</button></div>

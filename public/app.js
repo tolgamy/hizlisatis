@@ -3,6 +3,7 @@ import { readXlsxRows } from './xlsx-reader.js';
 import { parseExcelProducts, compareExcelWithXml } from './excel-products.js';
 import { parseLocalXml } from './xml-local.js';
 import { parseLocaleNumber } from './normalize.js';
+import { buildCategoryTree, categoryMatches } from './category-menu.js';
 
 const $ = id => document.getElementById(id);
 const state = {
@@ -10,11 +11,11 @@ const state = {
   sold: new Map(), cart: new Map(), category: '', brand: '',
   search: '', meta: null, sales: [], lastSale: null,
   syncing: false, saving: false, scanner: null, syncGeneration: 0,
-  excelCount: 0, excelPreview: null, excelUploading: false
+  excelCount: 0, excelPreview: null, excelUploading: false, browseAll: false
 };
 const dom = {
   search: $('search'), productList: $('productList'), count: $('resultCount'),
-  categories: $('categoryFilters'), brands: $('brandFilters'),
+  brands: $('brandFilters'), categoryTree: $('categoryTree'), categoryDialog: $('categoryDialog'),
   cartDialog: $('cartDialog'), cartItems: $('cartItems'), totals: $('cartTotals'),
   cartCount: $('cartCount'), cartTotal: $('cartTotal'), cartItemLabel: $('cartItemLabel'),
   cash: $('cashReceived'), change: $('changeLabel'),
@@ -93,35 +94,105 @@ function setCatalog(products, adjustments, meta, excelCount = 0) {
   state.meta = meta;
   renderAll();
 }
+function openCategoryMenu() {
+  renderCategoryTree();
+  $('menuCategorySearch').value = '';
+  dom.categoryDialog.showModal();
+  $('menuCategorySearch').focus({ preventScroll: true });
+}
+function closeCategoryMenu() {
+  if (dom.categoryDialog.open) dom.categoryDialog.close();
+  $('openCategories').focus({ preventScroll: true });
+}
+function selectCategory(path) {
+  state.category = path; state.brand = ''; state.browseAll = true;
+  state.search = ''; dom.search.value = '';
+  closeCategoryMenu(); renderFilters(); renderProducts();
+}
+function showAllProducts() {
+  state.category = ''; state.brand = ''; state.browseAll = true;
+  state.search = ''; dom.search.value = '';
+  closeCategoryMenu(); renderFilters(); renderProducts();
+}
+function renderCategoryTree(search = '') {
+  const tree = buildCategoryTree(state.products);
+  const target = dom.categoryTree; target.replaceChildren();
+  const query = fold(search);
+  function entry(node, depth = 0, parentMatches = false) {
+    const matches = !query || parentMatches || fold(node.name).includes(query) || fold(node.path).includes(query);
+    const children = node.children.map(child => entry(child, depth + 1, matches)).filter(Boolean);
+    if (!matches && !children.length) return null;
+    const item = document.createElement('div'); item.className = 'category-node';
+    const line = document.createElement('div'); line.className = 'category-node-row';
+    const select = document.createElement('button'); select.type = 'button';
+    select.className = 'category-select' + (state.category === node.path ? ' selected' : '');
+    const name = document.createElement('span'); name.textContent = node.name;
+    const count = document.createElement('small'); count.textContent = node.count.toLocaleString('tr-TR');
+    select.append(name, count); select.addEventListener('click', () => selectCategory(node.path));
+    line.append(select);
+    if (children.length) {
+      const expander = document.createElement('button'); expander.type = 'button';
+      expander.className = 'category-expand'; expander.textContent = '›';
+      expander.setAttribute('aria-label', `${node.name} alt kategorileri`);
+      expander.setAttribute('aria-expanded', String(Boolean(query)));
+      const nested = document.createElement('div'); nested.className = 'category-children';
+      nested.hidden = !query; nested.append(...children);
+      expander.addEventListener('click', () => {
+        nested.hidden = !nested.hidden;
+        expander.setAttribute('aria-expanded', String(!nested.hidden));
+      });
+      line.append(expander); item.append(line, nested);
+    } else item.append(line);
+    if (depth) item.classList.add('sub-category');
+    return item;
+  }
+  const nodes = tree.map(node => entry(node)).filter(Boolean);
+  if (nodes.length) target.append(...nodes);
+  else {
+    const empty = document.createElement('p'); empty.className = 'category-empty';
+    empty.textContent = state.products.length ? 'Kategori bulunamadı.' : 'Ürünleri görmek için Excel veya XML yükleyin.';
+    target.append(empty);
+  }
+}
 function renderFilters() {
-  const make = (parent, list, selected, action, allName) => {
-    parent.replaceChildren();
-    for (const value of ['', ...list]) {
-      const b = document.createElement('button');
-      b.type = 'button'; b.className = `chip${selected === value ? ' active' : ''}`;
-      b.textContent = value || allName;
-      b.setAttribute('aria-pressed', String(selected === value));
-      b.addEventListener('click', () => { state[action] = value; renderFilters(); renderProducts(); });
-      parent.append(b);
-    }
-  };
-  const categories = [...new Set(state.products.flatMap(p => [p.kategoriAna, p.kategori]).filter(Boolean))]
-    .sort((a, b) => a.localeCompare(b, 'tr'));
   const brands = [...new Set(state.products.map(p => p.marka).filter(Boolean))]
-    .sort((a, b) => a.localeCompare(b, 'tr'));
-  if (state.category && !categories.includes(state.category)) state.category = '';
+    .sort((a,b) => a.localeCompare(b, 'tr'));
+  if (state.category && !state.products.some(p => categoryMatches(p, state.category))) state.category = '';
   if (state.brand && !brands.includes(state.brand)) state.brand = '';
-  make(dom.categories, categories, state.category, 'category', 'Tüm Kategoriler');
-  make(dom.brands, brands, state.brand, 'brand', 'Tüm Markalar');
+  dom.brands.replaceChildren();
+  for (const value of ['', ...brands]) {
+    const button = document.createElement('button');
+    button.type = 'button'; button.className = `chip${state.brand === value ? ' active' : ''}`;
+    button.textContent = value || 'Tüm Markalar';
+    button.setAttribute('aria-pressed', String(state.brand === value));
+    button.addEventListener('click', () => {
+      state.brand = value; state.browseAll = true;
+      closeCategoryMenu(); renderFilters(); renderProducts();
+    });
+    dom.brands.append(button);
+  }
+  if (dom.categoryDialog.open) renderCategoryTree($('menuCategorySearch').value);
 }
 function renderProducts() {
   const query = fold(state.search);
+  const browsing = Boolean(state.browseAll || state.category || state.brand || query);
+  $('browseWelcome').hidden = browsing;
+  dom.productList.hidden = !browsing;
+  $('browseHeading').textContent = query ? 'Arama Sonuçları' :
+    (state.category || (state.brand ? `${state.brand} ürünleri` : browsing ? 'Tüm Ürünler' : 'Kategorilerden ürün seçin'));
+  if (!browsing) {
+    dom.count.textContent = `${state.products.length.toLocaleString('tr-TR')} kayıtlı ürün`;
+    $('imageHealth').textContent = '';
+    $('productLimit').hidden = true;
+    return;
+  }
   const items = state.products.filter(p => {
-    if (state.category && p.kategoriAna !== state.category && p.kategori !== state.category) return false;
-    if (state.brand && p.marka !== state.brand) return false;
-    if (!query) return true;
-    return [p.barkod, p.urunKodu, p.baslik, p.marka, p.beden, p.renk]
+    // Search across every category regardless of the current drawer selection.
+    if (query) return [p.barkod, p.urunKodu, p.baslik, p.marka, p.beden, p.renk]
       .some(value => fold(value).includes(query));
+    if (state.category && !categoryMatches(p, state.category)) return false;
+    if (state.brand && p.marka !== state.brand) return false;
+    return true;
   });
   items.sort((a, b) => Number(remaining(b) > 0) - Number(remaining(a) > 0) ||
     a.baslik.localeCompare(b.baslik, 'tr'));
@@ -673,6 +744,18 @@ async function setup() {
   window.addEventListener('online', () => { setConnection(); syncCatalog(false, true); });
   window.addEventListener('offline', setConnection);
   dom.search.addEventListener('input', () => { state.search = dom.search.value; renderProducts(); });
+  $('openCategories').addEventListener('click', openCategoryMenu);
+  $('welcomeCategories').addEventListener('click', openCategoryMenu);
+  $('closeCategories').addEventListener('click', closeCategoryMenu);
+  $('showAllProducts').addEventListener('click', showAllProducts);
+  $('menuAllProducts').addEventListener('click', showAllProducts);
+  $('menuCategorySearch').addEventListener('input', () => renderCategoryTree($('menuCategorySearch').value));
+  $('menuExcelImport').addEventListener('click', () => { closeCategoryMenu(); $('excelFile').click(); });
+  dom.categoryDialog.addEventListener('click', event => {
+    if (event.target !== dom.categoryDialog) return;
+    const panel = dom.categoryDialog.querySelector('.category-panel').getBoundingClientRect();
+    if (event.clientX > panel.right || event.clientX < panel.left) closeCategoryMenu();
+  });
   dom.search.addEventListener('keydown', event => {
     if (event.key !== 'Enter') return;
     event.preventDefault();
