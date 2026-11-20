@@ -27,7 +27,7 @@ small{color:#63758a;line-height:1.6;display:block;margin-top:18px}
 <progress id="progress" value="0" max="19096" hidden></progress>
 <p id="info" role="status">Henüz aktarım başlamadı.</p>
 <p id="error" role="alert"></p>
-<small>Yönetim anahtarı bu sayfada saklanmaz; yalnız aynı sitenin yetkili API'sine HTTPS üzerinden gönderilir. Bu ekranı üçüncü kişilerle paylaşmayın. İşlem yarıda kesilirse aynı düğmeyle tekrar başlayabilirsiniz.</small>
+<small>Yönetim anahtarı bu sayfada saklanmaz; Türkçe karakterler güvenle iletilir ve yalnız aynı sitenin yetkili API'sine HTTPS üzerinden gönderilir. Bu ekranı üçüncü kişilerle paylaşmayın. İşlem yarıda kesilirse aynı düğmeyle tekrar başlayabilirsiniz.</small>
 </main>
 <script type="module">
 const $=id=>document.getElementById(id), total=19096;
@@ -35,7 +35,7 @@ let running=false;
 async function api(body,secret){
  const response=await fetch('/api/catalog-seed',{
   method:body?'POST':'GET',
-  headers:{'X-Product-Key':secret,...(body?{'Content-Type':'application/json'}:{})},
+  headers:{'X-Product-Key':encodeURIComponent(secret),...(body?{'Content-Type':'application/json'}:{})},
   body:body?JSON.stringify(body):undefined,
   cache:'no-store',credentials:'same-origin'
  });
