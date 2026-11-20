@@ -18,6 +18,7 @@ import { checkRemoteProductStates } from './remote-products.js';
 const $ = id => document.getElementById(id);
 const state = {
   products: [], byId: new Map(), byBarcode: new Map(), categoryProductPhotos: new Map(), lifecycleMeta: null, legacyPending: false,
+  catalogLoading:true,catalogProgress:0,catalogError:'',
   sold: new Map(), cart: new Map(), category: '', brand: '',
   search: '', meta: null, sales: [], lastSale: null,
   saving: false, scanner: null, scanPurpose: 'sale',
@@ -1095,11 +1096,24 @@ async function refreshManagedData(productId=null) {
       return {products,lifecycleMeta:state.lifecycleMeta};
     }
   }
-  const snapshot=await getSnapshot();
-  state.legacyPending=Boolean(snapshot.legacyPending);
-  setCatalog(snapshot.products,snapshot.adjustments,snapshot.meta,
-    snapshot.excelCount,snapshot.bundleCount,snapshot.lifecycleMeta);
-  return snapshot;
+  state.catalogLoading=true;state.catalogProgress=0;state.catalogError='';
+  productManager?.render();
+  try {
+    const snapshot=await getSnapshot(({received})=>{
+      state.catalogProgress=received;
+      if($('manageDialog')?.open)productManager?.render();
+    });
+    state.legacyPending=Boolean(snapshot.legacyPending);
+    setCatalog(snapshot.products,snapshot.adjustments,snapshot.meta,
+      snapshot.excelCount,snapshot.bundleCount,snapshot.lifecycleMeta);
+    return snapshot;
+  } catch(error) {
+    state.catalogError=error.message;
+    throw error;
+  } finally {
+    state.catalogLoading=false;
+    productManager?.render();
+  }
 }
 async function setup() {
   productManager=createProductManager({
@@ -1111,7 +1125,7 @@ async function setup() {
   });
   setConnection();
   detectImageResizing().then(enabled=>{ if(enabled) { renderHome();renderCategoryTree();renderProducts(); } });
-  window.addEventListener('online',()=>{setConnection();installBuiltInCatalog();});
+  window.addEventListener('online',()=>{setConnection();refreshManagedData().catch(error=>announce('Merkezden yenileme başarısız: '+error.message,'error'));});
   window.addEventListener('offline',setConnection);
   window.addEventListener('hashchange',applyRoute);
   dom.search.addEventListener('input',()=>{
@@ -1182,12 +1196,15 @@ async function setup() {
   }
   if('serviceWorker'in navigator&&window.isSecureContext)navigator.serviceWorker.register('/sw.js').catch(()=>{});
   try{
-    await openDB();const snapshot=await getSnapshot();
-    state.legacyPending=Boolean(snapshot.legacyPending);
-    setCatalog(snapshot.products,snapshot.adjustments,null,snapshot.excelCount,snapshot.bundleCount,snapshot.lifecycleMeta);
-    if(state.legacyPending)announce('Bu cihazda henüz merkeze taşınmamış ürün değişiklikleri bulunuyor. Ayarlar > Ürün Yönetimi > Eski Cihaz Yedeğini İndir ve Kayıtları Taşı.','error');
-  }catch(error){announce(`Merkezi ürün veritabanı açılamadı: ${error.message}`,'error');dom.complete.disabled=true;}
-  applyRoute();installBuiltInCatalog();
+    await openDB();
+    const snapshot=await refreshManagedData();
+    if(snapshot.legacyPending)announce('Eski cihazdaki ürün düzenlemelerini kontrol edin. Yedek için Ayarlar > Ürün Yönetimi bölümünü kullanın.','error');
+  }catch(error){
+    state.catalogError=error.message;
+    announce('Merkezi ürünler yüklenemedi: '+error.message,'error');
+    dom.complete.disabled=true;
+  }
+  applyRoute();
   channel?.addEventListener('message',async()=>{
     try{const snapshot=await getSnapshot();setCatalog(snapshot.products,snapshot.adjustments,null,snapshot.excelCount,snapshot.bundleCount,snapshot.lifecycleMeta);}
     catch{/* other tab closing */}
