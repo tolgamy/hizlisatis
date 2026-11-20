@@ -12,7 +12,8 @@ const state = {
   sold: new Map(), cart: new Map(), category: '', brand: '',
   search: '', meta: null, sales: [], lastSale: null,
   syncing: false, saving: false, scanner: null, syncGeneration: 0,
-  excelCount: 0, bundleCount: 0, bundleLoading: false, excelPreview: null, excelUploading: false, browseAll: false
+  excelCount: 0, bundleCount: 0, bundleLoading: false, excelPreview: null, excelUploading: false, browseAll: false,
+  view: 'home', productLayout: 'grid', stockOnly: false, sort: 'name', visibleLimit: 48, detailProduct: null
 };
 const dom = {
   search: $('search'), productList: $('productList'), count: $('resultCount'),
@@ -101,6 +102,79 @@ function setCatalog(products, adjustments, meta, excelCount = 0, bundleCount = 0
   renderAll();
 }
 
+/** Navigation and home dashboard never replace IndexedDB records. */
+function updateNavigation() {
+  $('homeView').hidden = state.view !== 'home';
+  $('catalogView').hidden = state.view !== 'catalog';
+  const active = dom.cartDialog.open ? 'sale' : state.view;
+  for (const [id, value] of [['navHome', 'home'], ['navProducts', 'catalog'], ['navSale', 'sale']]) {
+    const button = $(id); const selected = active === value;
+    button.classList.toggle('active', selected);
+    if (selected) button.setAttribute('aria-current', 'page');
+    else button.removeAttribute('aria-current');
+  }
+}
+function setView(view, showAll = false) {
+  state.view = view;
+  if (view === 'catalog' && showAll) state.browseAll = true;
+  updateNavigation(); renderProducts();
+  window.scrollTo({top: 0, behavior: 'auto'});
+}
+function openSale() {
+  renderCart();
+  dom.cartDialog.showModal();
+  updateNavigation();
+}
+function openCamera() {
+  if (!dom.scanDialog.open) dom.scanDialog.showModal();
+  startScanner();
+}
+function barcodeAdd(raw, sourceInput) {
+  const code = String(raw || '').trim();
+  if (!code) return;
+  const product = exactProduct(code);
+  if (product && addToCart(product)) {
+    chirp(); if (sourceInput) sourceInput.value = '';
+    announce(`${product.baslik} sepete eklendi ✓`, 'success');
+  } else if (!product) announce(`${code} barkodlu ürün bulunamadı.`, 'error');
+}
+function renderHome() {
+  $('homeProductCount').textContent = state.products.length.toLocaleString('tr-TR');
+  $('homeImageCount').textContent = state.products.filter(p => Boolean(p.gorsel)).length.toLocaleString('tr-TR');
+  $('homeStockCount').textContent = state.products.filter(p => remaining(p) > 0).length.toLocaleString('tr-TR');
+  const target = $('homeCategoryShortcuts');
+  target.replaceChildren();
+  const categories = buildCategoryTree(state.products)
+    .sort((a, b) => b.count - a.count).slice(0, 8);
+  const names = ['▤', '◉', '◈', '⌂', '◐', '✦', '▣', '◌'];
+  for (const [index, node] of categories.entries()) {
+    const tile = document.createElement('button'); tile.type = 'button'; tile.className = 'home-category-tile';
+    const glyph = document.createElement('span'); glyph.className = 'category-shortcut-icon'; glyph.textContent = names[index % names.length];
+    const label = document.createElement('span'); label.textContent = node.name;
+    const count = document.createElement('small'); count.textContent = `${node.count.toLocaleString('tr-TR')} ürün`;
+    tile.append(glyph, label, count);
+    tile.addEventListener('click', () => selectCategory(node.path));
+    target.append(tile);
+  }
+  if (!categories.length) {
+    const info = document.createElement('p'); info.className = 'home-empty';
+    info.textContent = 'Katalog yüklenince kategoriler burada görünecek.';
+    target.append(info);
+  }
+}
+function openProductDetail(product) {
+  state.detailProduct = product;
+  const img = $('detailImage'); img.onerror = () => { img.onerror = null; img.src = '/icons/placeholder.svg'; };
+  img.referrerPolicy = 'no-referrer'; img.src = product.gorsel || '/icons/placeholder.svg';
+  $('detailBrand').textContent = [product.marka, product.kategori].filter(Boolean).join(' · ');
+  $('detailName').textContent = product.baslik;
+  $('detailBarcode').textContent = `Barkod: ${product.barkod || '—'}  ·  SKU: ${product.urunKodu || '—'}`;
+  $('detailMeta').textContent = `Stok: ${remaining(product)} · ${product.kdvBelirsiz ? 'KDV belirsiz' : `KDV %${product.kdv}`}`;
+  $('detailPrice').textContent = money(product.satisFiyati, product.paraBirimi);
+  $('detailAdd').disabled = remaining(product) < 1;
+  $('productDetailDialog').showModal();
+}
+
 /** Install data from the user's supplier export on every device automatically.
  * Existing XML and manual Excel imports remain authoritative for their own fields.
  */
@@ -136,16 +210,18 @@ function closeCategoryMenu() {
 function selectCategory(path) {
   state.category = path;
   state.brand = '';
-  state.browseAll = true;
+  state.browseAll = true; state.visibleLimit = 48;
   state.search = '';
   dom.search.value = '';
   closeCategoryMenu();
+  setView('catalog');
   renderFilters(); renderProducts();
 }
 function showAllProducts() {
   state.category = ''; state.brand = ''; state.browseAll = true;
   state.search = ''; dom.search.value = '';
   closeCategoryMenu();
+  setView('catalog');
   renderFilters(); renderProducts();
 }
 function renderCategoryTree(search = '') {
@@ -202,7 +278,7 @@ function renderFilters() {
     button.setAttribute('aria-pressed', String(state.brand === value));
     button.addEventListener('click', () => {
       state.brand = value; state.browseAll = true;
-      closeCategoryMenu(); renderFilters(); renderProducts();
+      closeCategoryMenu(); setView('catalog'); renderFilters(); renderProducts();
     });
     dom.brands.append(button);
   }
@@ -213,6 +289,21 @@ function renderProducts() {
   const browsing = Boolean(state.browseAll || state.category || state.brand || query);
   $('browseWelcome').hidden = browsing;
   dom.productList.hidden = !browsing;
+  dom.productList.classList.toggle('grid-view', state.productLayout === 'grid');
+  dom.productList.classList.toggle('list-view', state.productLayout === 'list');
+  for (const [id, layout] of [['viewGrid', 'grid'], ['viewList', 'list']]) {
+    $(id).setAttribute('aria-pressed', String(state.productLayout === layout));
+    $(id).classList.toggle('active', state.productLayout === layout);
+  }
+  $('onlyInStock').setAttribute('aria-pressed', String(state.stockOnly));
+  $('onlyInStock').classList.toggle('active', state.stockOnly);
+  const activeFilters = $('activeFilters');
+  activeFilters.replaceChildren();
+  for (const label of [state.category, state.brand].filter(Boolean)) {
+    const chip = document.createElement('span'); chip.textContent = label;
+    activeFilters.append(chip);
+  }
+  activeFilters.hidden = !activeFilters.children.length;
   $('browseHeading').textContent = query ? 'Arama Sonuçları' :
     (state.category || (state.brand ? `${state.brand} ürünleri` : browsing ? 'Tüm Ürünler' : 'Kategorilerden ürün seçin'));
   if (!browsing) {
@@ -222,6 +313,7 @@ function renderProducts() {
     return;
   }
   const items = state.products.filter(p => {
+    if (state.stockOnly && remaining(p) < 1) return false;
     // An active barcode / product search scans every category immediately.
     if (query) return [p.barkod, p.urunKodu, p.baslik, p.marka, p.beden, p.renk]
       .some(value => fold(value).includes(query));
@@ -229,12 +321,17 @@ function renderProducts() {
     if (state.brand && p.marka !== state.brand) return false;
     return true;
   });
-  items.sort((a, b) => Number(remaining(b) > 0) - Number(remaining(a) > 0) ||
-    a.baslik.localeCompare(b.baslik, 'tr'));
+  items.sort((a, b) => {
+    const availability = Number(remaining(b) > 0) - Number(remaining(a) > 0);
+    if (state.sort === 'price-low') return a.satisFiyati - b.satisFiyati || a.baslik.localeCompare(b.baslik, 'tr');
+    if (state.sort === 'price-high') return b.satisFiyati - a.satisFiyati || a.baslik.localeCompare(b.baslik, 'tr');
+    if (state.sort === 'stock') return remaining(b) - remaining(a) || a.baslik.localeCompare(b.baslik, 'tr');
+    return availability || a.baslik.localeCompare(b.baslik, 'tr');
+  });
   dom.count.textContent = `${items.length.toLocaleString('tr-TR')} varyant`;
   dom.productList.replaceChildren();
   const imageHealth = $('imageHealth');
-  const visibleItems = items.slice(0, 120);
+  const visibleItems = items.slice(0, state.visibleLimit);
   const linked = visibleItems.filter(product => !!product.gorsel).length;
   let failedImages = 0;
   const updateImageHealth = () => {
@@ -258,13 +355,14 @@ function renderProducts() {
     const available = remaining(p);
     const variant = [p.urunKodu, p.barkod, p.beden, p.renk].filter(Boolean).join(' · ');
     const row = document.createElement('article'); row.className = 'product-card';
-    row.innerHTML = `<img class="product-thumb" alt="" loading="lazy">
+    row.innerHTML = `<div class="product-photo"><img class="product-thumb" alt="" loading="lazy">
+        <span class="product-photo-badge">${p.marka ? esc(p.marka.slice(0, 14)) : 'ÜRÜN'}</span></div>
       <div class="product-info"><div class="product-title" title="${esc(p.baslik)}">${esc(p.baslik)}</div>
       <div class="product-variant" title="${esc(variant)}">${esc(variant)}</div>
-      <div class="product-metadata"><span class="stock ${available ? '' : 'out'}">Stok: ${available}</span>
-      <span>${p.kdvBelirsiz ? 'KDV belirsiz' : `KDV %${esc(p.kdv)}`}</span><span>${esc(p.marka)}</span></div></div>
+      <div class="product-metadata"><span class="stock ${available ? '' : 'out'}">${available ? `Stok ${available}` : 'Tükendi'}</span>
+      <span>${p.kdvBelirsiz ? 'KDV belirsiz' : `KDV %${esc(p.kdv)}`}</span></div></div>
       <div class="product-right"><span class="price">${esc(money(p.satisFiyati, p.paraBirimi))}</span>
-      <button class="add-button" type="button" ${available ? '' : 'disabled'}>${available ? '+ Ekle' : 'Tükendi'}</button></div>`;
+      <button class="add-button" type="button" aria-label="${esc(p.baslik)} sepete ekle" ${available ? '' : 'disabled'}>${available ? '<span aria-hidden="true">+</span><span class="add-label"> Ekle</span>' : 'Tükendi'}</button></div>`;
     const image = row.querySelector('img');
     image.alt = p.gorsel ? `${p.baslik} ürün görseli` : `${p.baslik} · görsel yok`;
     // Default/origin referrer is needed by some CDN hotlink policies.
@@ -282,25 +380,27 @@ function renderProducts() {
       image.title = p.gorsel ? `Görsel yüklenemedi: ${p.gorsel}` : 'Üründe görsel URL yok';
       image.src = '/icons/placeholder.svg';
     });
-    image.addEventListener('click', () => {
-      // The source URL can be inspected when an image host blocks embedding.
-      if (p.gorsel) window.open(p.gorsel, '_blank', 'noopener,noreferrer');
-    });
-    image.title = p.gorsel ? 'Görseli tam boy aç' : 'Görsel URL yok';
+    image.addEventListener('click', () => openProductDetail(p));
+    row.querySelector('.product-title').addEventListener('click', () => openProductDetail(p));
+    image.title = 'Ürün detayını aç';
     if (p.gorsel) { image.style.cursor = 'pointer'; image.tabIndex = 0; }
     image.src = p.gorsel || '/icons/placeholder.svg';
     row.querySelector('button').addEventListener('click', () => addToCart(p));
     fragment.append(row);
   }
   dom.productList.append(fragment);
-  $('productLimit').hidden = items.length <= 120;
-  $('productLimit').textContent = `İlk 120 varyant gösteriliyor. Diğerlerini bulmak için arama yapın. (${items.length} sonuç)`;
+  $('loadMoreProducts').hidden = items.length <= state.visibleLimit;
+  $('productLimit').hidden = items.length <= state.visibleLimit;
+  $('productLimit').textContent = `${visibleItems.length.toLocaleString('tr-TR')} / ${items.length.toLocaleString('tr-TR')} ürün gösteriliyor`;
 }
 function renderCartBar() {
   const count = cartQty();
   dom.cartCount.textContent = String(count);
   dom.cartItemLabel.textContent = `${count} adet ürün`;
   dom.cartTotal.textContent = money(totals().total, cartCurrency());
+  document.querySelector('.cart-label strong').textContent = count ? 'Satışa Devam Et' : 'Yeni Satış';
+  $('saleLineCount').textContent = String(count);
+  $('saleTopTotal').textContent = money(totals().total, cartCurrency());
 }
 function addToCart(product) {
   const current = state.cart.get(product.id);
@@ -390,7 +490,7 @@ function updatePayment() {
     `Eksik ödeme: ${money(round2(-change), cartCurrency())}`;
   dom.change.style.color = change < -0.009 ? '#b23a42' : '#136c49';
 }
-function renderAll() { renderFilters(); renderProducts(); renderCartBar(); setSyncStatus(); if (dom.cartDialog.open) renderCart(); }
+function renderAll() { renderHome(); renderFilters(); renderProducts(); renderCartBar(); setSyncStatus(); updateNavigation(); if (dom.cartDialog.open) renderCart(); }
 function exactProduct(raw) {
   const code = raw.trim();
   return state.byBarcode.get(code) || state.products.find(p => p.urunKodu && fold(p.urunKodu) === fold(code));
@@ -595,7 +695,7 @@ async function completeSale() {
     state.lastSale = record; state.cart.clear();
     dom.cash.value = ''; dom.credit.value = '';
     dom.cartDialog.close();
-    renderProducts(); renderCartBar();
+    renderProducts(); renderCartBar(); renderHome();
     channel?.postMessage('sale-updated');
     announce(`Satış kaydedildi: ${money(record.total, record.currency)}`, 'success');
     if ($('autoPrint').checked) printSale(record);
@@ -784,7 +884,47 @@ async function setup() {
   setConnection();
   window.addEventListener('online', () => { setConnection(); installBuiltInCatalog(); syncCatalog(false, true); });
   window.addEventListener('offline', setConnection);
-  dom.search.addEventListener('input', () => { state.search = dom.search.value; renderProducts(); });
+  dom.search.addEventListener('input', () => {
+    state.search = dom.search.value;
+    state.visibleLimit = 48;
+    if (state.search.trim()) setView('catalog');
+    else renderProducts();
+  });
+  $('navHome').addEventListener('click', () => setView('home'));
+  $('navProducts').addEventListener('click', () => setView('catalog', true));
+  $('navSale').addEventListener('click', openSale);
+  $('navHistory').addEventListener('click', showHistory);
+  $('homeStartSale').addEventListener('click', openSale);
+  $('homeBrowse').addEventListener('click', () => setView('catalog', true));
+  $('homeCategories').addEventListener('click', openCategoryMenu);
+  $('homeAllCategories').addEventListener('click', openCategoryMenu);
+  $('homeScan').addEventListener('click', openCamera);
+  $('homeExcel').addEventListener('click', () => $('excelFile').click());
+  $('homeHistory').addEventListener('click', showHistory);
+  $('viewGrid').addEventListener('click', () => { state.productLayout = 'grid'; renderProducts(); });
+  $('viewList').addEventListener('click', () => { state.productLayout = 'list'; renderProducts(); });
+  $('onlyInStock').addEventListener('click', () => { state.stockOnly = !state.stockOnly; state.visibleLimit = 48; renderProducts(); });
+  $('sortProducts').addEventListener('change', () => { state.sort = $('sortProducts').value; renderProducts(); });
+  $('loadMoreProducts').addEventListener('click', () => { state.visibleLimit += 48; renderProducts(); });
+  $('toggleBarcodePanel').addEventListener('click', () => {
+    const panel = $('barcodePanel'); panel.hidden = !panel.hidden;
+    $('toggleBarcodePanel').setAttribute('aria-expanded', String(!panel.hidden));
+    if (!panel.hidden) $('quickBarcode').focus({ preventScroll: true });
+  });
+  $('barcodePanel').addEventListener('submit', event => {
+    event.preventDefault(); barcodeAdd($('quickBarcode').value, $('quickBarcode'));
+  });
+  $('quickScanButton').addEventListener('click', openCamera);
+  $('saleBarcodeForm').addEventListener('submit', event => {
+    event.preventDefault(); barcodeAdd($('saleBarcode').value, $('saleBarcode'));
+  });
+  $('saleScanButton').addEventListener('click', openCamera);
+  $('detailAdd').addEventListener('click', () => {
+    if (state.detailProduct && addToCart(state.detailProduct)) $('productDetailDialog').close();
+  });
+  $('detailImage').addEventListener('click', () => {
+    if (state.detailProduct?.gorsel) window.open(state.detailProduct.gorsel, '_blank', 'noopener,noreferrer');
+  });
   $('openCategories').addEventListener('click', openCategoryMenu);
   $('welcomeCategories').addEventListener('click', openCategoryMenu);
   $('closeCategories').addEventListener('click', closeCategoryMenu);
@@ -801,14 +941,15 @@ async function setup() {
     if (event.key !== 'Enter') return;
     event.preventDefault();
     const found = exactProduct(dom.search.value);
-    if (found && addToCart(found)) { chirp(); dom.search.value = ''; state.search = ''; renderProducts(); }
+    if (found) { barcodeAdd(dom.search.value, dom.search); state.search = ''; renderProducts(); }
   });
-  $('openCart').addEventListener('click', () => { renderCart(); dom.cartDialog.showModal(); });
+  $('openCart').addEventListener('click', openSale);
   document.querySelectorAll('[data-close]').forEach(button => button.addEventListener('click', () => {
     const dialog = $(button.dataset.close); dialog.close();
   }));
   dom.scanDialog.addEventListener('close', () => stopScanner());
-  $('scanButton').addEventListener('click', () => { dom.scanDialog.showModal(); startScanner(); });
+  dom.cartDialog.addEventListener('close', updateNavigation);
+  $('scanButton').addEventListener('click', openCamera);
   $('refreshButton').addEventListener('click', () => syncCatalog(true, false));
   $('importButton').addEventListener('click', () => $('xmlFile').click());
   $('xmlFile').addEventListener('change', () => importXml($('xmlFile').files[0]));
@@ -820,7 +961,7 @@ async function setup() {
   dom.complete.addEventListener('click', completeSale);
   $('historyButton').addEventListener('click', showHistory);
   $('exportSales').addEventListener('click', exportHistory);
-  for (const dialog of [dom.cartDialog, dom.scanDialog, dom.historyDialog, $('excelDialog')]) {
+  for (const dialog of [dom.cartDialog, dom.scanDialog, dom.historyDialog, $('excelDialog'), $('productDetailDialog')]) {
     dialog.addEventListener('click', event => {
       if (event.target === dialog) dialog.close();
     });

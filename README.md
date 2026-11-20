@@ -1,3 +1,11 @@
+## v1.7 Mobil POS arayüzü
+
+- Ana sayfa: hızlı satış, barkod okuyucu, kategori kısayolları, Excel ve satış geçmişi.
+- Katalog: iki sütunlu resimli ürün kartları, kompakt liste görünümü, stok filtresi, sıralama ve 48 ürünlük kademeli yükleme.
+- Satış: sepet panelinde barkod/SKU ile anında ekleme, kamera okuyucu, adet/fiyat/iskonto, nakit/kart/veresiye ve termal fiş.
+- Ürün detayı: ürün görseli, barkod, stok, fiyat ve tek dokunuşla sepete ekleme.
+- Tüm yeni ekranlar mevcut IndexedDB, XML, gömülü katalog ve ayrı Excel yükleme altyapısını kullanır. Satış verilerinin biçimi değiştirilmedi.
+
 # Cep Hızlı Satış — Offline-first Mobile POS PWA
 
 Bulut tarafında **Cloudflare Pages Function**, telefonda **IndexedDB + Service Worker** kullanan Türkçe, mobil öncelikli hızlı satış uygulaması.
