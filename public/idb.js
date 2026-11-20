@@ -94,6 +94,9 @@ export async function getLocalSnapshot() {
 export async function getSnapshot() {
   const local=await getLocalSnapshot();
   const remote=await fetchRemoteProducts(); // Must succeed: do not silently fall back to local state.
+  if(!remote.bulkAt && local.lifecycleMeta) {
+    throw Error('Bu cihazda eski toplu pasif kayıtları var ama sunucuya aktarılmamış. Ayarlar > Ürün Yönetimi > Eski Cihaz Kayıtlarını Veritabanına Taşı.');
+  }
   const merged=new Map(local.products.map(product=>[product.id,{
     ...product,
     lifecycleStatus:remote.bulkAt?'initial-inactive':'active',
