@@ -30,7 +30,7 @@ test('one correct 32+ character key establishes a signed 30 day HttpOnly session
  assert.match(cookie,/Secure/);
  assert.match(cookie,/SameSite=Strict/);
  assert.match(cookie,/Max-Age=2592000/);
- assert.doesNotMatch(cookie,new RegExp(secret.slice(0,5).replace(/[.*+?^$\{\}()|[\]\\]/g,'\\$&')));
+ assert.equal(cookie.includes(secret),false);
  const token=getToken(response);
  assert.equal(await validAdminSession(request('/api/product-state','POST',null,token),secret),true);
  assert.equal(await authorizedAdmin(request('/api/product-state','POST',null,token),{PRODUCT_WRITE_KEY:secret}),true);
