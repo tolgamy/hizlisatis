@@ -10,7 +10,13 @@ function respond(value,status=200) {
 }
 async function permitted(request,env) {
   const secret=String(env?.PRODUCT_WRITE_KEY||'');
-  const candidate=request.headers.get('X-Product-Key')||'';
+  const encoded=request.headers.get('X-Product-Key')||'';
+  // Header values cannot contain arbitrary Unicode. The client sends the key
+  // percent-encoded as UTF-8; decode before comparing secret digests.
+  if(encoded.length>2048)return false;
+  let candidate;
+  try{candidate=decodeURIComponent(encoded);}
+  catch{return false;}
   if(secret.length<24||candidate.length!==secret.length||candidate.length>256)return false;
   const encoder=new TextEncoder();
   const [x,y]=await Promise.all([secret,candidate].map(s=>crypto.subtle.digest('SHA-256',encoder.encode(s))));
