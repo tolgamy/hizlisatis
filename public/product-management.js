@@ -2,7 +2,7 @@ import { MAIN_CATEGORY_ORDER } from './category-art.js';
 import { productCategoryPath } from './category-menu.js';
 import { parseLocaleNumber, safeImageUrl } from './normalize.js';
 import { getLocalSnapshot, getManagedProductHistory, saveManagedProduct, initiallyDeactivateAll } from './idb.js';
-import { fetchRemoteProducts, deactivateRemoteProducts, importRemoteProducts } from './remote-products.js';
+import { fetchRemoteProducts, deactivateRemoteProducts, importRemoteProducts  ,logoutAdminSession } from './remote-products.js';
 import { PRODUCT_STATUS, productStatus, isActive, countStatuses, nextProductStatus, priceWithVat } from './product-lifecycle.js';
 import { verifyPassivePin } from './passive-auth.js';
 
@@ -74,6 +74,7 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
     }
     $('manageBulkDeactivate').disabled=unavailable;
     $('manageNew').disabled=unavailable;
+    // Bulk deactivation was a one-time secured setup operation; hide once completed.
     $('manageBulkDeactivate').hidden=!!state.lifecycleMeta;
     $('manageBulkInfo').textContent=state.lifecycleMeta
       ? 'İlk toplu pasife alma '+new Date(state.lifecycleMeta.at).toLocaleString('tr-TR')+' tarihinde yapıldı.'
@@ -180,7 +181,8 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
     if(!selection)return;
     const current=selection;
     if(action==='delete'&&!confirm('Ürün Silinen Ürünler bölümüne taşınacak. Devam edilsin mi?'))return;
-    if(['activate','deactivate','restore'].includes(action)&&!authorizePassiveAction())return;
+    // Activation is a one-tap action. A server-side admin session still protects D1 edits.
+    if(action==='deactivate'&&!authorizePassiveAction())return;
     const status=nextProductStatus(current,action);
     const updated={...current,lifecycleStatus:status,source:'excel',statusChangedAt:now(),
       everActivated:current.everActivated||action==='activate',
@@ -223,7 +225,7 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
     const url=$('manageImage').value.trim();
     if(url&&!safeImageUrl(url)) {announce('Geçerli HTTPS görsel adresi giriniz.','error');return;}
     const old=selection,finalStatus=activate?'active':old?.lifecycleStatus||'active';
-    if(activate&&old&&!isActive(old)&&!authorizePassiveAction())return;
+    // No on-device PIN on product activation; secure admin session protects writes.
     const updated={...(old||{}),id:old?.id||newId(),barkod,baslik,
       marka:$('manageBrand').value.trim(),alisFiyati:purchase,
       satisFiyati:priceWithVat(entered,vat,excluded).gross,
@@ -262,7 +264,7 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
   async function confirmSaleActivation() {
     if(!pendingSale)return;
     const {product,addAfter}=pendingSale;
-    if(!authorizePassiveAction())return;
+    // Do not interrupt scan-to-sale with the old 1453 PIN prompt.
     $('passiveActivate').disabled=true;
     try{
       const updated={...product,lifecycleStatus:'active',everActivated:true,source:'excel',statusChangedAt:now()};
@@ -363,6 +365,14 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
     const sync=document.createElement('button');sync.type='button';
     sync.textContent='Merkezi Veritabanından Yenile';
     backup.after(sync);
+    const logout=document.createElement('button');
+    logout.type='button';logout.textContent='Bu Cihazda Yönetim Oturumunu Kapat';
+    sync.after(logout);
+    logout.addEventListener('click',async()=>{
+      if(!confirm('Bu cihazdaki yönetim oturumu kapatılsın mı? Sonraki düzenlemede yeniden giriş gerekir.'))return;
+      try{await logoutAdminSession();announce('Yönetim oturumu kapatıldı.','success');}
+      catch(error){announce(error.message,'error');}
+    });
     sync.addEventListener('click',async()=>{
       sync.disabled=true;
       try {await refresh();countsView();announce('Ürünler merkezi veritabanından yenilendi.','success');}
