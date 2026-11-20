@@ -56,3 +56,14 @@ test('passive state persists after DB is reopened and catalogue is refreshed', a
   await reloaded.saveManagedProduct(later,'deactivate');
   assert.equal((await reloaded.getSnapshot()).products[0].lifecycleStatus,'later-inactive');
 });
+
+test('A second device sees central D1 status even when local IndexedDB is stale',async()=>{
+ const stale=await import('../public/idb.js?test-d1-override=true');
+ const id='excel::b:8691234567890';
+ const remote=server.get(id);
+ assert.equal(remote.lifecycleStatus,'later-inactive');
+ server.set(id,{...remote,lifecycleStatus:'active',everActivated:true});
+ const snapshot=await stale.getSnapshot();
+ assert.equal(snapshot.products.find(p=>p.id===id).lifecycleStatus,'active');
+ assert.equal(snapshot.legacyPending,true,'old inactive state remains available for explicit migration');
+});
