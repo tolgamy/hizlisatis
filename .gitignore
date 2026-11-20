@@ -5,3 +5,5 @@ node_modules/
 .DS_Store
 coverage/
 public/vendor/html5-qrcode.min.js
+# Generated Cloudflare D1 seed SQL files
+d1-seed-generated/
