@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#10243a">
+  <meta name="description" content="Çevrimdışı çalışan, barkod destekli cep hızlı satış uygulaması.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg">
+  <link rel="stylesheet" href="/styles.css">
+  <title>Cep Hızlı Satış · POS</title>
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <div class="brandline">
+        <div class="brandmark" aria-hidden="true">₺</div>
+        <div><strong>Cep Hızlı Satış</strong><small>Mobil POS</small></div>
+        <span id="connectionStatus" class="connection" role="status">Bağlanıyor</span>
+      </div>
+      <div class="searchline">
+        <label for="search" class="sr-only">Ürün, SKU veya barkod ara</label>
+        <div class="searchbox">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg>
+          <input id="search" type="search" inputmode="search" placeholder="Barkod, ürün kodu, ad, marka..." autocomplete="off" enterkeyhint="done">
+          <kbd class="search-hint" aria-hidden="true">↵</kbd>
+        </div>
+        <button id="scanButton" class="iconbutton scanbutton" type="button" aria-label="Kamera ile barkod oku" title="Barkod oku">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M8 9v6m3-8v10m3-8v6m3-6v6"/></svg>
+        </button>
+      </div>
+      <div class="syncline">
+        <span id="syncLabel" class="sync-label">Yerel katalog kontrol ediliyor...</span>
+        <div class="sync-actions">
+          <button id="refreshButton" type="button" class="smallbutton">↻ XML'i Şimdi Yenile</button>
+          <button id="importButton" type="button" class="smallbutton secondary">↑ Yerel XML Yükle</button>
+          <input id="xmlFile" type="file" accept=".xml,text/xml,application/xml" hidden>
+        </div>
+      </div>
+    </header>
+
+    <main class="content">
+      <section class="catalog-header" aria-label="Ürün kataloğu">
+        <div class="catalog-heading"><h1>Ürünler</h1><span id="resultCount">0 ürün</span></div>
+        <div class="filter-label">Kategoriler</div>
+        <div id="categoryFilters" class="chips" aria-label="Kategori filtreleri"></div>
+        <div class="filter-label">Markalar</div>
+        <div id="brandFilters" class="chips" aria-label="Marka filtreleri"></div>
+      </section>
+      <section id="productList" class="products" aria-label="Filtrelenen ürünler"></section>
+      <p id="productLimit" class="product-limit" hidden></p>
+    </main>
+
+    <div class="bottom-shell">
+      <div class="utility-actions">
+        <button id="historyButton" class="utility-button" type="button">◷ Satış Geçmişi</button>
+        <span id="catalogSource" class="utility-note">Katalog bekleniyor</span>
+      </div>
+      <button id="openCart" class="cart-summary" type="button" aria-label="Sepeti aç">
+        <span class="cart-icon" aria-hidden="true">▣ <b id="cartCount">0</b></span>
+        <span class="cart-label"><strong>Sepeti Aç</strong><small id="cartItemLabel">0 adet ürün</small></span>
+        <span class="cart-total" id="cartTotal">₺0,00</span>
+        <span class="chevron" aria-hidden="true">⌃</span>
+      </button>
+    </div>
+  </div>
+
+  <dialog id="cartDialog" class="sheet" aria-labelledby="cartTitle">
+    <div class="sheet-header"><h2 id="cartTitle">Sepet</h2><button type="button" class="closebutton" data-close="cartDialog" aria-label="Kapat">×</button></div>
+    <div id="cartItems" class="cart-items"></div>
+    <div class="checkout-area">
+      <div id="cartTotals" class="cart-totals"></div>
+      <fieldset class="payment-types"><legend>Ödeme türü</legend>
+        <label><input type="radio" name="payment" value="Nakit" checked><span>₺ Nakit</span></label>
+        <label><input type="radio" name="payment" value="Kart"><span>▤ Kart</span></label>
+        <label><input type="radio" name="payment" value="Veresiye"><span>◷ Veresiye</span></label>
+      </fieldset>
+      <div id="cashBox" class="cash-box"><label for="cashReceived">Alınan nakit (₺)</label>
+        <input id="cashReceived" inputmode="decimal" type="text" placeholder="Örn. 500,00">
+        <p id="changeLabel">Para üstü: ₺0,00</p>
+      </div>
+      <div id="creditBox" class="credit-box" hidden><label for="creditName">Veresiye müşteri adı / not</label>
+        <input id="creditName" type="text" maxlength="120" placeholder="Müşteri adı (zorunlu)">
+      </div>
+      <div class="print-options"><label for="receiptWidth">Fiş genişliği</label><select id="receiptWidth"><option value="80">80 mm</option><option value="58">58 mm</option></select>
+      <label class="autoprint"><input id="autoPrint" type="checkbox"> Satıştan sonra fişi yazdır</label></div>
+      <button id="completeSale" class="primary-button" type="button">Satışı Tamamla</button>
+      <p class="hint">Satışlar bu cihazın IndexedDB veritabanına kaydedilir. Merkezi POS'a aktarılmaz.</p>
+    </div>
+  </dialog>
+
+  <dialog id="scanDialog" class="modal" aria-labelledby="scanTitle">
+    <div class="sheet-header"><h2 id="scanTitle">Barkod Okuyucu</h2><button type="button" class="closebutton" data-close="scanDialog" aria-label="Kapat">×</button></div>
+    <p id="scanMessage" class="scan-message" role="status">Kameraya barkodu gösterin.</p>
+    <div id="scannerView" class="scanner-view"><video id="scanVideo" playsinline muted autoplay></video><div id="html5-reader"></div><div class="target-frame" aria-hidden="true"></div></div>
+    <p class="hint">HTTPS ve kamera izni gereklidir. El terminalinin fiziksel barkod okuyucusu arama alanından da çalışır.</p>
+  </dialog>
+
+  <dialog id="historyDialog" class="sheet" aria-labelledby="historyTitle">
+    <div class="sheet-header"><h2 id="historyTitle">Satış Geçmişi</h2><button type="button" class="closebutton" data-close="historyDialog" aria-label="Kapat">×</button></div>
+    <div class="history-actions"><span id="historyCount">0 satış</span><button id="exportSales" class="smallbutton secondary" type="button">CSV Dışa Aktar</button></div>
+    <div id="historyItems" class="history-items"></div>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <div id="receiptPrint" aria-hidden="true"></div>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

@@ -4,7 +4,7 @@ Bu klasör **doğrudan Git deposunun köküne** konulmalıdır. ZIP dosyasını 
 
 ## 1. Yeni GitHub deposu
 
-GitHub'da giriş yapın, https://github.com/new adresinden `cep-hizli-satis-pwa` adında **yeni ve boş** bir özel (`Private`) repo açın. Readme/gitignore/license eklemeyin; hepsi kaynakta mevcut.
+GitHub'da giriş yapın, https://github.com/new adresinden `hizlisatis` adlı **mevcut boş** depoyu kullanın: https://github.com/tolgamy/hizlisatis (şu anda Public; isterseniz GitHub ayarlarından Private olarak değiştirebilirsiniz).
 
 Projeyi bilgisayarınızda ZIP'ten açtıktan sonra, o klasörde:
 
@@ -13,7 +13,7 @@ git init
 git add .
 git commit -m "Cep Hizli Satis PWA v1.1"
 git branch -M main
-git remote add origin https://github.com/tolgamy/cep-hizli-satis-pwa.git
+git remote add origin https://github.com/tolgamy/hizlisatis.git
 git push -u origin main
 ```
 
@@ -23,8 +23,8 @@ GitHub hesabı, `git` yazma yetkisi ve cihazınızda Git gerekir. GitHub Desktop
 
 1. https://dash.cloudflare.com/ adresine Cloudflare hesabınızla giriş yapın.
 2. **Workers & Pages → Create → Pages → Connect to Git** seçin.
-3. GitHub erişimini onaylayıp `tolgamy/cep-hizli-satis-pwa` deposunu seçin.
-4. Project name: `cep-hizli-satis-pwa` (müsaitse).
+3. GitHub erişimini onaylayıp `tolgamy/hizlisatis` deposunu seçin.
+4. Project name: **Sizin seçeceğiniz Cloudflare Pages adı** (müsaitse).
 5. Production branch: `main`.
 6. Framework preset: `None`.
 7. Root directory: `/` (deponun kökü).
