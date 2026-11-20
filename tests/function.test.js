@@ -59,7 +59,7 @@ test('Pages Function parses multi-variant XML, caches, refreshes and falls back'
       await response.json();
       await Promise.all(pending.splice(0));
 
-      const fresh = [...store.keys()].find(url => url.includes('catalog-fresh-v1'));
+      const fresh = [...store.keys()].find(url => url.includes('catalog-fresh-'));
       store.delete(fresh);
       originFails = true;
       response = await handler(context(''));
