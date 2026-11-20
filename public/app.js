@@ -844,6 +844,7 @@ let lastScanText = '', lastScanTime = 0;
 function scanned(raw) {
   const text = String(raw ?? '').trim();
   if (!text) return;
+  if(state.scanner){state.scanner.decoded=true;clearTimeout(state.scanner.fallbackTimer);}
   if(state.scanPurpose==='manage') {
     dom.scanDialog.close();
     state.scanPurpose='sale';
@@ -914,6 +915,7 @@ async function stopScanner() {
   session.active = false;
   state.scanner = null;
   if (session.timer) clearTimeout(session.timer);
+  if (session.fallbackTimer) clearTimeout(session.fallbackTimer);
   if (session.stream) session.stream.getTracks().forEach(track => track.stop());
   if (session.lib) {
     try { await session.lib.stop(); } catch { /* may be a photo-only scanner or not started */ }
@@ -988,7 +990,7 @@ async function startScanner() {
     dom.scanMessage.textContent = 'Bu tarayıcı kamera erişimi sunmuyor. Safari/Chrome üzerinden HTTPS ile açın veya barkodu elle girin.';
     return;
   }
-  const session = { active: true, stream: null, lib: null, timer: null, torchOn: false };
+  const session = { active: true, stream: null, lib: null, timer: null, fallbackTimer:null, decoded:false, torchOn: false };
   state.scanner = session;
   dom.scanMessage.textContent = 'Arka kamera başlatılıyor… Kamera izni sorulursa izin verin.';
   $('scanVideo').style.display = 'none';
@@ -1032,9 +1034,29 @@ async function startScanner() {
       try { scanner.clear(); } catch {}
       return;
     }
-    // No narrow qrbox restriction: 1D retail barcodes need a wide region.
-    dom.scanMessage.textContent = 'Barkodu kadraja tutun';
+    // Use the full video width for 1D shop barcodes.
+    dom.scanMessage.textContent = 'Barkod çizgilerini yatay tutun, kamera odaklanana kadar sabit bekleyin.';
     updateTorchButton(Boolean(torchFeature(session)),false);
+    // Some mobile browsers open the camera yet html5-qrcode never decodes.
+    // After a short timeout, switch decoders *only if* native BarcodeDetector
+    // explicitly supports linear barcodes. Never use QR decoding here.
+    session.fallbackTimer=setTimeout(async()=>{
+      if(!session.active||session.decoded||state.scanner!==session)return;
+      try{
+        if(typeof window.BarcodeDetector!=='function')return;
+        const supported=await window.BarcodeDetector.getSupportedFormats?.()||[];
+        if(!supported.some(format=>['ean_13','ean_8','upc_a','code_128','code_39','itf'].includes(format)))return;
+        if(!session.active||session.decoded||state.scanner!==session)return;
+        await scanner.stop();
+        await scanner.clear();
+        session.lib=null;
+        if(!session.active||state.scanner!==session)return;
+        await startNativeScanner(session);
+        dom.scanMessage.textContent='Alternatif barkod okuyucu açıldı. Barkodu çizgileriyle birlikte kameraya tutun.';
+      }catch(error){
+        if(session.active)dom.scanMessage.textContent='Otomatik barkod algılama başarısız. Yeniden Dene, Fotoğraftan Oku veya elle giriş seçeneklerini kullanın.';
+      }
+    },8500);
   } catch (primaryError) {
     if (!session.active) return;
     if (session.lib) {
