@@ -15,16 +15,19 @@ on:
 jobs:
   verify-central-d1:
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 2
     steps:
       - name: Verify live Pages D1 catalog count without credentials
         shell: bash
         run: |
           set -euo pipefail
           # Central POS is live only when the updated web shell AND API agree.
-          for attempt in $(seq 1 30); do
+          for attempt in $(seq 1 6); do
             html="$(curl --connect-timeout 8 --max-time 12 -fsS 'https://hizlisatis.pages.dev/index.html' || true)"
             payload="$(curl --connect-timeout 8 --max-time 12 -fsS 'https://hizlisatis.pages.dev/api/product-state?health=1' || true)"
+            version="$(printf '%s' "$html" | grep -oE 'v[0-9]+\\.[0-9]+\\.[0-9]+' | head -n 1 || true)"
+            sample="$(printf '%s' "$payload" | head -c 140 || true)"
+            echo "Live check $attempt: page_version=${version:-not-found}; API_response=${sample:-empty}"
             if printf '%s' "$html" | grep -q 'v3.4.0' &&
                [ -n "$payload" ] &&
                printf '%s' "$payload" | node -e '
