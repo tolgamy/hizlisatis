@@ -1,0 +1,38 @@
+name: Diagnose live D1 product listing
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/diagnose-live-d1.yml'
+jobs:
+  product-page:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Check live product list without exposing private data
+        run: |
+          node <<'NODE'
+          const root='https://hizlisatis.pages.dev/api/product-state';
+          for(const suffix of ['?health=1','?after=']){
+            try{
+              const response=await fetch(root+suffix, {signal:AbortSignal.timeout(20000)});
+              const txt=await response.text();
+              let data=null;
+              try{data=JSON.parse(txt)}catch{}
+              console.log(JSON.stringify({
+                endpoint:suffix,status:response.status,
+                bytes:new TextEncoder().encode(txt).length,
+                contentType:response.headers.get('content-type'),
+                items:Array.isArray(data?.products)?data.products.length:null,
+                hasNext:Boolean(data?.next),error:data?.error||null,
+                count:data?.count||null
+              }));
+              if(suffix==='?after=' && response.ok && data?.next){
+                const next=await fetch(root+'?after='+encodeURIComponent(data.next),{signal:AbortSignal.timeout(20000)});
+                const second=await next.json().catch(()=>null);
+                console.log(JSON.stringify({endpoint:'second_page',status:next.status,
+                  items:Array.isArray(second?.products)?second.products.length:null,
+                  hasNext:Boolean(second?.next),error:second?.error||null}));
+              }
+            }catch(e){console.log(JSON.stringify({endpoint:suffix,error:String(e?.message||e)}))}
+          }
+          NODE
