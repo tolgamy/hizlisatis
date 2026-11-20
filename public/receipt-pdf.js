@@ -19,7 +19,7 @@ function pdfFromJpegs(images) {
   function object(number, content, binary) {
     offsets[number] = length;
     push(number + ' 0 obj\n' + content);
-    if (binary) push(binary);
+    if (binary) { push(binary); push('\nendstream'); }
     push('\nendobj\n');
   }
   object(1, '<< /Type /Catalog /Pages 2 0 R >>');
