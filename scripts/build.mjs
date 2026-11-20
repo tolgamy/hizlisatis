@@ -1,3 +1,4 @@
+import { generateTemplate } from './generate-template.mjs';
 import { copyFile, mkdir, access } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
@@ -17,3 +18,5 @@ if (!source) {
 await mkdir(resolve('public/vendor'), { recursive: true });
 await copyFile(source, resolve('public/vendor/html5-qrcode.min.js'));
 console.log('Build completed. Static output: public/; Pages Functions: functions/.');
+
+await generateTemplate();

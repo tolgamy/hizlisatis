@@ -37,6 +37,9 @@
         <div class="sync-actions">
           <button id="refreshButton" type="button" class="smallbutton">↻ XML'i Şimdi Yenile</button>
           <button id="importButton" type="button" class="smallbutton secondary">↑ Yerel XML Yükle</button>
+          <a class="smallbutton secondary template-link" href="/urun-yukleme-sablonu.xlsx" download="Hizlisatis_Excel_Urun_Yukleme_Sablonu.xlsx">↓ Excel Şablonu</a>
+          <button id="excelImportButton" type="button" class="smallbutton excel-button">↑ Excel Ürün Yükle</button>
+          <input id="excelFile" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
           <input id="xmlFile" type="file" accept=".xml,text/xml,application/xml" hidden>
         </div>
       </div>
@@ -92,6 +95,17 @@
     </div>
   </dialog>
 
+  <dialog id="excelDialog" class="sheet excel-sheet" aria-labelledby="excelTitle">
+    <div class="sheet-header"><h2 id="excelTitle">Excel Ürün Yükleme</h2><button type="button" class="closebutton" data-close="excelDialog" aria-label="Kapat">×</button></div>
+    <div class="excel-import-body">
+      <p class="hint">Dosyadaki ürünler bu cihazın yerel kataloğuna eklenir. Aynı barkoda sahip ürün güncellenir. XML ürünleri, resim URL'leri ve satış geçmişi silinmez.</p>
+      <div id="excelSummary" class="excel-summary" role="status"></div>
+      <div id="excelErrors" class="excel-errors" hidden></div>
+      <div id="excelPreview" class="excel-preview"></div>
+      <button id="confirmExcelImport" type="button" class="primary-button" disabled>Ürünleri Yükle</button>
+      <p class="hint">Not: Yüklenen Excel ürünleri yalnızca bu tarayıcı/cihazda saklanır; diğer cihazlara otomatik aktarılmaz.</p>
+    </div>
+  </dialog>
   <dialog id="scanDialog" class="modal" aria-labelledby="scanTitle">
     <div class="sheet-header"><h2 id="scanTitle">Barkod Okuyucu</h2><button type="button" class="closebutton" data-close="scanDialog" aria-label="Kapat">×</button></div>
     <p id="scanMessage" class="scan-message" role="status">Kameraya barkodu gösterin.</p>

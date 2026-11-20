@@ -1,7 +1,7 @@
-const VERSION = 'cep-pos-shell-v2';
+const VERSION = 'cep-pos-shell-v3-excel';
 const SHELL = [
   '/', '/index.html', '/styles.css', '/app.js', '/idb.js',
-  '/normalize.js', '/xml-local.js', '/manifest.json',
+  '/normalize.js', '/xml-local.js', '/xlsx-reader.js', '/excel-products.js', '/urun-yukleme-sablonu.xlsx', '/manifest.json',
   '/icons/icon-192.png', '/icons/icon-512.png', '/icons/placeholder.svg',
   '/vendor/html5-qrcode.min.js'
 ];
@@ -45,7 +45,7 @@ self.addEventListener('fetch', event => {
     const cache = await caches.open(VERSION);
     try {
       const response = await fetch(request);
-      if (response.ok && ['script','style','image','manifest'].includes(request.destination)) {
+      if (response.ok && (['script','style','image','manifest'].includes(request.destination) || url.pathname.endsWith('.xlsx'))) {
         await cache.put(request, response.clone());
       }
       return response;

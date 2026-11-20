@@ -17,3 +17,14 @@ dialog{border:0;padding:0;color:var(--ink);background:#fff}dialog::backdrop{back
 .print-options{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:12px 0;color:#415a73;font-size:12px;font-weight:750}.print-options select{border:1px solid #bdcbdc;border-radius:8px;padding:7px;background:#fff;color:var(--ink);font-size:14px}.print-options .autoprint{margin-left:auto;font-size:11px}.print-options input{vertical-align:middle}
 
 .stepper input{min-width:0;width:100%;height:40px;text-align:center;border:0;background:white;font-weight:900;font-size:15px;appearance:textfield;-moz-appearance:textfield}.stepper input::-webkit-outer-spin-button,.stepper input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+
+/* Local Excel import, narrow mobile POS controls and preview */
+.sync-actions{flex-wrap:wrap}.template-link{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;color:#fff}
+.excel-button{background:#167454;border-color:#259b74;color:#fff}
+.excel-sheet{max-height:82dvh}.excel-import-body{padding:14px 16px 24px}
+.excel-import-body>.hint:first-child{margin-top:2px}.excel-summary{font-size:14px;font-weight:850;padding:12px 0}
+.excel-summary.error{color:#9e353d}.excel-errors{background:#fff1f0;color:#943b42;border:1px solid #f2c1c5;border-radius:10px;padding:12px;margin:6px 0 14px;font-size:12px;max-height:150px;overflow:auto}
+.excel-errors p{margin:6px 0 0}.excel-preview{margin:6px 0 14px;max-height:32dvh;overflow:auto}
+.excel-preview-line{border-bottom:1px solid #dce4ed;padding:10px 0}.excel-preview-line strong{display:block;font-size:12px}
+.excel-preview-line small{display:block;color:var(--muted);margin-top:4px;font-size:11px}
+@media(max-width:480px){.sync-actions{gap:6px}.sync-actions .smallbutton,.sync-actions .template-link{font-size:11px;padding:8px 9px}}

@@ -1,4 +1,6 @@
-import { getSnapshot, replaceCatalog, saveSale, getSales, openDB } from './idb.js';
+import { getSnapshot, replaceCatalog, upsertExcelProducts, saveSale, getSales, openDB } from './idb.js';
+import { readXlsxRows } from './xlsx-reader.js';
+import { parseExcelProducts } from './excel-products.js';
 import { parseLocalXml } from './xml-local.js';
 import { parseLocaleNumber } from './normalize.js';
 
@@ -7,7 +9,8 @@ const state = {
   products: [], byId: new Map(), byBarcode: new Map(),
   sold: new Map(), cart: new Map(), category: '', brand: '',
   search: '', meta: null, sales: [], lastSale: null,
-  syncing: false, saving: false, scanner: null, syncGeneration: 0
+  syncing: false, saving: false, scanner: null, syncGeneration: 0,
+  excelCount: 0, excelPreview: null, excelUploading: false
 };
 const dom = {
   search: $('search'), productList: $('productList'), count: $('resultCount'),
@@ -70,14 +73,15 @@ function setConnection() {
 }
 function setSyncStatus() {
   if (!state.meta) {
-    $('syncLabel').textContent = 'Katalog henüz yüklenmedi';
-    $('catalogSource').textContent = 'Katalog boş';
+    $('syncLabel').textContent = state.excelCount ? 'Excel ürünleri yerel olarak kayıtlı' : 'Katalog henüz yüklenmedi';
+    $('catalogSource').textContent = state.excelCount ? `${state.excelCount} Excel varyantı` : 'Katalog boş';
     return;
   }
   $('syncLabel').textContent = `${state.meta.stale ? 'Yedek katalog' : 'Son senkronizasyon'}: ${fmtDate(state.meta.updatedAt)}`;
-  $('catalogSource').textContent = `${state.products.length} varyant • ${state.meta.source === 'local' ? 'Yerel XML' : 'XML kataloğu'}`;
+  $('catalogSource').textContent = `${state.products.length} varyant • XML${state.excelCount ? ` + ${state.excelCount} Excel` : ''}`;
 }
-function setCatalog(products, adjustments, meta) {
+function setCatalog(products, adjustments, meta, excelCount = 0) {
+  state.excelCount = excelCount;
   state.products = products;
   state.byId = new Map(products.map(product => [product.id, product]));
   state.byBarcode = new Map();
@@ -127,7 +131,7 @@ function renderProducts() {
     const wrap = document.createElement('div'); wrap.className = 'empty-state';
     wrap.innerHTML = state.products.length ?
       '<strong>Sonuç bulunamadı</strong>Aramayı veya filtreleri değiştirin.' :
-      '<strong>Henüz ürün yok</strong>İnternete bağlanın veya yerel XML yükleyin.';
+      '<strong>Henüz ürün yok</strong>XML veya Excel dosyası yükleyin.';
     dom.productList.append(wrap);
   }
   const fragment = document.createDocumentFragment();
@@ -303,7 +307,7 @@ async function syncCatalog(force = false, quiet = false) {
     await serializeMutation(() => replaceCatalog(json.products, meta));
     if (generation !== state.syncGeneration) return;
     const snapshot = await getSnapshot();
-    setCatalog(snapshot.products, snapshot.adjustments, snapshot.meta);
+    setCatalog(snapshot.products, snapshot.adjustments, snapshot.meta, snapshot.excelCount);
     channel?.postMessage('catalog-updated');
     if (stale) announce('XML kaynağı gecikiyor: önbellekteki katalog kullanılıyor. Güncellemek için tekrar deneyin.', 'error');
     else if (!quiet) announce(`${json.products.length} varyant güncellendi.`, 'success');
@@ -330,11 +334,78 @@ async function importXml(file) {
       variantCount: parsed.variantCount, productCount: parsed.productCount };
     await serializeMutation(() => replaceCatalog(parsed.products, meta));
     const snapshot = await getSnapshot();
-    setCatalog(snapshot.products, snapshot.adjustments, snapshot.meta);
+    setCatalog(snapshot.products, snapshot.adjustments, snapshot.meta, snapshot.excelCount);
     channel?.postMessage('catalog-updated');
     announce(`${parsed.variantCount} varyant yerel XML'den yüklendi.`, 'success');
   } catch (error) { announce(`XML içe aktarma hatası: ${error.message}`, 'error'); }
   finally { $('xmlFile').value = ''; }
+}
+async function selectExcelFile(file) {
+  if (!file) return;
+  state.excelPreview = null;
+  $('confirmExcelImport').disabled = true;
+  $('excelSummary').textContent = 'Excel dosyası okunuyor...';
+  $('excelSummary').classList.remove('error');
+  $('excelErrors').hidden = true;
+  $('excelPreview').replaceChildren();
+  $('excelDialog').showModal();
+  try {
+    const lines = await readXlsxRows(file);
+    const parsed = parseExcelProducts(lines);
+    state.excelPreview = { ...parsed, filename: file.name };
+    $('excelSummary').textContent = `${parsed.products.length} geçerli ürün · ${parsed.errors.length} hatalı satır`;
+    const errors = $('excelErrors');
+    errors.replaceChildren();
+    if (parsed.errors.length) {
+      errors.hidden = false;
+      const title = document.createElement('strong'); title.textContent = 'Önce Excel hatalarını düzeltin:';
+      errors.append(title);
+      for (const issue of parsed.errors.slice(0, 25)) {
+        const message = document.createElement('p'); message.textContent = issue;
+        errors.append(message);
+      }
+      if (parsed.errors.length > 25) {
+        const message = document.createElement('p'); message.textContent = `... ve ${parsed.errors.length - 25} hata daha`;
+        errors.append(message);
+      }
+    }
+    if (parsed.products.length) {
+      const preview = document.createElement('div');
+      for (const product of parsed.products.slice(0, 6)) {
+        const line = document.createElement('div'); line.className = 'excel-preview-line';
+        const name = document.createElement('strong'); name.textContent = product.baslik;
+        const other = document.createElement('small'); other.textContent =
+          `${product.barkod || product.urunKodu} · Stok ${product.stok} · ${money(product.satisFiyati, product.paraBirimi)}${product.gorsel ? ' · Görsel URL ✓' : ''}`;
+        line.append(name, other); preview.append(line);
+      }
+      $('excelPreview').replaceChildren(preview);
+    }
+    $('confirmExcelImport').disabled = parsed.errors.length > 0 || !parsed.products.length;
+  } catch (error) {
+    $('excelSummary').textContent = `Excel okunamadı: ${error.message}`;
+    $('excelSummary').classList.add('error');
+  } finally { $('excelFile').value = ''; }
+}
+async function confirmExcelImport() {
+  const pending = state.excelPreview;
+  if (!pending || pending.errors.length || state.excelUploading) return;
+  state.excelUploading = true;
+  $('confirmExcelImport').disabled = true;
+  $('confirmExcelImport').textContent = 'Yükleniyor...';
+  try {
+    await serializeMutation(() => upsertExcelProducts(pending.products, pending.filename));
+    const snapshot = await getSnapshot();
+    setCatalog(snapshot.products, snapshot.adjustments, snapshot.meta, snapshot.excelCount);
+    channel?.postMessage('excel-updated');
+    state.excelPreview = null;
+    $('excelDialog').close();
+    announce(`${pending.products.length} Excel ürünü yüklendi / güncellendi. XML verileri korundu.`, 'success');
+  } catch (error) { announce(`Excel yükleme hatası: ${error.message}`, 'error'); }
+  finally {
+    state.excelUploading = false;
+    $('confirmExcelImport').textContent = 'Ürünleri Yükle';
+    $('confirmExcelImport').disabled = !state.excelPreview || state.excelPreview.errors.length > 0;
+  }
 }
 async function completeSale() {
   if (state.saving || !state.cart.size) return;
@@ -578,12 +649,15 @@ async function setup() {
   $('refreshButton').addEventListener('click', () => syncCatalog(true, false));
   $('importButton').addEventListener('click', () => $('xmlFile').click());
   $('xmlFile').addEventListener('change', () => importXml($('xmlFile').files[0]));
+  $('excelImportButton').addEventListener('click', () => $('excelFile').click());
+  $('excelFile').addEventListener('change', () => selectExcelFile($('excelFile').files[0]));
+  $('confirmExcelImport').addEventListener('click', confirmExcelImport);
   document.querySelectorAll('input[name="payment"]').forEach(el => el.addEventListener('change', updatePayment));
   dom.cash.addEventListener('input', updatePayment);
   dom.complete.addEventListener('click', completeSale);
   $('historyButton').addEventListener('click', showHistory);
   $('exportSales').addEventListener('click', exportHistory);
-  for (const dialog of [dom.cartDialog, dom.scanDialog, dom.historyDialog]) {
+  for (const dialog of [dom.cartDialog, dom.scanDialog, dom.historyDialog, $('excelDialog')]) {
     dialog.addEventListener('click', event => {
       if (event.target === dialog) dialog.close();
     });
@@ -594,7 +668,7 @@ async function setup() {
   try {
     await openDB();
     const snapshot = await getSnapshot();
-    setCatalog(snapshot.products, snapshot.adjustments, snapshot.meta);
+    setCatalog(snapshot.products, snapshot.adjustments, snapshot.meta, snapshot.excelCount);
   } catch (error) {
     announce(`Yerel veritabanı açılamadı: ${error.message}`, 'error');
     dom.complete.disabled = true;
@@ -606,7 +680,7 @@ async function setup() {
   channel?.addEventListener('message', async () => {
     try {
       const snapshot = await getSnapshot();
-      setCatalog(snapshot.products, snapshot.adjustments, snapshot.meta);
+      setCatalog(snapshot.products, snapshot.adjustments, snapshot.meta, snapshot.excelCount);
     } catch { /* another tab may have closed DB */ }
   });
 }

@@ -103,3 +103,15 @@ Gerçek XML'in en az bir örneğini şemaya göre doğrulayın; binlerce varyant
 ## 6) Hızlı yayın yönergesi
 
 GitHub deposu oluşturma, `main` dalına kaynak dosyalarını push etme, Cloudflare Pages Git entegrasyonu ve yayın sonrası sağlık testlerinin adımları için `YAYINA-ALMA.md` dosyasına bakın. GitHub Actions dosyası `.github/workflows/ci.yml` her `main` push'unda test ve derleme kontrolü yapar; **Cloudflare yayını** ise Pages Git entegrasyonu tarafından gerçekleştirilir.
+
+
+## Excel ile toplu ürün ekleme (v1.2)
+
+1. Ana ekrandan **↓ Excel Şablonu** ile `Hizlisatis_Excel_Urun_Yukleme_Sablonu.xlsx` dosyasını indirin.
+2. `Urunler` sekmesinde 5. satır başlıklarını değiştirmeyin; örnekleri silip 6. satırdan başlayın.
+3. **Görsel URL** sütununa XML'deki `<Gorseller><url>` adresini yapıştırabilirsiniz. Boş bırakırsanız aynı barkodlu XML ürününün resmi korunur.
+4. **↑ Excel Ürün Yükle** ile dosyayı seçin, ürünleri ve hataları önizleyin, **Ürünleri Yükle** ile kaydedin.
+
+Her satır bir varyanttır. Barkod hücrelerini **metin** olarak tutun; baştaki sıfır kaybolmamalıdır. Zorunlu: Ürün Adı, Stok, Satış Fiyatı ve Ürün Kodu veya Barkod. Geçersiz fiyat/stok/resim URL'si varsa dosya kaydedilmeden önce hatayı düzeltin.
+
+İçe aktarılan ürünler ayrı IndexedDB deposunda saklanır: XML senkronizasyonu mevcut Excel ürünlerini silmez; aynı barkodda Excel alanları önceliklidir, Excel görsel URL'si boşsa XML resim URL'si korunur. Satış geçmişi etkilenmez. **Veriler yalnızca yüklenen cihazdaki tarayıcıda bulunur; cihazlar arasında eşitlenmez.** Tarayıcı verilerini temizlemek ürünleri kaldırabilir. Ürün kartları çevrimdışı çalışsa da uzaktaki ürün fotoğrafları bağlantı gerektirebilir. Yalnızca modern tarayıcıda `.xlsx` kabul edilir (`.xls` değil).
