@@ -47,6 +47,9 @@ export async function onRequestGet({request,env}) {
   const db=database(env);
   if(!db) return error('D1 veritabanı bağlı değil. DB binding gerekli.',503);
   try {
+    const seeded=await db.prepare("SELECT value FROM app_meta WHERE key='catalog_seed_count'").first();
+    if(!seeded || Number(seeded.value)!==19096)
+      return error('Merkezi katalog D1 üzerine yüklenmemiş. 19.096 ürün seed dosyalarını tamamlayın.',503);
     const url=new URL(request.url);
     if(url.searchParams.has('ids')) {
       let ids;
@@ -82,6 +85,9 @@ export async function onRequestGet({request,env}) {
 export async function onRequestPost({request,env}) {
   const db=database(env);
   if(!db) return error('D1 veritabanı bağlı değil.',503);
+  const seeded=await db.prepare("SELECT value FROM app_meta WHERE key='catalog_seed_count'").first().catch(()=>null);
+  if(!seeded || Number(seeded.value)!==19096)
+    return error('D1 katalog başlangıç verisi yüklenmemiş.',503);
   if(!await authorized(request,env)) return error('Sunucu yönetim anahtarı geçersiz.',401);
   if(Number(request.headers.get('content-length')||0)>3500000)
     return error('Tek istekte çok fazla veri var.',413);
