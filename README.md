@@ -104,23 +104,36 @@ Gerçek XML'in en az bir örneğini şemaya göre doğrulayın; binlerce varyant
 
 GitHub deposu oluşturma, `main` dalına kaynak dosyalarını push etme, Cloudflare Pages Git entegrasyonu ve yayın sonrası sağlık testlerinin adımları için `YAYINA-ALMA.md` dosyasına bakın. GitHub Actions dosyası `.github/workflows/ci.yml` her `main` push'unda test ve derleme kontrolü yapar; **Cloudflare yayını** ise Pages Git entegrasyonu tarafından gerçekleştirilir.
 
-
 ## Excel ile toplu ürün ekleme (v1.2)
 
-1. Ana ekrandan **↓ Excel Şablonu** ile `Hizlisatis_Excel_Urun_Yukleme_Sablonu.xlsx` dosyasını indirin.
-2. `Urunler` sekmesinde 5. satır başlıklarını değiştirmeyin; örnekleri silip 6. satırdan başlayın.
-3. **Görsel URL** sütununa XML'deki `<Gorseller><url>` adresini yapıştırabilirsiniz. Boş bırakırsanız aynı barkodlu XML ürününün resmi korunur.
-4. **↑ Excel Ürün Yükle** ile dosyayı seçin, ürünleri ve hataları önizleyin, **Ürünleri Yükle** ile kaydedin.
+1. Ana ekrandan **↓ Excel Şablonu** bağlantısıyla `Hizlisatis_Excel_Urun_Yukleme_Sablonu.xlsx` dosyasını indirin.
+2. `Urunler` sekmesinde 5. satırdaki başlıkları değiştirmeden, örnek ürünleri silip kendi ürünlerinizi 6. satırdan itibaren doldurun.
+3. **Görsel URL** sütununa XML'deki `<Gorseller><url>` değeri dahil HTTPS/HTTP resim bağlantısını yazabilirsiniz. Boş bırakırsanız aynı barkoda sahip XML ürününün resmi korunur; yeni üründe varsayılan simge çıkar.
+4. Uygulamada **↑ Excel Ürün Yükle** → `.xlsx` seç → doğrulama önizlemesi → **Ürünleri Yükle**.
 
-Her satır bir varyanttır. Barkod hücrelerini **metin** olarak tutun; baştaki sıfır kaybolmamalıdır. Zorunlu: Ürün Adı, Stok, Satış Fiyatı ve Ürün Kodu veya Barkod. Geçersiz fiyat/stok/resim URL'si varsa dosya kaydedilmeden önce hatayı düzeltin.
+Her satır bir varyanttır. Barkod başındaki sıfırları kaybetmemek için **Barkod sütununu metin biçiminde** kullanın. `Ürün Adı`, `Stok`, `Satış Fiyatı` ve `Ürün Kodu` veya `Barkod` gerekir. Stok sıfır/pozitif tam sayı, fiyatlar sıfır/pozitif, KDV 0–100 olmalıdır. Hatalı satır varsa tüm dosya kaydedilmeden önce düzeltilmelidir; Excel önizlemesi hata satır numaralarını gösterir.
 
-İçe aktarılan ürünler ayrı IndexedDB deposunda saklanır: XML senkronizasyonu mevcut Excel ürünlerini silmez; aynı barkodda Excel alanları önceliklidir, Excel görsel URL'si boşsa XML resim URL'si korunur. Satış geçmişi etkilenmez. **Veriler yalnızca yüklenen cihazdaki tarayıcıda bulunur; cihazlar arasında eşitlenmez.** Tarayıcı verilerini temizlemek ürünleri kaldırabilir. Ürün kartları çevrimdışı çalışsa da uzaktaki ürün fotoğrafları bağlantı gerektirebilir. Yalnızca modern tarayıcıda `.xlsx` kabul edilir (`.xls` değil).
+**Veri davranışı ve sınırlamalar:** Excel importu ayrı bir IndexedDB deposuna ekleme/güncelleme olarak yapılır, XML veya satış kayıtlarını silmez. Aynı barkodla içe aktarılan ürün XML kataloğunda da varsa Excel bilgileri önceliklidir; Excel satırında görsel URL boşsa XML'deki görsel korunur. Sonraki XML senkronizasyonu Excel ürünlerini silmez. Bu özellik **yalnızca içe aktarılan cihazdaki tarayıcı profilinde** çalışır; başka cihazlarla merkezi ürün ve stok eşitlemesi sağlamaz. Tarayıcı verileri silinirse Excel ürünleri kaybolabilir. Gerçek resimler internete bağımlıdır, çevrimdışı iken resimler yüklenmeyebilir; ürünler ve satış işlevi çevrimdışı çalışır.
+
+Desteklenen dosya `.xlsx` (12 MB'a kadar). `.xls` desteklenmez; Excel'de XLSX olarak kaydedin. Tarayıcıda XLSX açma işlemi modern `DecompressionStream('deflate-raw')` API'sini gerektirir.
 
 
-## v1.3 – XML Görselleri ve Excel
+## 1.3 — Resimler ve Excel şablonu
 
-- Cloudflare Function artık farklı XML görsel etiketlerini ve iç içe URL'leri normalleştirir.
-- Katalog başlığı altında URL bulunan/görseli açılamayan ürün sayısı görünür.
-- Excel şablonunda **Resim URL sütunu D** konumundadır. Cloudflare Pages npm run build ile yeni şablonu üretir.
-- Yeni XML verisini almak için **XML'i Şimdi Yenile**'ye basın. Yerel satış ve Excel kayıtları korunur.
-- URL var ama resim gösterilmiyorsa resme dokunup açılan kaynağı kontrol edin. Bazı üçüncü taraf siteler gömülü resimlere izin vermez.
+- Excel şablonunun **D sütunu Resim URL**. Eski sürümde en sağdaki **N sütunundaydı**.
+- Uygulamadaki **↓ Excel Şablonu** bağlantısı `/urun-yukleme-sablonu.xlsx?v=3` adresinden yeni dosyayı indirir.
+- XML'deki `Gorseller > url`, varyant ve ürün görselleri, alternatif resim düğümleri ve `//...` gibi bağlantılar normalize edilir.
+- Ürün başlığındaki **resim adresi sayısı** ve erişilemeyen resim sayısı görüntülenir. Resim küçük görseline dokunarak kaynaktaki bağlantıyı açabilirsiniz.
+- Eğer ürünlerde 0 resim bağlantısı görünürse XML API yanıtındaki `products[0].gorsel` alanını ve XML'yi kontrol edin. Bağlantı sayısı pozitif ama resim yüklenemiyorsa ilgili resim sunucusunun erişim/hotlink kurallarını kontrol edin.
+- Cihazın eski IndexedDB katalogunu yenilemek için **XML'i Şimdi Yenile** kullanılabilir.
+
+
+## v1.4: 12 sütunlu tedarikçi Excel aktarımı
+
+"bunu uyarla.xlsx" ile uyumlu sütun sırası: `Barkod, SKU, Ürün Başlığı, Alt Başlık, Açıklama, Marka, Kategoriler, Para Birimi, Satış Fiyatı, Stok Adedi, Stok Deposu, Görseller`.
+
+`Excel Ürün Yükle` bu formatı otomatik tanır, barkod eşleşmelerini cihazdaki XML kataloğuna göre hesaplar ve önizlemede raporlar. Barkodu XML'de olan ürünün **stok/fiyat/KDV** değerleri XML'den korunur; Excel'den gelen `Görseller` adresi varsa görsel alanını doldurur. Barkodu XML'de bulunmayan ürün Excel verileriyle eklenir. Bu format KDV taşımadığı için yeni ürünlerin vergisi kullanıcı tarafından doğrulanmalıdır.
+
+**Veri gizliliği:** 2.636 ürünlük kullanıcı dosyası herkese açık GitHub deposuna veya Cloudflare statik dizinine yüklenmez. Kullanıcı dosyayı uygulamadaki yükleme alanına seçerek yerel IndexedDB'ye kaydeder. XML sunucusu 503 veriyorsa otomatik XML karşılaştırması mümkün olmayabilir; yükleme yine yerel çalışır.
+
+**Resimler:** `Görseller` sütunundaki HTTPS URL'leri kaydedilir ancak resim CDN'sinin erişilebilirliği ve hotlink izni garanti edilemez.

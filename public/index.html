@@ -96,14 +96,14 @@
   </dialog>
 
   <dialog id="excelDialog" class="sheet excel-sheet" aria-labelledby="excelTitle">
-    <div class="sheet-header"><h2 id="excelTitle">Excel Ürün Yükleme</h2><button type="button" class="closebutton" data-close="excelDialog" aria-label="Kapat">×</button></div>
+    <div class="sheet-header"><h2 id="excelTitle">Excel / Tedarikçi Ürün Yükleme</h2><button type="button" class="closebutton" data-close="excelDialog" aria-label="Kapat">×</button></div>
     <div class="excel-import-body">
       <p class="hint"><strong>Resim URL alanı Excel şablonunun D sütunundadır.</strong> Gerçek resim bağlantılarını girin. Dosyadaki ürünler bu cihazın yerel kataloğuna eklenir. Aynı barkoda sahip ürün güncellenir. XML ürünleri, resim URL'leri ve satış geçmişi silinmez.</p>
       <div id="excelSummary" class="excel-summary" role="status"></div>
       <div id="excelErrors" class="excel-errors" hidden></div>
       <div id="excelPreview" class="excel-preview"></div>
       <button id="confirmExcelImport" type="button" class="primary-button" disabled>Ürünleri Yükle</button>
-      <p class="hint">Not: Yüklenen Excel ürünleri yalnızca bu tarayıcı/cihazda saklanır; diğer cihazlara otomatik aktarılmaz.</p>
+      <p class="hint">Barkodla eşleşen XML ürünlerinde fiyat, stok ve KDV değiştirilmez; Excel'deki görsel URL kullanılır. XML'de olmayan ürünler eklenir. Bu Excel'de KDV sütunu yoksa yeni ürünlerin vergisini kontrol edin. Yükleme yalnız bu cihazda saklanır.</p>
     </div>
   </dialog>
 

@@ -49,6 +49,13 @@ export async function getSnapshot() {
     excelCount: manual.length, excelMeta: imported?.value ?? null };
 }
 
+/** Source-only catalog is needed to compare an Excel feed without existing Excel overrides. */
+export async function getXmlCatalog() {
+  const db = await openDB();
+  const tx = db.transaction('products', 'readonly');
+  return requestPromise(tx.objectStore('products').getAll());
+}
+
 export async function replaceCatalog(products, meta) {
   if (!Array.isArray(products) || !products.length) throw new Error('Boş katalog kaydedilemez.');
   const db = await openDB();
@@ -63,6 +70,7 @@ export async function replaceCatalog(products, meta) {
     tx.objectStore('meta').put({ key: 'catalog', value: meta });
   });
 }
+
 
 export async function upsertExcelProducts(products, filename) {
   if (!Array.isArray(products) || !products.length) throw new Error('İçe aktarılacak ürün bulunamadı.');
@@ -91,11 +99,13 @@ export async function saveSale(record) {
     const baseStore = tx.objectStore('products');
     const excelStore = tx.objectStore('excelProducts');
     for (const item of record.items) {
+      // All reads and stock writes are in the same transaction. Manual Excel
+      // products survive XML sync and their stock overrides XML matches.
       const baseRequest = baseStore.get(item.id);
       baseRequest.onsuccess = () => {
         const base = baseRequest.result;
         const finish = manual => {
-          const product = manual || base;
+          const product = (manual?.importFormat === 'market-12' && base) ? base : (manual || base);
           if (!product) { tx.abort(); return; }
           const stockRequest = stock.get(item.id);
           stockRequest.onsuccess = () => {

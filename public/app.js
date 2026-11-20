@@ -1,6 +1,6 @@
-import { getSnapshot, replaceCatalog, upsertExcelProducts, saveSale, getSales, openDB } from './idb.js';
+import { getSnapshot, getXmlCatalog, replaceCatalog, upsertExcelProducts, saveSale, getSales, openDB } from './idb.js';
 import { readXlsxRows } from './xlsx-reader.js';
-import { parseExcelProducts } from './excel-products.js';
+import { parseExcelProducts, compareExcelWithXml } from './excel-products.js';
 import { parseLocalXml } from './xml-local.js';
 import { parseLocaleNumber } from './normalize.js';
 
@@ -369,6 +369,7 @@ async function selectExcelFile(file) {
   if (!file) return;
   state.excelPreview = null;
   $('confirmExcelImport').disabled = true;
+  $('excelSummary').classList.remove('error');
   $('excelSummary').textContent = 'Excel dosyası okunuyor...';
   $('excelErrors').hidden = true;
   $('excelPreview').replaceChildren();
@@ -376,8 +377,14 @@ async function selectExcelFile(file) {
   try {
     const lines = await readXlsxRows(file);
     const parsed = parseExcelProducts(lines);
-    state.excelPreview = { ...parsed, filename: file.name };
-    $('excelSummary').textContent = `${parsed.products.length} geçerli ürün · ${parsed.errors.length} hatalı satır`;
+    const comparison = compareExcelWithXml(await getXmlCatalog(), parsed.products);
+    state.excelPreview = { ...parsed, filename: file.name, comparison };
+    const comparisonText = comparison.xmlAvailable
+      ? `${comparison.matched} barkod XML ile eşleşti · ${comparison.newProducts} yeni ürün · ${comparison.imagesFromExcel} eşleşen ürüne Excel resim URL'si`
+      : 'XML kataloğu bu cihazda bulunamadı; barkod karşılaştırması henüz yapılamadı';
+    const imageTotal = parsed.products.filter(p => Boolean(p.gorsel)).length;
+    const taxText = parsed.missingTax ? ' · Bu Excel’de KDV yok; yalnız yeni ürünlerin KDV oranını ayrıca kontrol edin.' : '';
+    $('excelSummary').textContent = `${parsed.products.length} geçerli ürün · ${imageTotal} görsel URL · ${parsed.errors.length} hatalı satır · ${comparisonText}${taxText}. Eşleşen XML ürünlerinin fiyat/stok/KDV bilgileri korunur.`;
     const errors = $('excelErrors');
     errors.replaceChildren();
     if (parsed.errors.length) {
@@ -397,10 +404,17 @@ async function selectExcelFile(file) {
       const preview = document.createElement('div');
       for (const product of parsed.products.slice(0, 6)) {
         const line = document.createElement('div'); line.className = 'excel-preview-line';
+        const thumb = document.createElement('img');
+        thumb.className = 'excel-preview-thumb';
+        thumb.loading = 'lazy';
+        thumb.alt = product.baslik;
+        thumb.referrerPolicy = 'no-referrer';
+        thumb.src = product.gorsel || '/icons/placeholder.svg';
+        thumb.onerror = () => { thumb.onerror = null; thumb.src = '/icons/placeholder.svg'; };
         const name = document.createElement('strong'); name.textContent = product.baslik;
         const other = document.createElement('small'); other.textContent =
           `${product.barkod || product.urunKodu} · Stok ${product.stok} · ${money(product.satisFiyati, product.paraBirimi)}${product.gorsel ? ' · Görsel URL ✓' : ''}`;
-        line.append(name, other); preview.append(line);
+        line.append(thumb, name, other); preview.append(line);
       }
       $('excelPreview').replaceChildren(preview);
     }
@@ -423,7 +437,7 @@ async function confirmExcelImport() {
     channel?.postMessage('excel-updated');
     state.excelPreview = null;
     $('excelDialog').close();
-    announce(`${pending.products.length} Excel ürünü yüklendi / güncellendi. XML verileri korundu.`, 'success');
+    announce(`${pending.products.length} Excel ürünü yüklendi. ${pending.comparison?.matched || 0} barkod mevcut XML ile eşleşti; eşleşenlerin stok, fiyat ve KDV bilgileri korundu.`, 'success');
   } catch (error) { announce(`Excel yükleme hatası: ${error.message}`, 'error'); }
   finally {
     state.excelUploading = false;
