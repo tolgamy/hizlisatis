@@ -219,8 +219,8 @@ export async function initiallyDeactivateAll() {
         }
         const p=entry.value;
         if(!p.lifecycleStatus || p.lifecycleStatus==='active') {
-          entry.update({...p,lifecycleStatus:'initial-inactive',statusChangedAt:at,
-            everActivated:false});
+          entry.update({...p,lifecycleStatus:p.everActivated?'later-inactive':'initial-inactive',statusChangedAt:at,
+            everActivated:!!p.everActivated});
           total++;
         }
         entry.continue();
