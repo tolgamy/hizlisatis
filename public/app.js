@@ -13,6 +13,7 @@ import { applyProductImage, detectImageResizing } from './image-delivery.js';
 import { isActive, productStatus } from './product-lifecycle.js';
 import { getBarcodeLibrary, supportedBarcodeFormats, acceptsBarcodeResult } from './barcode-scanner.js';
 import { createProductManager } from './product-management.js';
+import { checkRemoteProductStates } from './remote-products.js';
 
 const $ = id => document.getElementById(id);
 const state = {
@@ -1075,7 +1076,25 @@ async function scanBarcodePhoto(file) {
 }
 
 
-async function refreshManagedData() {
+async function refreshManagedData(productId=null) {
+  if(productId && state.products.length) {
+    // Refresh only one edited product. Reloading the full 19,096-row catalogue
+    // after each edit would waste D1 read quota and mobile data.
+    const remote=await checkRemoteProductStates([productId]);
+    const record=remote.products.get(productId);
+    if(!record)throw Error('Merkezi veritabanında kaydedilen ürün bulunamadı.');
+    if((remote.bulkAt||null)===(state.lifecycleMeta?.at||null)) {
+      const product={...record,
+        lifecycleStatus:record.lifecycleStatus||(remote.bulkAt?'initial-inactive':'active')};
+      const products=state.products.filter(p=>p.id!==productId);
+      products.push(product);
+      const adjustments=[...state.sold].map(([id,soldQuantity])=>({id,soldQuantity}));
+      const excelCount=products.filter(p=>p.source!=='bundle').length;
+      const bundleCount=products.length-excelCount;
+      setCatalog(products,adjustments,state.meta,excelCount,bundleCount,state.lifecycleMeta);
+      return {products,lifecycleMeta:state.lifecycleMeta};
+    }
+  }
   const snapshot=await getSnapshot();
   setCatalog(snapshot.products,snapshot.adjustments,snapshot.meta,
     snapshot.excelCount,snapshot.bundleCount,snapshot.lifecycleMeta);
