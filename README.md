@@ -83,3 +83,14 @@ Ağ/AirPrint için fiş 80 mm (tercihe göre 58 mm) genişlikte ayrı bir önizl
 - Satış tamamlandı ekranında WhatsApp metin paylaşımına ek olarak **PDF Yap ve Paylaş** seçeneği vardır. Çevrimdışı PDF oluşturur. Cihaz dosya paylaşımını destekliyorsa gerçek .pdf dosyasını WhatsApp'a veya diğer uygulamalara paylaşır; desteklemiyorsa PDF indirilir.
 - Ürün durumları yerel IndexedDB ve ilave yerel yedek içinde korunur; katalog güncellenince sıfırlanmamalıdır. Otomatik test, aynı cihazın IndexedDB'si yeniden açıldığında ve katalog güncellendiğinde durumu denetler.
 - **Not:** Farklı cihazlar/tarayıcılar arasında ürün durumları otomatik eşitlenmez. Tarayıcı verisi silinirse kayıtlar kaybolabilir; düzenli JSON yedeği alın.
+
+## Telefonla merkezi D1 ürün katalog aktarımı (ilk kurulum)
+
+Bu özellik, canlı POS kodunu değiştirmeden D1'e ilk 19.096 ürünü yüklemek için iki dosya sunar:
+`functions/api/catalog-seed.js` ve `public/admin-import.html`.
+
+**Yayına alma önkoşulları:** Cloudflare Pages `hizlisatis` projesinde **Production** için D1 veritabanı değişkeni `DB`, en az 24 karakterlik Secret `PRODUCT_WRITE_KEY` ve SQL tabloları (`product_changes`, `app_meta`, `product_audit`) hazır olmalı. Ayrı bir `hizlisatis` Worker'ına değil, **Pages** projesine kurulur.
+
+Bu araç yayına alındıktan sonra telefonla `https://hizlisatis.pages.dev/admin-import.html` adresini açın. `PRODUCT_WRITE_KEY` *değerini* burada girin (ChatGPT'ye/GitHub'a yazmayın), **19.096 Ürünü D1'e Yükle** düğmesine basın; ekranı kapanmadan aktarımın 19.096/19.096 olarak doğrulanmasını bekleyin. Yarıda kesilirse tekrar başlatmak güvenlidir; önceki düzenlemeler `ON CONFLICT DO NOTHING` ile korunur.
+
+Yalnızca başlangıç kataloğu yüklenir. **Önceden pasife alınmış veya değiştirilmiş cihaz kayıtları ayrı olarak taşınmalıdır.** Merkezi ürün yönetimi istemcisi henüz canlıya geçmemişse mevcut POS sistemi yerel kayıtları kullanmaya devam eder. D1 merkezi API istemcisine geçiş **ayrı bir dağıtım** ve iki cihazlı kontrol gerektirir.
