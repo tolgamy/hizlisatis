@@ -1,4 +1,5 @@
 import { overlayLifecycleBackup } from './lifecycle-backup.js';
+import { fetchRemoteProducts, saveRemoteProduct, deactivateRemoteProducts, importRemoteProducts, checkRemoteProductStates } from './remote-products.js';
 
 const DB_NAME = 'cep-hizli-satis-db';
 const DB_VERSION = 4;
@@ -65,7 +66,7 @@ export function openDB() {
   return singleton;
 }
 
-export async function getSnapshot() {
+export async function getLocalSnapshot() {
   const db = await openDB();
   const tx = db.transaction(['excelProducts', 'adjustments', 'meta', 'productLifecycle'], 'readonly');
   const products = requestPromise(tx.objectStore('excelProducts').getAll());
@@ -83,6 +84,34 @@ export async function getSnapshot() {
     bundleCount: catalog.filter(p => p.source === 'bundle').length,
     bundleMeta: bundled?.value ?? null, excelMeta: imported?.value ?? null,
     lifecycleMeta: firstPass?.value ?? null };
+}
+
+
+/** Central D1 is authoritative for lifecycle and managed product edits.
+ * Local IndexedDB is only a seed/cache for the versioned catalogue and sales.
+ * Legacy local statuses can be read with getLocalSnapshot solely for migration.
+ */
+export async function getSnapshot() {
+  const local=await getLocalSnapshot();
+  const remote=await fetchRemoteProducts(); // Must succeed: do not silently fall back to local state.
+  if(!remote.bulkAt && local.lifecycleMeta) {
+    throw Error('Bu cihazda eski toplu pasif kayıtları var ama sunucuya aktarılmamış. Ayarlar > Ürün Yönetimi > Eski Cihaz Kayıtlarını Veritabanına Taşı.');
+  }
+  const merged=new Map(local.products.map(product=>[product.id,{
+    ...product,
+    lifecycleStatus:remote.bulkAt?'initial-inactive':'active',
+    everActivated:false,deletedFrom:null,statusChangedAt:remote.bulkAt||null
+  }]));
+  for(const product of remote.products) {
+    merged.set(product.id,{...(merged.get(product.id)||{
+      lifecycleStatus:remote.bulkAt?'initial-inactive':'active',
+      everActivated:false,deletedFrom:null,statusChangedAt:remote.bulkAt||null
+    }),...product});
+  }
+  const products=[...merged.values()];
+  return {...local,products,excelCount:products.filter(p=>p.source!=='bundle').length,
+    bundleCount:products.filter(p=>p.source==='bundle').length,
+    lifecycleMeta:remote.bulkAt?{at:remote.bulkAt}:null};
 }
 
 /** Atomically replace only bundled products and remove the deprecated XML store.
@@ -147,6 +176,7 @@ export async function installBundledProducts(products, version) {
 
 export async function upsertExcelProducts(products, filename) {
   if (!Array.isArray(products) || !products.length) throw new Error('İçe aktarılacak ürün bulunamadı.');
+  await importRemoteProducts(products); // Server write must succeed before caching locally.
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(['excelProducts', 'meta', 'productLifecycle'], 'readwrite');
@@ -175,6 +205,14 @@ export async function upsertExcelProducts(products, filename) {
 }
 
 export async function saveSale(record) {
+  // Refresh server state before sale. Local lifecycle flags may be stale on a
+  // second phone and must not override D1.
+  const current=await checkRemoteProductStates(record.items.map(item=>item.id));
+  for(const item of record.items) {
+    const product=current.products.get(item.id);
+    const status=product?.lifecycleStatus||(current.bulkAt?'initial-inactive':'active');
+    if(status!=='active')throw Error('Ürün artık aktif değil. Listeyi yenileyin.');
+  }
   const db=await openDB();
   return new Promise((resolve,reject)=>{
     const tx=db.transaction(['sales','adjustments','excelProducts'],'readwrite');
@@ -186,8 +224,9 @@ export async function saveSale(record) {
     for(const item of record.items) {
       const productReq=catalog.get(item.id);
       productReq.onsuccess=()=>{
-        const product=productReq.result;
-        if(!product || product.lifecycleStatus && product.lifecycleStatus !== 'active') {tx.abort();return;}
+        const product=current.products.get(item.id)||productReq.result;
+        if(!product) {tx.abort();return;}
+        if(!productReq.result)catalog.put(product);
         const stockReq=stock.get(item.id);
         stockReq.onsuccess=()=>{
           const sold=stockReq.result?.soldQuantity||0;
@@ -208,6 +247,9 @@ export async function getSales() {
 /** Status changes and product edits are atomic with their short audit trail. */
 export async function saveManagedProduct(product, action = 'edit') {
   if (!product || !product.id || !product.baslik) throw Error('Ürün adı veya kimliği eksik.');
+  // Persist to D1 first; IndexedDB below is a disposable local cache.
+  const result=await saveRemoteProduct(product,action);
+  product=result.product;
   const db = await openDB();
   return new Promise((resolve,reject) => {
     const tx=db.transaction(['excelProducts','productHistory','productLifecycle'],'readwrite');
@@ -238,40 +280,12 @@ export async function saveManagedProduct(product, action = 'edit') {
 
 /** This one-time operation never deletes records and never reclassifies later-passive items. */
 export async function initiallyDeactivateAll() {
-  const db = await openDB();
-  return new Promise((resolve,reject)=>{
-    const tx=db.transaction(['excelProducts','meta','productHistory','productLifecycle'],'readwrite');
-    const products=tx.objectStore('excelProducts'), meta=tx.objectStore('meta');
-    const lifecycle=tx.objectStore('productLifecycle');
-    let total=0;
-    const at=new Date().toISOString();
-    tx.oncomplete=()=>resolve(total);
-    tx.onabort=()=>reject(tx.error||Error('Toplu pasife alma iptal edildi.'));
-    const already=meta.get('initialDeactivation');
-    already.onsuccess=()=>{
-      if(already.result) { tx.abort(); return; }
-      const cursor=products.openCursor();
-      cursor.onsuccess=()=>{
-        const entry=cursor.result;
-        if(!entry){
-          meta.put({key:'initialDeactivation',value:{at,count:total}});
-          tx.objectStore('productHistory').add({productId:'*',at,action:'bulk-initial-deactivation',count:total});
-          return;
-        }
-        const p=entry.value;
-        if(!p.lifecycleStatus || p.lifecycleStatus==='active') {
-          const updated={...p,lifecycleStatus:p.everActivated?'later-inactive':'initial-inactive',
-            statusChangedAt:at,everActivated:!!p.everActivated};
-          entry.update(updated);
-          lifecycle.put(lifecycleRecord(updated));
-          total++;
-        } else if (p.lifecycleStatus) {
-          lifecycle.put(lifecycleRecord(p));
-        }
-        entry.continue();
-      };
-    };
-  });
+  const snapshot=await getSnapshot();
+  if(snapshot.lifecycleMeta)throw Error('Toplu işlem daha önce yapılmış.');
+  const count=snapshot.products.filter(p=>p.lifecycleStatus==='active').length;
+  await deactivateRemoteProducts();
+  // No 19,000-row browser storage mirror: D1 bulk_at is authoritative.
+  return count;
 }
 
 export async function getManagedProductHistory(productId) {
