@@ -37,7 +37,7 @@
         <div class="sync-actions">
           <button id="refreshButton" type="button" class="smallbutton">↻ XML'i Şimdi Yenile</button>
           <button id="importButton" type="button" class="smallbutton secondary">↑ Yerel XML Yükle</button>
-          <a class="smallbutton secondary template-link" href="/urun-yukleme-sablonu.xlsx" download="Hizlisatis_Excel_Urun_Yukleme_Sablonu.xlsx">↓ Excel Şablonu</a>
+          <a class="smallbutton secondary template-link" href="/urun-yukleme-sablonu.xlsx?v=3" download="Hizlisatis_Resim_URL_Excel_Sablonu.xlsx">↓ Excel Şablonu</a>
           <button id="excelImportButton" type="button" class="smallbutton excel-button">↑ Excel Ürün Yükle</button>
           <input id="excelFile" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
           <input id="xmlFile" type="file" accept=".xml,text/xml,application/xml" hidden>
@@ -47,7 +47,7 @@
 
     <main class="content">
       <section class="catalog-header" aria-label="Ürün kataloğu">
-        <div class="catalog-heading"><h1>Ürünler</h1><span id="resultCount">0 ürün</span></div>
+        <div class="catalog-heading"><h1>Ürünler</h1><span id="resultCount">0 ürün</span><span id="imageHealth" class="image-health" aria-live="polite"></span></div>
         <div class="filter-label">Kategoriler</div>
         <div id="categoryFilters" class="chips" aria-label="Kategori filtreleri"></div>
         <div class="filter-label">Markalar</div>
@@ -98,7 +98,7 @@
   <dialog id="excelDialog" class="sheet excel-sheet" aria-labelledby="excelTitle">
     <div class="sheet-header"><h2 id="excelTitle">Excel Ürün Yükleme</h2><button type="button" class="closebutton" data-close="excelDialog" aria-label="Kapat">×</button></div>
     <div class="excel-import-body">
-      <p class="hint">Dosyadaki ürünler bu cihazın yerel kataloğuna eklenir. Aynı barkoda sahip ürün güncellenir. XML ürünleri, resim URL'leri ve satış geçmişi silinmez.</p>
+      <p class="hint"><strong>Resim URL: Excel şablonunun D sütunu.</strong> Dosyadaki ürünler bu cihazın yerel kataloğuna eklenir. Aynı barkoda sahip ürün güncellenir. XML ürünleri, resim URL'leri ve satış geçmişi silinmez.</p>
       <div id="excelSummary" class="excel-summary" role="status"></div>
       <div id="excelErrors" class="excel-errors" hidden></div>
       <div id="excelPreview" class="excel-preview"></div>

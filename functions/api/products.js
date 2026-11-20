@@ -8,7 +8,7 @@ const BACKUP_SECONDS = 7 * 24 * 60 * 60;
 const MAX_XML_BYTES = 30 * 1024 * 1024;
 const FOREGROUND_TIMEOUT_MS = 30_000; // Manual refresh / first request
 const BACKGROUND_TIMEOUT_MS = 18_000; // waitUntil() is not unlimited
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3-photo-fields';
 const parser = new XMLParser({
   ignoreAttributes: true, parseTagValue: false, parseAttributeValue: false,
   trimValues: true, processEntities: true,

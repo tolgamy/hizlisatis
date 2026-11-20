@@ -1,4 +1,4 @@
-const VERSION = 'cep-pos-shell-v3-excel';
+const VERSION = 'cep-pos-shell-v4-image-url';
 const SHELL = [
   '/', '/index.html', '/styles.css', '/app.js', '/idb.js',
   '/normalize.js', '/xml-local.js', '/xlsx-reader.js', '/excel-products.js', '/urun-yukleme-sablonu.xlsx', '/manifest.json',

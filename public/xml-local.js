@@ -10,9 +10,21 @@ function elementText(parent, tag) {
   return element?.textContent?.trim() ?? '';
 }
 function readImages(element) {
-  const images = directChildren(element, 'Gorseller')[0];
-  return { url: directChildren(images, 'url').map(node => node.textContent.trim()) };
+  if (!element) return { url: [] };
+  const containers = [...element.children].filter(node =>
+    /^(?:Gorseller|Görseller|Resimler|Gorsel|Resim|Images|Image)$/i.test(node.localName));
+  const result = [];
+  for (const container of containers) {
+    for (const node of [container,...container.getElementsByTagName('*')]) {
+      if (/^(?:url|src|href|Gorsel|Resim|Image)$/i.test(node.localName) &&
+          ![...node.children].length && node.textContent?.trim()) {
+        result.push(node.textContent.trim());
+      }
+    }
+  }
+  return { url: result };
 }
+
 function nodeAsVariant(element) {
   const keys = ['Barkod', 'Stok', 'Beden', 'Renk', 'PiyasaFiyati',
     'SatisFiyati', 'KDV', 'ParaBirimi'];

@@ -3,10 +3,10 @@ import { writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 export async function generateTemplate() {
-  const headers = ['Ürün Kodu','Barkod','Ürün Adı','Marka','Kategori','Açıklama','Beden','Renk','Stok','Satış Fiyatı','Piyasa Fiyatı','KDV (%)','Para Birimi','Görsel URL'];
+  const headers = ['Ürün Kodu','Barkod','Ürün Adı','Resim URL','Marka','Kategori','Açıklama','Beden','Renk','Stok','Satış Fiyatı','Piyasa Fiyatı','KDV (%)','Para Birimi','Görsel URL'];
   const examples = [
-    ['CK-001','08691234567890','Fındıklı Sütlü Çikolata 80g','Örnek Gıda','Atıştırmalık > Çikolata','Örnek ürün','80g','',24,59.9,79.9,10,'TRY','https://example.com/urun-1.jpg'],
-    ['SU-200','08690000000001','Su 500 ml','Örnek İçecek','İçecek > Su','Örnek ürün','500ml','',100,12.5,15,1,'TRY','']
+    ['CK-001','08691234567890','Fındıklı Sütlü Çikolata 80g','','Örnek Gıda','Atıştırmalık > Çikolata','Örnek ürün','80g','',24,59.9,79.9,10,'TRY'],
+    ['SU-200','08690000000001','Su 500 ml','','Örnek İçecek','İçecek > Su','Örnek ürün','500ml','',100,12.5,15,1,'TRY']
   ];
   const xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
   const ns = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
@@ -17,7 +17,7 @@ export async function generateTemplate() {
     if (typeof v === 'number') return '<c r="' + ref + '" s="2"><v>' + v + '</v></c>';
     return '<c r="' + ref + '" s="' + style + '" t="inlineStr"><is><t>' + escapeXml(v) + '</t></is></c>';
   }).join('') + '</row>';
-  const widths = [18,22,34,20,33,34,14,14,12,18,18,14,17,50];
+  const widths = [18,22,34,50,20,33,34,14,14,12,18,18,14,17];
   const cols = widths.map((w,i)=>'<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+w+'" customWidth="1"/>').join('');
   const products = xml + '<worksheet xmlns="' + ns + '"><sheetViews><sheetView workbookViewId="0"><pane ySplit="5" topLeftCell="A6" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><cols>' + cols + '</cols><sheetData>'
     + row(['HIZLISATIS — TOPLU ÜRÜN YÜKLEME'],1,3)
@@ -30,7 +30,7 @@ export async function generateTemplate() {
     'Örnek satırları silip 6. satırdan itibaren ürünleri girin.',
     'Zorunlu: Ürün Adı, Stok, Satış Fiyatı ve Ürün Kodu veya Barkod.',
     'Barkod başındaki sıfırları koruyun; Barkod hücre biçimi Metin olmalıdır.',
-    'Görsel URL: XML içindeki Gorseller / url adresi (http veya https).',
+    'Resim URL (D sütunu): XML içindeki Gorseller / url adresi (http veya https).',
     'Aynı barkodla yüklenen ürün güncellenir, diğer XML ürünleri silinmez.',
     'Excel yüklemesi bu cihazın yerel veritabanına kaydedilir.'
   ];

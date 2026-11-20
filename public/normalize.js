@@ -54,21 +54,42 @@ function safeCodePoint(number) {
     ? String.fromCodePoint(number) : '';
 }
 
+/** Handle nested product/variant photos and safely resolve CDN-relative image URLs. */
 export function safeImageUrl(value) {
-  const str = asText(value);
-  if (!str) return '';
+  let raw = asText(value).trim().replace(/&amp;/gi, '&');
+  if (!raw) return '';
+  if (raw.startsWith('//')) raw = 'https:' + raw;
+  else if (raw.startsWith('/') && !raw.startsWith('//')) raw = 'https://cdn.labs-connect.com' + raw;
+  else if (/^(?:\.\/)?(?:images?|uploads?|media|files|assets)\//i.test(raw))
+    raw = new URL(raw, 'https://cdn.labs-connect.com/').href;
   try {
-    const url = new URL(str);
-    return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : '';
+    const url = new URL(raw);
+    return ['https:', 'http:'].includes(url.protocol) && !url.username && !url.password ? url.href : '';
   } catch { return ''; }
 }
-
 function list(value) { return value == null ? [] : Array.isArray(value) ? value : [value]; }
+function* nestedImageValues(value, depth=0) {
+  if (depth>5 || value==null) return;
+  if (Array.isArray(value)) {
+    for (const item of value) yield* nestedImageValues(item,depth+1);
+  } else if (typeof value === 'object') {
+    for (const [key,part] of Object.entries(value)) {
+      if (['#text','__cdata','text','url','Url','URL','src','href'].includes(key) ||
+          /^(?:g[oö]rsel(?:ler)?|resim(?:ler)?|image(?:s)?|foto(?:graf)?(?:lar)?)$/i.test(key)) {
+        yield* nestedImageValues(part,depth+1);
+      }
+    }
+  } else yield asText(value);
+}
 function firstUrl(raw) {
-  const field = raw?.Gorseller?.url ?? raw?.Gorseller?.Url ?? raw?.url ?? raw?.Url;
-  for (const item of list(field)) {
-    const valid = safeImageUrl(item);
-    if (valid) return valid;
+  if (!raw || typeof raw!=='object') return '';
+  for (const field of ['Gorseller','Görseller','Resimler','Gorsel','Resim','Image','Images',
+    'GorselURL','GorselUrl','ResimURL','ResimUrl','url','Url','URL','gorsel','resim']) {
+    if (raw[field]==null) continue;
+    for (const item of nestedImageValues(raw[field])) {
+      const url = safeImageUrl(item);
+      if (url) return url;
+    }
   }
   return '';
 }

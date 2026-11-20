@@ -127,6 +127,17 @@ function renderProducts() {
     a.baslik.localeCompare(b.baslik, 'tr'));
   dom.count.textContent = `${items.length.toLocaleString('tr-TR')} varyant`;
   dom.productList.replaceChildren();
+  const imageHealth = $('imageHealth');
+  const visibleItems = items.slice(0, 120);
+  const linked = visibleItems.filter(product => !!product.gorsel).length;
+  let failedImages = 0;
+  const updateImageHealth = () => {
+    if (!imageHealth) return;
+    imageHealth.textContent = `${linked}/${visibleItems.length} resim adresi` +
+      (failedImages ? ` · ${failedImages} resim açılamadı` : '');
+    imageHealth.title = 'XML/Excel görsel bağlantıları ve yükleme durumları';
+  };
+  updateImageHealth();
   if (!items.length) {
     const wrap = document.createElement('div'); wrap.className = 'empty-state';
     wrap.innerHTML = state.products.length ?
@@ -135,7 +146,7 @@ function renderProducts() {
     dom.productList.append(wrap);
   }
   const fragment = document.createDocumentFragment();
-  for (const p of items.slice(0, 120)) {
+  for (const p of visibleItems) {
     const available = remaining(p);
     const variant = [p.urunKodu, p.barkod, p.beden, p.renk].filter(Boolean).join(' · ');
     const row = document.createElement('article'); row.className = 'product-card';
@@ -147,11 +158,21 @@ function renderProducts() {
       <div class="product-right"><span class="price">${esc(money(p.satisFiyati, p.paraBirimi))}</span>
       <button class="add-button" type="button" ${available ? '' : 'disabled'}>${available ? '+ Ekle' : 'Tükendi'}</button></div>`;
     const image = row.querySelector('img');
-    image.src = p.gorsel || '/icons/placeholder.svg';
-    image.referrerPolicy = 'no-referrer';
+    image.alt = p.gorsel ? `${p.baslik} ürün görseli` : `${p.baslik} · görsel yok`;
+    image.referrerPolicy = 'strict-origin-when-cross-origin';
     image.addEventListener('error', () => {
-      if (!image.src.endsWith('/icons/placeholder.svg')) image.src = '/icons/placeholder.svg';
+      if (image.dataset.fallback === 'yes') return;
+      image.dataset.fallback = 'yes';
+      if (p.gorsel) { failedImages++; updateImageHealth(); }
+      image.title = p.gorsel ? `Resim yüklenemedi: ${p.gorsel}` : 'Resim URL yok';
+      image.src = '/icons/placeholder.svg';
     });
+    image.addEventListener('click', () => {
+      if (p.gorsel) window.open(p.gorsel, '_blank', 'noopener,noreferrer');
+    });
+    image.title = p.gorsel ? 'Resim URL bağlantısını aç' : 'Resim URL yok';
+    if (p.gorsel) image.style.cursor = 'pointer';
+    image.src = p.gorsel || '/icons/placeholder.svg';
     row.querySelector('button').addEventListener('click', () => addToCart(p));
     fragment.append(row);
   }
