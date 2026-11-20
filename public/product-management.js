@@ -4,6 +4,7 @@ import { parseLocaleNumber, safeImageUrl } from './normalize.js';
 import { getSnapshot, getManagedProductHistory, saveManagedProduct, initiallyDeactivateAll } from './idb.js';
 import { PRODUCT_STATUS, productStatus, isActive, countStatuses, nextProductStatus, priceWithVat } from './product-lifecycle.js';
 import { rememberProductStatus, rememberBulkStatuses } from './lifecycle-backup.js';
+import { verifyPassivePin } from './passive-auth.js';
 
 const $ = id => document.getElementById(id);
 const text = value => String(value ?? '');
@@ -50,6 +51,12 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
   const managementDialog=$('manageDialog'), activationDialog=$('passiveProductDialog');
   const search=$('manageSearch'), form=$('manageEditForm'), results=$('manageResults');
 
+  function authorizePassiveAction() {
+    const pin=prompt('Pasif işlemi şifresini girin:');
+    if(pin===null)return false;
+    if(!verifyPassivePin(pin)){announce('Şifre yanlış. İşlem yapılmadı.','error');return false;}
+    return true;
+  }
   function counts() {
     const counts=countStatuses(state.products);
     $('manageStatusCounts').replaceChildren();
@@ -158,6 +165,7 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
     if(!selection)return;
     const current=selection;
     if(action==='delete'&&!confirm('Ürün Silinen Ürünler bölümüne taşınacak. Devam edilsin mi?'))return;
+    if(['activate','deactivate','restore'].includes(action)&&!authorizePassiveAction())return;
     const status=nextProductStatus(current,action);
     const updated={...current,lifecycleStatus:status,source:'excel',statusChangedAt:now(),
       everActivated:current.everActivated||action==='activate',
@@ -202,6 +210,7 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
     const url=$('manageImage').value.trim();
     if(url&&!safeImageUrl(url)) {announce('Geçerli HTTPS görsel adresi giriniz.','error');return;}
     const old=selection,finalStatus=activate?'active':old?.lifecycleStatus||'active';
+    if(activate&&old&&!isActive(old)&&!authorizePassiveAction())return;
     const updated={...(old||{}),id:old?.id||newId(),barkod,baslik,
       marka:$('manageBrand').value.trim(),alisFiyati:purchase,
       satisFiyati:priceWithVat(entered,vat,excluded).gross,
@@ -240,6 +249,7 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
   async function confirmSaleActivation() {
     if(!pendingSale)return;
     const {product,addAfter}=pendingSale;
+    if(!authorizePassiveAction())return;
     $('passiveActivate').disabled=true;
     try{
       const updated={...product,lifecycleStatus:'active',everActivated:true,source:'excel',statusChangedAt:now()};
@@ -259,8 +269,7 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
     if(state.lifecycleMeta){announce('İlk toplu işlem daha önce yapılmış.','error');return;}
     const yes=confirm('Tüm aktif ürünler Ana Pasif listesine taşınacak. Kayıtlar silinmez. Devam edilsin mi?');
     if(!yes)return;
-    const word=prompt('Güvenlik onayı: PASİF yazın');
-    if(word!=='PASİF') {announce('İşlem iptal edildi.');return;}
+    if(!authorizePassiveAction())return;
     $('manageBulkDeactivate').disabled=true;
     try{
       const count=await serializeMutation(()=>initiallyDeactivateAll());

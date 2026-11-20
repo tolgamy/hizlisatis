@@ -6,6 +6,7 @@ import { buildCategoryTree, categoryMatches, showCategoryInBrowse } from './cate
 import { categoryArtwork, sortCategoryNodes } from './category-art.js';
 import { categorizeProduct, productPictureEmoji } from './catalog-taxonomy.js';
 import { receiptAsText, escPosReceipt } from './receipt-share.js';
+import { receiptPdfBlob } from './receipt-pdf.js';
 import { fetchBundledCatalog } from './bundled-catalog.js';
 import { findBarcodeProduct } from './barcode-lookup.js';
 import { applyProductImage, detectImageResizing } from './image-delivery.js';
@@ -732,6 +733,41 @@ async function shareReceiptWhatsApp(sale) {
   }
   window.open(`https://wa.me/?text=${encodeURIComponent(text)}`,'_blank','noopener,noreferrer');
 }
+async function shareReceiptPdf(sale) {
+  const button=$('receiptPdfShare'), status=$('receiptActionStatus');
+  button.disabled=true;
+  status.textContent='PDF fişi hazırlanıyor…';
+  try {
+    const blob=receiptPdfBlob(sale);
+    const day=(sale.createdAt||new Date().toISOString()).slice(0,10);
+    const fileName='Cep-Hizli-Satis-Fis-'+day+'-'+String(sale.id||'fis').slice(0,8)+'.pdf';
+    let file=null;
+    try {file=new File([blob],fileName,{type:'application/pdf'});} catch { /* older browser */ }
+    let canShareFile=false;
+    try {
+      canShareFile=!!(file && navigator.share && navigator.canShare?.({files:[file]}));
+    }catch { /* file sharing unavailable; offer local PDF download */ }
+    if(canShareFile) {
+      try {
+        await navigator.share({files:[file],title:'Cep Hızlı Satış bilgi fişi'});
+        status.textContent='PDF paylaşımı tamamlandı.';
+        return;
+      }catch(error) {
+        if(error?.name==='AbortError'){status.textContent='PDF paylaşımı iptal edildi.';return;}
+      }
+    }
+    const url=URL.createObjectURL(blob);
+    const link=document.createElement('a');
+    link.href=url;link.download=fileName;
+    document.body.append(link);link.click();link.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),30000);
+    status.textContent='PDF indirildi. Dosyayı WhatsApp veya telefonun paylaşım menüsünden gönderebilirsiniz.';
+  } catch(error) {
+    status.textContent='PDF oluşturulamadı: '+String(error?.message||error).slice(0,130);
+  } finally {
+    button.disabled=false;
+  }
+}
 async function showHistory() {
   try {
     state.sales = (await getSales()).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
@@ -1118,6 +1154,7 @@ async function setup() {
     finally{button.disabled=false;}
   });
   $('receiptWhatsApp').addEventListener('click',async()=>{if(state.lastSale)await shareReceiptWhatsApp(state.lastSale);});
+  $('receiptPdfShare').addEventListener('click',()=>{if(state.lastSale)shareReceiptPdf(state.lastSale);});
   $('receiptClose').addEventListener('click',()=>{$('receiptActionsDialog').close();openSale();});
   $('exportSales').addEventListener('click',exportHistory);
   for(const dialog of [dom.cartDialog,dom.scanDialog,dom.historyDialog,$('excelDialog'),$('manageDialog'),$('passiveProductDialog'),$('productDetailDialog'),$('pickProductDialog'),$('receiptActionsDialog')]){

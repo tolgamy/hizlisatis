@@ -1,6 +1,6 @@
 /** Linear retail barcodes only: never ask the decoder to process QR codes. */
 const FALLBACK_FORMATS = Object.freeze({
-  CODABAR: 2, CODE_39: 4, CODE_93: 5, CODE_128: 6, ITF: 8,
+  CODABAR: 2, CODE_39: 3, CODE_93: 4, CODE_128: 5, ITF: 8,
   EAN_13: 9, EAN_8: 10, UPC_A: 14, UPC_E: 15
 });
 const LINEAR_NAMES = Object.keys(FALLBACK_FORMATS);
