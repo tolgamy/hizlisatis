@@ -27,23 +27,43 @@ async function call(method='GET',body=null,query='') {
   }
   return json;
 }
-export async function fetchRemoteProducts() {
+export async function fetchRemoteProducts(onProgress) {
   const products=[],seen=new Set();
   let after='',bulkAt=null;
   for(let page=0;page<50;page++) {
-    const data=await call('GET',null,'?after='+encodeURIComponent(after));
-    if(!data||!Array.isArray(data.products)) throw Error('Sunucudan geçersiz ürün verisi geldi.');
+    let data;
+    for(let attempt=0;attempt<3;attempt++) {
+      try {
+        data=await call('GET',null,'?after='+encodeURIComponent(after));
+        break;
+      }catch(error) {
+        if(attempt===2) throw Error(
+          'Merkezden ürünler alınamadı ('+products.length.toLocaleString('tr-TR')+
+          '/19.096). '+error.message);
+        await new Promise(resolve=>setTimeout(resolve,400*(attempt+1)));
+      }
+    }
+    if(!data||!Array.isArray(data.products))
+      throw Error('Sunucudan geçersiz ürün verisi geldi.');
     bulkAt=data.bulkAt||null;
     for(const item of data.products) {
       if(!item.id||seen.has(item.id))throw Error('Sunucuda yinelenen ürün kimliği.');
       products.push(item);seen.add(item.id);
     }
-    if(!data.next)return {products,bulkAt};
-    if(data.next===after)throw Error('Sunucu sayfalama hatası.');
+    onProgress?.({received:products.length,expected:19096});
+    if(!data.next) {
+      if(products.length<19096)
+        throw Error('Merkezi ürün listesinin yalnızca '+products.length+
+          ' kaydı geldi. Tamamı gelmeden ekran açılmadı.');
+      return {products,bulkAt};
+    }
+    if(data.next===after||!data.products.length)
+      throw Error('Sunucu sayfalama hatası.');
     after=data.next;
   }
   throw Error('Merkezi ürün verisi beklenen sınırı aştı.');
 }
+
 export async function checkRemoteProductStates(ids) {
   if(!Array.isArray(ids)||!ids.length||ids.length>60)throw Error('Sepet ürün sayısı geçersiz.');
   const data=await call('GET',null,'?ids='+encodeURIComponent(JSON.stringify(ids)));
