@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Hızlı Satış · Merkezi Ürün Aktarımı</title>
+<style>
+:root{color-scheme:light;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#1b2c3d}
+body{margin:0;padding:24px;background:#f5f7fb}main{max-width:550px;margin:25px auto;padding:26px;background:white;border:1px solid #e0e6ef;border-radius:20px}
+h1{font-size:1.55rem}p{line-height:1.55;color:#43556c}
+label{display:block;margin-top:22px;margin-bottom:9px;font-weight:650}
+input{box-sizing:border-box;width:100%;font-size:1rem;padding:14px;border:1px solid #a2afbd;border-radius:10px}
+button{margin-top:18px;background:#1766d1;border:0;color:white;font-weight:700;padding:14px 18px;border-radius:10px;font-size:1rem;width:100%}
+button:disabled{opacity:.6}
+progress{width:100%;height:22px;margin-top:19px}
+#info{font-weight:650;color:#26394e}#error{color:#b91c1c;white-space:pre-wrap}
+small{color:#63758a;line-height:1.6;display:block;margin-top:18px}
+</style>
+</head>
+<body><main>
+<h1>Merkezi Ürün Aktarımı</h1>
+<p>Bu ekran, <strong>19.096 ürünün tamamını</strong> Hızlı Satış’ın Cloudflare D1 veritabanına aktarır. Kayıtlı ürünleri silmez ve önceki değişikliklerin üzerine yazmaz.</p>
+<p><strong>Önemli:</strong> Önceki telefonda yaptığınız aktif/pasif değişikliklerini aktarmak ayrı bir adımdır. Bu ekran yalnız başlangıç ürün kataloğunu yükler.</p>
+<label for="key">Cloudflare PRODUCT_WRITE_KEY değeri</label>
+<input type="password" id="key" autocomplete="off" spellcheck="false" placeholder="Cloudflare'da oluşturduğunuz gizli anahtar">
+<button type="button" id="start">19.096 Ürünü D1'e Yükle</button>
+<progress id="progress" value="0" max="19096" hidden></progress>
+<p id="info" role="status">Henüz aktarım başlamadı.</p>
+<p id="error" role="alert"></p>
+<small>Yönetim anahtarı bu sayfada saklanmaz; yalnız aynı sitenin yetkili API'sine HTTPS üzerinden gönderilir. Bu ekranı üçüncü kişilerle paylaşmayın. İşlem yarıda kesilirse aynı düğmeyle tekrar başlayabilirsiniz.</small>
+</main>
+<script type="module">
+const $=id=>document.getElementById(id), total=19096;
+let running=false;
+async function api(body,secret){
+ const response=await fetch('/api/catalog-seed',{
+  method:body?'POST':'GET',
+  headers:{'X-Product-Key':secret,...(body?{'Content-Type':'application/json'}:{})},
+  body:body?JSON.stringify(body):undefined,
+  cache:'no-store',credentials:'same-origin'
+ });
+ const data=await response.json().catch(()=>null);
+ if(!response.ok)throw Error(data?.error||'Sunucu hatası: '+response.status);
+ return data;
+}
+$('start').addEventListener('click',async()=>{
+ if(running)return;
+ const secret=$('key').value.trim();
+ if(secret.length<24){$('error').textContent='Cloudflare yönetim anahtarını girin (en az 24 karakter).';return;}
+ if(!confirm('Hızlı Satış veritabanına 19.096 ürün aktarılsın mı?'))return;
+ running=true;$('start').disabled=true;$('error').textContent='';
+ $('progress').hidden=false;$('progress').value=0;
+ try{
+  const status=await api(null,secret);
+  if(status.ready){
+   if(status.count!==total)throw Error('Katalog hazır işaretli, fakat ürün sayısı beklenenden farklı. Kontrol edin.');
+   $('progress').value=total;$('info').textContent='19.096 ürün zaten merkezi veritabanında.';
+   return;
+  }
+  const res=await fetch('/catalog/manifest.json',{cache:'no-cache'});
+  if(!res.ok)throw Error('Ürün kataloğu indirilemedi.');
+  const manifest=await res.json();
+  if(manifest.count!==total||!Array.isArray(manifest.parts)||manifest.parts.length!==20)
+    throw Error('Ürün kataloğu sürümü doğru değil.');
+  let progressed=0;
+  for(let part=0;part<manifest.parts.length;part++){
+   let offset=0;
+   for(let attempt=0;attempt<10;attempt++){
+    const done=await api({part,offset},secret);
+    if(!Number.isInteger(done.count)||done.count<1)throw Error('Aktarım yanıtı geçersiz.');
+    progressed+=done.count;
+    $('progress').value=Math.min(total,progressed);
+    $('info').textContent=progressed.toLocaleString('tr-TR')+' / 19.096 ürün işleniyor...';
+    if(done.partComplete){offset=-1;break;}
+    if(!Number.isInteger(done.nextOffset)||done.nextOffset<=offset)
+      throw Error('Aktarımda sayfa ilerlemesi durdu.');
+    offset=done.nextOffset;
+   }
+   if(offset!==-1)throw Error('Bir katalog parçası tamamlanamadı.');
+  }
+  await api({action:'finish'},secret);
+  const verified=await api(null,secret);
+  if(!verified.ready||verified.count!==total)throw Error('Sunucu ürün sayısı doğrulanamadı.');
+  $('progress').value=total;
+  $('info').textContent='19.096 ürün merkezi D1 veritabanına aktarıldı ve doğrulandı.';
+  $('key').value='';
+ }catch(e){
+  $('error').textContent='Aktarım durdu: '+(e?.message||'Bilinmeyen hata')+
+   '\nVeriler silinmedi. Sorunu çözdükten sonra aynı işlemi yeniden başlatabilirsiniz.';
+ }finally{running=false;$('start').disabled=false;}
+});
+</script>
+</body></html>
