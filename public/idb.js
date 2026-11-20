@@ -44,9 +44,48 @@ export async function getSnapshot() {
   const adjustments = requestPromise(tx.objectStore('adjustments').getAll());
   const meta = requestPromise(tx.objectStore('meta').get('catalog'));
   const excelMeta = requestPromise(tx.objectStore('meta').get('excelImport'));
-  const [catalog, manual, stock, info, imported] = await Promise.all([products, excelProducts, adjustments, meta, excelMeta]);
+  const bundledMeta = requestPromise(tx.objectStore('meta').get('bundledCatalog'));
+  const [catalog, manual, stock, info, imported, bundled] = await Promise.all([
+    products, excelProducts, adjustments, meta, excelMeta, bundledMeta
+  ]);
   return { products: mergeCatalog(catalog, manual), adjustments: stock, meta: info?.value ?? null,
-    excelCount: manual.length, excelMeta: imported?.value ?? null };
+    excelCount: manual.filter(p => p.source !== 'bundle').length,
+    bundleCount: manual.filter(p => p.source === 'bundle').length,
+    bundleMeta: bundled?.value ?? null, excelMeta: imported?.value ?? null };
+}
+
+/** Install the built-in catalogue exactly once per version, without replacing manually
+ * uploaded Excel products or deleting offline sales / stock adjustments. */
+export async function installBundledProducts(products, version) {
+  if (!Array.isArray(products) || products.length < 1 || typeof version !== 'string')
+    throw new Error('Yerleşik ürün kataloğu geçersiz.');
+  const db = await openDB();
+  const current = await requestPromise(db.transaction('meta', 'readonly')
+    .objectStore('meta').get('bundledCatalog'));
+  if (current?.value?.version === version) return { installed: false, count: current.value.count };
+  const incoming = new Map(products.map(p => [p.id, p]));
+  if (incoming.size !== products.length) throw new Error('Yerleşik ürün barkodları tekrarlı.');
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(['excelProducts','meta'], 'readwrite');
+    tx.oncomplete = () => resolve({ installed: true, count: products.length });
+    tx.onabort = () => reject(tx.error || new Error('Yerleşik katalog kaydı başarısız.'));
+    const store = tx.objectStore('excelProducts');
+    // A newer bundle replaces only previously bundled rows, not user imports.
+    const getAll = store.getAll();
+    getAll.onsuccess = () => {
+      for (const saved of getAll.result) {
+        if (saved.source === 'bundle' && !incoming.has(saved.id)) store.delete(saved.id);
+      }
+      const existing = new Map(getAll.result.map(p => [p.id, p]));
+      for (const product of products) {
+        const old = existing.get(product.id);
+        if (!old || old.source === 'bundle') store.put(product);
+      }
+      tx.objectStore('meta').put({ key: 'bundledCatalog', value: {
+        version, count: products.length, installedAt: new Date().toISOString()
+      }});
+    };
+  });
 }
 
 /** Source-only catalog is needed to compare an Excel feed without existing Excel overrides. */
@@ -60,13 +99,31 @@ export async function replaceCatalog(products, meta) {
   if (!Array.isArray(products) || !products.length) throw new Error('Boş katalog kaydedilemez.');
   const db = await openDB();
   return new Promise((resolve, reject) => {
-    const tx = db.transaction(['products', 'meta'], 'readwrite');
+    const tx = db.transaction(['products', 'meta', 'adjustments'], 'readwrite');
     tx.oncomplete = () => resolve();
     tx.onabort = () => reject(tx.error || new Error('Katalog kaydı başarısız.'));
     tx.onerror = () => {}; // abort receives final failure
     const store = tx.objectStore('products');
     store.clear();
     for (const product of products) store.put(product);
+    // Preserve sales made from the built-in catalogue if a matching XML SKU
+    // arrives later under a different product ID. Never clear sales or totals.
+    const barcodeToXmlId = new Map(products.filter(p => p.barkod).map(p => [p.barkod, p.id]));
+    const adjustments = tx.objectStore('adjustments');
+    const existing = adjustments.getAll();
+    existing.onsuccess = () => {
+      for (const sold of existing.result) {
+        if (!sold.id.startsWith('excel::b:') || !sold.soldQuantity) continue;
+        const barcode = sold.id.slice('excel::b:'.length);
+        const xmlId = barcodeToXmlId.get(barcode);
+        if (!xmlId || xmlId === sold.id) continue;
+        const current = adjustments.get(xmlId);
+        current.onsuccess = () => {
+          adjustments.put({ id: xmlId, soldQuantity: (current.result?.soldQuantity || 0) + sold.soldQuantity });
+          adjustments.delete(sold.id);
+        };
+      }
+    };
     tx.objectStore('meta').put({ key: 'catalog', value: meta });
   });
 }

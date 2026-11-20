@@ -137,3 +137,19 @@ Desteklenen dosya `.xlsx` (12 MB'a kadar). `.xls` desteklenmez; Excel'de XLSX ol
 **Veri gizliliği:** 2.636 ürünlük kullanıcı dosyası herkese açık GitHub deposuna veya Cloudflare statik dizinine yüklenmez. Kullanıcı dosyayı uygulamadaki yükleme alanına seçerek yerel IndexedDB'ye kaydeder. XML sunucusu 503 veriyorsa otomatik XML karşılaştırması mümkün olmayabilir; yükleme yine yerel çalışır.
 
 **Resimler:** `Görseller` sütunundaki HTTPS URL'leri kaydedilir ancak resim CDN'sinin erişilebilirliği ve hotlink izni garanti edilemez.
+
+## Kategori menüsü (v1.5)
+
+- Mobilde kategoriler başlangıçta gizlidir. **☰ Kategoriler** menüsünden ana/alt kategori açılır. **Tüm Ürünler** ile tamamı gösterilebilir.
+- Üst bardaki yeşil **Excel Ürün Yükle** butonu her zaman görünür, ayrıca kategori menüsünde de bir kısayol vardır. Excel şablonu ve XML güncelleme seçenekleri **Ürün Yönetimi** alanındadır.
+- Barkod/ürün araması seçili kategoriden bağımsız olarak tüm yerel katalogda yapılır.
+- Değişiklikler sadece sunum katmanındadır; IndexedDB satışları silinmez ve yüklenen ürünler cihazda kalır.
+
+## v1.6 — Yerleşik ürün kataloğu (otomatik)
+
+- `public/catalog/manifest.json` + `products-*.json` dosyaları, kullanıcının paylaştığı tedarikçi Excel'indeki **2.636 ürün** ve **2.634 resim URL'sini** taşır. Siteyi ilk kez açan cihazlarda katalog otomatik okunur ve IndexedDB'ye kaydedilir. Sayfayı tekrar açarken yerel katalog hemen gösterilir; XML isteği arka planda devam eder. XML erişilemezse bile yerleşik ürünlerle çevrimdışı satış mümkündür.
+- Barkodla eşleşen XML kayıtlarının **fiyat, stok, KDV ve ürün kimliği korunur**, yerleşik resim URL'si eklenir. XML'de bulunmayan ürünler, Excel'deki stok/fiyatla yeni ürün olarak kullanılır; Excel kaynak dosyasında KDV bilgisi bulunmadığı için bu ürünlerde KDV *belirsiz* olarak gösterilir; uygun KDV oranını ayrıca doğrulayın.
+- Eskiden yüklenmiş kişisel Excel kayıtları (`source !== 'bundle'`) ve satış geçmişi silinmez ya da yerleşik katalog tarafından ezilmez. Yeni kişisel Excel yüklemeleri `↑ Excel Ürün Yükle` ile yapılmaya devam eder; **bu yüklemeler yalnızca ilgili cihazda** saklanır.
+- Kaynak `.xlsx` dosyası GitHub'a eklenmez. Ancak Pages üzerinde servis edilen **ürün kataloğu JSON'u herkese açıktır**; halka açık siteyi kullanan herkes ürün adlarını, fiyatlarını, barkodları ve görsel URL'lerini görebilir. Satış kayıtları yalnızca cihazdadır.
+- Satışların cihazlar arasında senkronizasyonu henüz yoktur. Cloudflare'a yüklenen katalog, her cihazın bağımsız satış stok takibini merkezileştirmez.
+- Yerleşik kaynak dosyalarını yeniden üretmek için, içe aktarılan Excel satırları özel ortamda `rows.json` olarak ayrıştırıldıktan sonra `node scripts/generate-bundled-catalog.mjs /private/rows.json` çalıştırın. Ortaya çıkan `public/catalog` dosyaları GitHub üzerinden dağıtılır.

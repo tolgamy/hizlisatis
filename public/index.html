@@ -18,7 +18,7 @@
     <header class="topbar">
       <div class="brandline">
         <div class="brandmark" aria-hidden="true">₺</div>
-        <div><strong>Cep Hızlı Satış</strong><small>Mobil POS · v1.5.1</small></div>
+        <div><strong>Cep Hızlı Satış</strong><small>Mobil POS · v1.6</small></div>
         <span id="connectionStatus" class="connection" role="status">Bağlanıyor</span>
       </div>
       <div class="searchline">
@@ -33,7 +33,7 @@
         </button>
       </div>
       <div class="quick-actions">
-        <button id="excelImportButton" class="excel-quick" type="button">▤ Excel Ürün Yükle</button>
+        <button id="excelImportButton" type="button" class="excel-quick" aria-label="Excel dosyasından toplu ürün yükle">▤ Excel Ürün Yükle</button>
         <details class="manage-details">
           <summary>⚙ Ürün Yönetimi</summary>
           <div class="sync-actions">
@@ -52,8 +52,8 @@
       <section class="catalog-header" aria-label="Ürün kataloğu">
         <div class="catalog-heading"><h1 id="browseHeading">Kategorilerden ürün seçin</h1><span id="resultCount">0 ürün</span><span id="imageHealth" class="image-health" aria-live="polite"></span></div>
         <div class="browse-buttons">
-          <button id="openCategories" class="browse-menu-button" type="button" aria-haspopup="dialog" aria-controls="categoryDialog">☰ Kategoriler</button>
-          <button id="showAllProducts" class="browse-all-button" type="button">Tüm Ürünler</button>
+          <button id="openCategories" type="button" class="browse-menu-button" aria-haspopup="dialog" aria-controls="categoryDialog">☰ Kategoriler</button>
+          <button id="showAllProducts" type="button" class="browse-all-button">Tüm Ürünler</button>
         </div>
       </section>
       <section id="browseWelcome" class="browse-welcome" aria-label="Ürünleri keşfet">
@@ -83,18 +83,18 @@
   <dialog id="categoryDialog" class="category-dialog" aria-labelledby="categoryTitle">
     <div class="category-panel">
       <div class="category-panel-top">
-        <button id="closeCategories" type="button" class="category-close" aria-label="Kapat">×</button>
+        <button type="button" id="closeCategories" class="category-close" aria-label="Kategorileri kapat">×</button>
         <strong id="categoryTitle">Hizlisatis</strong>
-        <button id="menuExcelImport" type="button" class="category-excel">▤ Excel</button>
+        <button type="button" id="menuExcelImport" class="category-excel" aria-label="Excel ürün yükleme">▤ Excel</button>
       </div>
       <div class="category-search-wrap">
         <label for="menuCategorySearch" class="sr-only">Kategori ara</label>
         <input id="menuCategorySearch" type="search" placeholder="Kategori ara..." autocomplete="off">
       </div>
-      <nav class="category-nav" aria-label="Ürün kategorileri">
+      <nav aria-label="Ürün kategorileri" class="category-nav">
         <button id="menuAllProducts" type="button" class="menu-all-products">Tüm ürünleri göster <span aria-hidden="true">›</span></button>
         <div id="categoryTree" class="category-tree"></div>
-        <details class="menu-brands"><summary>Markaya göre filtrele</summary><div id="brandFilters" class="drawer-chips"></div></details>
+        <details class="menu-brands"><summary>Markaya göre filtrele</summary><div id="brandFilters" class="drawer-chips" aria-label="Marka filtreleri"></div></details>
       </nav>
     </div>
   </dialog>
@@ -126,7 +126,7 @@
   <dialog id="excelDialog" class="sheet excel-sheet" aria-labelledby="excelTitle">
     <div class="sheet-header"><h2 id="excelTitle">Excel / Tedarikçi Ürün Yükleme</h2><button type="button" class="closebutton" data-close="excelDialog" aria-label="Kapat">×</button></div>
     <div class="excel-import-body">
-      <p class="hint"><strong>Resim URL alanı Excel şablonunun D sütunundadır.</strong> Gerçek resim bağlantılarını girin. Dosyadaki ürünler bu cihazın yerel kataloğuna eklenir. Aynı barkoda sahip ürün güncellenir. XML ürünleri, resim URL'leri ve satış geçmişi silinmez.</p>
+      <p class="hint"><strong>Resim URL alanı Excel şablonunun D sütunundadır.</strong> Gerçek resim bağlantılarını girin. 2.636 ürün ve 2.634 resim URL&#39;si artık her cihazda otomatik gelen yerleşik katalogdadır. Bu alandan farklı Excel dosyaları ekleyebilirsiniz. Dosyadaki yeni ürünler bu cihazın yerel kataloğuna eklenir. Aynı barkoda sahip ürün güncellenir. XML ürünleri, resim URL'leri ve satış geçmişi silinmez.</p>
       <div id="excelSummary" class="excel-summary" role="status"></div>
       <div id="excelErrors" class="excel-errors" hidden></div>
       <div id="excelPreview" class="excel-preview"></div>

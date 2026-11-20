@@ -1,9 +1,10 @@
-import { getSnapshot, getXmlCatalog, replaceCatalog, upsertExcelProducts, saveSale, getSales, openDB } from './idb.js';
+import { getSnapshot, getXmlCatalog, replaceCatalog, upsertExcelProducts, installBundledProducts, saveSale, getSales, openDB } from './idb.js';
 import { readXlsxRows } from './xlsx-reader.js';
 import { parseExcelProducts, compareExcelWithXml } from './excel-products.js';
 import { parseLocalXml } from './xml-local.js';
 import { parseLocaleNumber } from './normalize.js';
 import { buildCategoryTree, categoryMatches } from './category-menu.js';
+import { fetchBundledCatalog } from './bundled-catalog.js';
 
 const $ = id => document.getElementById(id);
 const state = {
@@ -11,7 +12,7 @@ const state = {
   sold: new Map(), cart: new Map(), category: '', brand: '',
   search: '', meta: null, sales: [], lastSale: null,
   syncing: false, saving: false, scanner: null, syncGeneration: 0,
-  excelCount: 0, excelPreview: null, excelUploading: false, browseAll: false
+  excelCount: 0, bundleCount: 0, bundleLoading: false, excelPreview: null, excelUploading: false, browseAll: false
 };
 const dom = {
   search: $('search'), productList: $('productList'), count: $('resultCount'),
@@ -74,15 +75,20 @@ function setConnection() {
 }
 function setSyncStatus() {
   if (!state.meta) {
-    $('syncLabel').textContent = state.excelCount ? 'Excel ürünleri yerel olarak kayıtlı' : 'Katalog henüz yüklenmedi';
-    $('catalogSource').textContent = state.excelCount ? `${state.excelCount} Excel varyantı` : 'Katalog boş';
+    $('syncLabel').textContent = state.bundleCount
+      ? `${state.bundleCount.toLocaleString('tr-TR')} yerleşik ürün yüklendi · XML bekleniyor`
+      : state.excelCount ? 'Excel ürünleri yerel olarak kayıtlı' : 'Katalog henüz yüklenmedi';
+    $('catalogSource').textContent = state.products.length
+      ? `${state.products.length.toLocaleString('tr-TR')} ürün • Yerleşik katalog${state.excelCount ? ` + ${state.excelCount} Excel` : ''}`
+      : 'Katalog boş';
     return;
   }
   $('syncLabel').textContent = `${state.meta.stale ? 'Yedek katalog' : 'Son senkronizasyon'}: ${fmtDate(state.meta.updatedAt)}`;
-  $('catalogSource').textContent = `${state.products.length} varyant • XML${state.excelCount ? ` + ${state.excelCount} Excel` : ''}`;
+  $('catalogSource').textContent = `${state.products.length.toLocaleString('tr-TR')} ürün • XML + yerleşik katalog${state.excelCount ? ` + ${state.excelCount} Excel` : ''}`;
 }
-function setCatalog(products, adjustments, meta, excelCount = 0) {
+function setCatalog(products, adjustments, meta, excelCount = 0, bundleCount = 0) {
   state.excelCount = excelCount;
+  state.bundleCount = bundleCount;
   state.products = products;
   state.byId = new Map(products.map(product => [product.id, product]));
   state.byBarcode = new Map();
@@ -94,6 +100,29 @@ function setCatalog(products, adjustments, meta, excelCount = 0) {
   state.meta = meta;
   renderAll();
 }
+
+/** Install data from the user's supplier export on every device automatically.
+ * Existing XML and manual Excel imports remain authoritative for their own fields.
+ */
+async function installBuiltInCatalog() {
+  if (state.bundleLoading) return;
+  state.bundleLoading = true;
+  try {
+    const { version, products } = await fetchBundledCatalog();
+    const result = await serializeMutation(() => installBundledProducts(products, version));
+    if (result.installed) {
+      const snapshot = await getSnapshot();
+      setCatalog(snapshot.products, snapshot.adjustments, snapshot.meta,
+        snapshot.excelCount, snapshot.bundleCount);
+      channel?.postMessage('bundled-catalog-updated');
+      if (snapshot.products.length) announce(`${products.length.toLocaleString('tr-TR')} yerleşik ürün ve görsel adresleri hazır.`, 'success');
+    }
+  } catch (error) {
+    console.warn('Built-in catalogue unavailable:', error);
+    if (!state.products.length) announce('Yerleşik katalog açılamadı. İnternet bağlantısını kontrol edip sayfayı yenileyin.', 'error');
+  } finally { state.bundleLoading = false; }
+}
+
 function openCategoryMenu() {
   renderCategoryTree();
   $('menuCategorySearch').value = '';
@@ -105,18 +134,24 @@ function closeCategoryMenu() {
   $('openCategories').focus({ preventScroll: true });
 }
 function selectCategory(path) {
-  state.category = path; state.brand = ''; state.browseAll = true;
-  state.search = ''; dom.search.value = '';
-  closeCategoryMenu(); renderFilters(); renderProducts();
+  state.category = path;
+  state.brand = '';
+  state.browseAll = true;
+  state.search = '';
+  dom.search.value = '';
+  closeCategoryMenu();
+  renderFilters(); renderProducts();
 }
 function showAllProducts() {
   state.category = ''; state.brand = ''; state.browseAll = true;
   state.search = ''; dom.search.value = '';
-  closeCategoryMenu(); renderFilters(); renderProducts();
+  closeCategoryMenu();
+  renderFilters(); renderProducts();
 }
 function renderCategoryTree(search = '') {
   const tree = buildCategoryTree(state.products);
-  const target = dom.categoryTree; target.replaceChildren();
+  const target = dom.categoryTree;
+  target.replaceChildren();
   const query = fold(search);
   function entry(node, depth = 0, parentMatches = false) {
     const matches = !query || parentMatches || fold(node.name).includes(query) || fold(node.path).includes(query);
@@ -187,7 +222,7 @@ function renderProducts() {
     return;
   }
   const items = state.products.filter(p => {
-    // Search across every category regardless of the current drawer selection.
+    // An active barcode / product search scans every category immediately.
     if (query) return [p.barkod, p.urunKodu, p.baslik, p.marka, p.beden, p.renk]
       .some(value => fold(value).includes(query));
     if (state.category && !categoryMatches(p, state.category)) return false;
@@ -227,7 +262,7 @@ function renderProducts() {
       <div class="product-info"><div class="product-title" title="${esc(p.baslik)}">${esc(p.baslik)}</div>
       <div class="product-variant" title="${esc(variant)}">${esc(variant)}</div>
       <div class="product-metadata"><span class="stock ${available ? '' : 'out'}">Stok: ${available}</span>
-      <span>KDV %${esc(p.kdv)}</span><span>${esc(p.marka)}</span></div></div>
+      <span>${p.kdvBelirsiz ? 'KDV belirsiz' : `KDV %${esc(p.kdv)}`}</span><span>${esc(p.marka)}</span></div></div>
       <div class="product-right"><span class="price">${esc(money(p.satisFiyati, p.paraBirimi))}</span>
       <button class="add-button" type="button" ${available ? '' : 'disabled'}>${available ? '+ Ekle' : 'Tükendi'}</button></div>`;
     const image = row.querySelector('img');
@@ -235,6 +270,12 @@ function renderProducts() {
     // Default/origin referrer is needed by some CDN hotlink policies.
     image.referrerPolicy = 'strict-origin-when-cross-origin';
     image.addEventListener('error', () => {
+      if (p.gorsel && image.dataset.retry !== 'yes') {
+        image.dataset.retry = 'yes';
+        image.referrerPolicy = 'no-referrer';
+        image.src = p.gorsel;
+        return;
+      }
       if (image.dataset.fallback === 'yes') return;
       image.dataset.fallback = 'yes';
       if (p.gorsel) { failedImages++; updateImageHealth(); }
@@ -403,7 +444,7 @@ async function syncCatalog(force = false, quiet = false) {
     await serializeMutation(() => replaceCatalog(json.products, meta));
     if (generation !== state.syncGeneration) return;
     const snapshot = await getSnapshot();
-    setCatalog(snapshot.products, snapshot.adjustments, snapshot.meta, snapshot.excelCount);
+    setCatalog(snapshot.products, snapshot.adjustments, snapshot.meta, snapshot.excelCount, snapshot.bundleCount);
     channel?.postMessage('catalog-updated');
     if (stale) announce('XML kaynağı gecikiyor: önbellekteki katalog kullanılıyor. Güncellemek için tekrar deneyin.', 'error');
     else if (!quiet) announce(`${json.products.length} varyant güncellendi.`, 'success');
@@ -430,7 +471,7 @@ async function importXml(file) {
       variantCount: parsed.variantCount, productCount: parsed.productCount };
     await serializeMutation(() => replaceCatalog(parsed.products, meta));
     const snapshot = await getSnapshot();
-    setCatalog(snapshot.products, snapshot.adjustments, snapshot.meta, snapshot.excelCount);
+    setCatalog(snapshot.products, snapshot.adjustments, snapshot.meta, snapshot.excelCount, snapshot.bundleCount);
     channel?.postMessage('catalog-updated');
     announce(`${parsed.variantCount} varyant yerel XML'den yüklendi.`, 'success');
   } catch (error) { announce(`XML içe aktarma hatası: ${error.message}`, 'error'); }
@@ -504,7 +545,7 @@ async function confirmExcelImport() {
   try {
     await serializeMutation(() => upsertExcelProducts(pending.products, pending.filename));
     const snapshot = await getSnapshot();
-    setCatalog(snapshot.products, snapshot.adjustments, snapshot.meta, snapshot.excelCount);
+    setCatalog(snapshot.products, snapshot.adjustments, snapshot.meta, snapshot.excelCount, snapshot.bundleCount);
     channel?.postMessage('excel-updated');
     state.excelPreview = null;
     $('excelDialog').close();
@@ -741,7 +782,7 @@ async function startScanner() {
 
 async function setup() {
   setConnection();
-  window.addEventListener('online', () => { setConnection(); syncCatalog(false, true); });
+  window.addEventListener('online', () => { setConnection(); installBuiltInCatalog(); syncCatalog(false, true); });
   window.addEventListener('offline', setConnection);
   dom.search.addEventListener('input', () => { state.search = dom.search.value; renderProducts(); });
   $('openCategories').addEventListener('click', openCategoryMenu);
@@ -790,7 +831,7 @@ async function setup() {
   try {
     await openDB();
     const snapshot = await getSnapshot();
-    setCatalog(snapshot.products, snapshot.adjustments, snapshot.meta, snapshot.excelCount);
+    setCatalog(snapshot.products, snapshot.adjustments, snapshot.meta, snapshot.excelCount, snapshot.bundleCount);
   } catch (error) {
     announce(`Yerel veritabanı açılamadı: ${error.message}`, 'error');
     dom.complete.disabled = true;
@@ -798,11 +839,13 @@ async function setup() {
   // Camera keyboard terminals benefit from auto-focus; avoid popping up the
   // on-screen keyboard on phones on every launch.
   if (matchMedia('(pointer:fine)').matches) dom.search.focus({ preventScroll: true });
-  syncCatalog(false, true); // IDB content already visible; network refresh is non-blocking.
+  // Show IDB immediately, then seed missing product images before/alongside XML refresh.
+  installBuiltInCatalog();
+  syncCatalog(false, true);
   channel?.addEventListener('message', async () => {
     try {
       const snapshot = await getSnapshot();
-      setCatalog(snapshot.products, snapshot.adjustments, snapshot.meta, snapshot.excelCount);
+      setCatalog(snapshot.products, snapshot.adjustments, snapshot.meta, snapshot.excelCount, snapshot.bundleCount);
     } catch { /* another tab may have closed DB */ }
   });
 }
