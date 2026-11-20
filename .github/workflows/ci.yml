@@ -32,3 +32,6 @@ jobs:
           test -s public/vendor/html5-qrcode.min.js
           test ! -e functions/api/products.js
           test -f public/catalog/manifest.json
+          test -f public/image-delivery.js
+          test -f functions/api/image.js
+          node -e "const m=require('./public/catalog/manifest.json');if(m.count!==19096||m.withImages!==14525)process.exit(1)"

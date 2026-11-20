@@ -6,13 +6,13 @@ const root=new URL('../public/',import.meta.url);
 const manifest=JSON.parse(await readFile(new URL('catalog/manifest.json',root),'utf8'));
 const rows=(await Promise.all(manifest.parts.map(async p=>JSON.parse(await readFile(new URL('.'+p,root),'utf8'))))).flat();
 
-test('all 19,099 barcode-unique product rows are installed without XML',()=>{
+test('all 19,096 barcode-unique product rows are installed without XML',()=>{
   const parsed=parseBundledCatalog(manifest,rows);
-  assert.equal(parsed.products.length,19099);
-  assert.equal(parsed.withImages,14528);
-  assert.equal(new Set(parsed.products.map(p=>p.barkod)).size,19099);
-  assert.equal(parsed.products.filter(p=>p.stokBelirsiz).length,16463);
-  assert.equal(parsed.products.filter(p=>p.fiyatBelirsiz).length,3);
+  assert.equal(parsed.products.length,19096);
+  assert.equal(parsed.withImages,14525);
+  assert.equal(new Set(parsed.products.map(p=>p.barkod)).size,19096);
+  assert.equal(parsed.products.filter(p=>p.stokBelirsiz).length,16460);
+  assert.equal(parsed.products.filter(p=>p.fiyatBelirsiz).length,0);
 });
 test('old product survives barcode match and exact source photo',()=>{
   const parsed=parseBundledCatalog(manifest,rows);
@@ -35,5 +35,5 @@ test('fetch uses bundled chunks and one manifest',async()=>{
     calls.push(path);return {ok:true,json:async()=>JSON.parse(await readFile(new URL('.'+path,root),'utf8'))};
   };
   const data=await fetchBundledCatalog(fetcher);
-  assert.equal(data.products.length,19099);assert.equal(calls.length,21);
+  assert.equal(data.products.length,19096);assert.equal(calls.length,21);
 });

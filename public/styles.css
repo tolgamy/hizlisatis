@@ -323,3 +323,21 @@ body{background:var(--canvas)}
 .detail-media .detail-emoji{font-size:96px;min-height:180px;display:grid;place-items:center}
 .detail-media #detailImage:not([hidden]){position:absolute;inset:0;width:100%;height:100%;max-height:260px;object-fit:contain;background:white}
 .picker-product .picker-emoji{flex:0 0 45px;width:45px;height:45px;display:grid;place-items:center;background:#eef7f6;border-radius:10px;font-size:27px}
+
+/* v3.1: three-column photo categories at every mobile hierarchy level. */
+@media(max-width:679px){
+  .home-category-shortcuts,.category-photo-grid,.category-grid-page{
+    display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    column-gap:9px!important;row-gap:14px!important;
+  }
+}
+.sale-line-brand{font-size:11px;color:#167a65;font-weight:850;display:inline;margin-right:5px}
+/* Mobile compositor can skip painting offscreen cards until they approach view. */
+.clean-catalog .product-card{content-visibility:auto;contain-intrinsic-size:auto 245px}
+.clean-catalog .product-photo img,.photo-category-image img{object-fit:contain;aspect-ratio:1/1}
+@media print{
+  html,body{width:var(--receipt-width,80mm)!important;min-width:0!important;max-width:var(--receipt-width,80mm)!important;}
+  #receiptPrint{box-sizing:border-box!important;width:var(--receipt-width,80mm)!important;min-width:0!important;max-width:var(--receipt-width,80mm)!important;margin:0!important;padding:2mm 2mm!important;font-size:9pt!important;}
+  .receipt-row span{min-width:0;overflow-wrap:anywhere}
+  .receipt-product{overflow-wrap:anywhere}
+}

@@ -11,3 +11,13 @@
 9. Yazıcı, kamera flaşı ve WhatsApp cihaz özellikleriyle gerçek telefonda test edilmelidir.
 
 **Not:** GitHub Actions'ın başarılı olması Cloudflare'ın canlı deploy yaptığı anlamına gelmez. Gerekirse Pages'in Git bağlantısı ve Deployments bölümünü kontrol edin.
+
+## v3.1 — Son Excel kataloğu
+
+- **Kesin EXCEL 19096.xlsx** kaynak alındı, 19.096 benzersiz barkod, 12 ana / 86 alt kategori.
+- Mobil kategori görselleri 3 sütun, QR tarama kapalı, sepette marka korunur.
+- 80/58-mm termal fiş ölçüsü hem sayfa hem içerik CSS ile belirtilir. Sürücü/telefon yazdırma menüsünde aynı kâğıt tipini seçmek hâlâ zorunlu olabilir.
+- Görseller görünürlük esaslı, en çok 3 paralel indirme ile yüklenir.
+- Gerçek düşük çözünürlüklü WebP dönüşümü opsiyoneldir. `ENABLE_IMAGE_RESIZE=true` yalnızca Cloudflare Image Transformations özelliği/kota/ücret koşullarını kontrol edip onayladıktan sonra etkinleştirilmelidir.
+
+XML yeniden eklenmedi.

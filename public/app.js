@@ -7,6 +7,7 @@ import { categorizeProduct, productPictureEmoji } from './catalog-taxonomy.js';
 import { receiptAsText, escPosReceipt } from './receipt-share.js';
 import { fetchBundledCatalog } from './bundled-catalog.js';
 import { findBarcodeProduct } from './barcode-lookup.js';
+import { applyProductImage, detectImageResizing } from './image-delivery.js';
 
 const $ = id => document.getElementById(id);
 const state = {
@@ -153,8 +154,7 @@ function renderProductPicker() {
     const button = document.createElement('button'); button.className = 'picker-product'; button.type = 'button';
     let pic;
     if(product.gorsel){
-      pic=document.createElement('img'); pic.loading='lazy';pic.alt='';pic.referrerPolicy='no-referrer';pic.src=product.gorsel;
-      pic.onerror=()=>{const symbol=document.createElement('span');symbol.className='picker-emoji';symbol.textContent=productPictureEmoji(product);pic.replaceWith(symbol);};
+      pic=document.createElement('img'); applyProductImage(pic,product.gorsel,192);
     }else{pic=document.createElement('span');pic.className='picker-emoji';pic.textContent=productPictureEmoji(product);}
     const name=document.createElement('span'); name.textContent=product.baslik;
     const price=document.createElement('strong'); price.textContent=priceLabel(product);
@@ -210,10 +210,8 @@ function categoryTile(node, hasChildren = false) {
   fallback.textContent = categoryEmoji(node.path); photo.append(fallback);
   const url = categoryCover(node.path);
   if (url) {
-    const img = document.createElement('img'); img.loading = 'lazy';
-    img.alt = ''; img.referrerPolicy = 'strict-origin-when-cross-origin';
-    img.onerror = () => { img.remove(); };
-    img.src = url; photo.append(img);
+    const img = document.createElement('img');
+    applyProductImage(img,url,256); photo.append(img);
   }
   const title = document.createElement('span'); title.className = 'photo-category-name';
   title.textContent = node.name;
@@ -229,7 +227,7 @@ function openProductDetail(product) {
   state.detailProduct = product;
   const img = $('detailImage'); $('detailEmoji').textContent=productPictureEmoji(product);
   img.hidden=!product.gorsel; img.onerror=()=>{img.hidden=true;};
-  img.referrerPolicy='no-referrer';if(product.gorsel)img.src=product.gorsel;
+  if(product.gorsel)applyProductImage(img,product.gorsel,800,'high');
   $('detailBrand').textContent = [product.marka, product.kategori].filter(Boolean).join(' · ');
   $('detailName').textContent = product.baslik;
   $('detailBarcode').textContent = `Barkod: ${product.barkod || '—'}  ·  SKU: ${product.urunKodu || '—'}`;
@@ -321,10 +319,8 @@ function renderProducts() {
       <div class="product-right"><span class="price">${esc(priceLabel(p))}</span><button class="add-button" type="button" aria-label="${esc(p.baslik)} sepete ekle" ${available?'':'disabled'}>+</button></div>`;
     const pic=row.querySelector('.product-photo');
     if(p.gorsel){
-      const img=document.createElement('img');img.className='product-thumb';img.loading='lazy';img.alt='';
-      img.referrerPolicy='strict-origin-when-cross-origin';
-      img.onerror=()=>{if(!img.dataset.retry){img.dataset.retry='1';img.referrerPolicy='no-referrer';img.src=p.gorsel;}else img.remove();};
-      img.src=p.gorsel;pic.append(img);
+      const img=document.createElement('img');img.className='product-thumb';
+      applyProductImage(img,p.gorsel,256);pic.append(img);
     }
     row.querySelector('.product-title').addEventListener('click',()=>openProductDetail(p));
     pic.addEventListener('click',()=>openProductDetail(p));
@@ -394,8 +390,12 @@ function renderCart() {
   for (const line of state.cart.values()) {
     const el = document.createElement('div'); el.className = 'cart-line';
     const amount = money(lineTotals(line).total, line.product.paraBirimi);
+    const brand=String(line.product.marka||'').trim();
+    const title=String(line.product.baslik||'').trim();
+    // The vast majority already start with their brand; do not duplicate it.
+    const brandPrefix=brand && fold(title).startsWith(fold(brand));
     el.innerHTML = `<div class="sale-product-row">
-      <div class="cart-line-name">${esc(line.product.baslik)}</div>
+      <div class="cart-line-name">${brand && !brandPrefix ? `<span class="sale-line-brand">${esc(brand)}</span>` : ''}${esc(title)}</div>
       <strong class="sale-line-price">${esc(amount)}</strong>
     </div>
     <div class="sale-line-actions">
@@ -548,7 +548,7 @@ async function completeSale() {
     ...sum,
     items: [...state.cart.values()].map(line => ({
       id: line.id, urunKodu: line.product.urunKodu, barkod: line.product.barkod,
-      baslik: line.product.baslik, beden: line.product.beden, renk: line.product.renk,
+      baslik: line.product.baslik, marka: line.product.marka, beden: line.product.beden, renk: line.product.renk,
       quantity: line.quantity, unitPrice: line.unitPrice, discountPct: line.discountPct,
       kdv: line.product.kdv, ...lineTotals(line)
     }))
@@ -573,6 +573,11 @@ async function completeSale() {
 function renderReceipt(sale) {
   const width = $('receiptWidth').value === '58' ? '58mm' : '80mm';
   $('receiptPrint').style.setProperty('--receipt-width', width);
+  // Set physical paper dimensions instead of only CSS content width. Mobile
+  // print sheets still require an 80/58-mm paper preset in the printer driver.
+  const mm = width === '58mm' ? 58 : 80;
+  const height = Math.max(120,Math.min(1000,90 + sale.items.length * 17));
+  $('receiptPaperSize').textContent = `@media print { @page { size: ${mm}mm ${height}mm; margin: 0; } }`;
   const root = $('receiptPrint');
   const vatByRate = new Map();
   for (const item of sale.items) vatByRate.set(item.kdv,
@@ -583,7 +588,7 @@ function renderReceipt(sale) {
     <div>Tarih: ${esc(fmtDate(sale.createdAt))}</div><div>Ödeme: ${esc(sale.payment)}</div>
     ${sale.creditName ? `<div>Müşteri: ${esc(sale.creditName)}</div>` : ''}
     <div class="receipt-rule"></div>
-    ${sale.items.map(item => `<div class="receipt-product">${esc(item.baslik)}
+    ${sale.items.map(item => `<div class="receipt-product">${esc(item.marka && !fold(item.baslik).startsWith(fold(item.marka)) ? `${item.marka} · ${item.baslik}` : item.baslik)}
       ${esc([item.beden, item.renk].filter(Boolean).join(' / '))}
       <div class="receipt-row"><span>${item.quantity} × ${esc(money(item.unitPrice, sale.currency))}
       ${item.discountPct ? `(-%${item.discountPct})` : ''}</span>
@@ -805,14 +810,14 @@ function cameraError(error) {
 }
 function desiredFormats() {
   const formats = window.Html5QrcodeSupportedFormats || {};
-  return ['EAN_13', 'EAN_8', 'UPC_A', 'UPC_E', 'CODE_128', 'CODE_39', 'ITF', 'CODABAR', 'QR_CODE']
+  return ['EAN_13', 'EAN_8', 'UPC_A', 'UPC_E', 'CODE_128', 'CODE_39', 'ITF', 'CODABAR']
     .map(name => formats[name]).filter(value => value != null);
 }
 async function startNativeScanner(session) {
   if (!('BarcodeDetector' in window)) throw new Error('Yerel barkod algılayıcı desteklenmiyor.');
   const supported = typeof BarcodeDetector.getSupportedFormats === 'function'
     ? await BarcodeDetector.getSupportedFormats() : [];
-  const formats = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'itf', 'qr_code']
+  const formats = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'itf']
     .filter(format => supported.includes(format));
   if (!formats.length) throw new Error('Yerel kamera barkod biçimlerini desteklemiyor.');
   const detector = new BarcodeDetector({ formats });
@@ -832,7 +837,7 @@ async function startNativeScanner(session) {
     try {
       if (video.readyState >= 2) {
         const codes = await detector.detect(video);
-        if (codes?.[0]?.rawValue) scanned(codes[0].rawValue);
+        if (codes?.[0]?.rawValue && codes[0].format !== 'qr_code') scanned(codes[0].rawValue);
       }
     } catch { /* ignore a single frame decode failure */ }
     if (session.active) session.timer = setTimeout(scanFrame, 180);
@@ -853,10 +858,12 @@ async function startScanner() {
   $('html5-reader').style.display = 'block';
   try {
     // ZXing-based decoding is the first choice, including on iPhone Safari.
+    // QR codes are excluded: accept only linear product barcodes.
     // Do not rely on Apple's optional native BarcodeDetector implementation.
     await ensureQrLibrary();
     if (!session.active) return;
     const formats = desiredFormats();
+    if (!formats.length) throw new Error('Çizgili barkod desteği bulunamadı.');
     const scanner = new window.Html5Qrcode('html5-reader', {
       verbose: false,
       ...(formats.length ? { formatsToSupport: formats } : {}),
@@ -865,7 +872,10 @@ async function startScanner() {
     session.lib = scanner;
     await scanner.start({ facingMode: 'environment' },
       { fps: 12, disableFlip: true },
-      decoded => { if (session.active) scanned(decoded); }, () => {});
+      (decoded,details) => {
+        const format=String(details?.result?.format?.formatName || '');
+        if (session.active && !/QR[_ ]?CODE/i.test(format)) scanned(decoded);
+      }, () => {});
     if (!session.active) { try { await scanner.stop(); } catch {} return; }
     // No narrow qrbox restriction: 1D retail barcodes need a wide region.
     dom.scanMessage.textContent = 'Barkodu kadraja tutun';
@@ -895,6 +905,7 @@ async function scanBarcodePhoto(file) {
   try {
     await ensureQrLibrary();
     const formats = desiredFormats();
+    if (!formats.length) throw new Error('Çizgili barkod desteği bulunamadı.');
     const lib = new window.Html5Qrcode('html5-reader', {
       verbose: false, ...(formats.length ? { formatsToSupport: formats } : {}),
       useBarCodeDetectorIfSupported: false
@@ -959,6 +970,7 @@ async function saveProductEdit(event) {
 }
 async function setup() {
   setConnection();
+  detectImageResizing().then(enabled=>{ if(enabled) { renderHome();renderCategoryTree();renderProducts(); } });
   window.addEventListener('online',()=>{setConnection();installBuiltInCatalog();});
   window.addEventListener('offline',setConnection);
   window.addEventListener('hashchange',applyRoute);

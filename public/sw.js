@@ -1,7 +1,7 @@
-const VERSION = 'cep-pos-shell-v12-excel-19099';
+const VERSION = 'cep-pos-shell-v13-excel-19096-img';
 const SHELL = [
   '/', '/index.html', '/styles.css', '/app.js', '/idb.js',
-  '/normalize.js', '/receipt-share.js', '/catalog-taxonomy.js', '/category-menu.js', '/barcode-lookup.js', '/bundled-catalog.js', '/xlsx-reader.js', '/excel-products.js', '/urun-yukleme-sablonu.xlsx', '/manifest.json',
+  '/normalize.js', '/image-delivery.js', '/receipt-share.js', '/catalog-taxonomy.js', '/category-menu.js', '/barcode-lookup.js', '/bundled-catalog.js', '/xlsx-reader.js', '/excel-products.js', '/urun-yukleme-sablonu.xlsx', '/manifest.json',
   '/icons/icon-192.png', '/icons/icon-512.png', '/icons/placeholder.svg',
   '/vendor/html5-qrcode.min.js'
 ];
@@ -45,7 +45,17 @@ self.addEventListener('fetch', event => {
   const request = event.request;
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
-  if (url.origin !== self.location.origin || url.pathname.startsWith('/api/')) return;
+  if (url.origin !== self.location.origin) return;
+  if (url.pathname === '/api/image' && url.searchParams.has('url')) {
+    event.respondWith((async()=>{
+      const cache=await caches.open('cep-pos-image-thumbnails-v1');
+      const old=await cache.match(request); if(old) return old;
+      try { const res=await fetch(request); if(res.ok && (res.headers.get('content-type')||'').startsWith('image/'))
+        await cache.put(request,res.clone()); return res;
+      } catch { return Response.error(); }
+    })());return;
+  }
+  if (url.pathname.startsWith('/api/')) return;
   if (request.mode === 'navigate') {
     event.respondWith((async () => {
       try {
