@@ -95,7 +95,7 @@ export async function getSnapshot() {
   // Products are *only* loaded from D1. Device files are kept for sales,
   // stock adjustments, and explicit migration; never blended into catalog.
   const [local,remote]=await Promise.all([getLocalSnapshot(),fetchRemoteProducts()]);
-  if(remote.products.length<19096)
+  if(!remote.products.length)
     throw Error('Merkezi D1 kataloğu eksik görünüyor. Yerel ürünler otomatik yüklenmedi.');
   const products=remote.products.map(p=>({
     ...p,
