@@ -43,3 +43,18 @@ test('stable IDs for barcoded variants when XML row order changes', () => {
   const b = normalizeCatalog({ Urunler: { Urun: product } });
   assert.deepEqual(a.products.map(p => p.id).sort(), b.products.map(p => p.id).sort());
 });
+
+
+test('nested XML image URLs are normalized for each variant', () => {
+  const src={Urunler:{Urun:{UrunKodu:'IMG-1',Baslik:'Fotoğraflı',
+    Gorseller:{url:['https://cdn.example.com/main.jpg']},
+    Varyantlar:{Varyant:[
+      {Barkod:'001',Stok:3,SatisFiyati:20,Gorseller:{url:'//cdn.example.com/variant.jpg'}},
+      {Barkod:'002',Stok:3,SatisFiyati:20},
+      {Barkod:'003',Stok:3,SatisFiyati:20,Gorseller:{Gorsel:{Url:{'#text':'/images/third.jpg'}}}}
+    ]}}}};
+  const data=normalizeCatalog(src);
+  assert.equal(data.products[0].gorsel,'https://cdn.example.com/variant.jpg');
+  assert.equal(data.products[1].gorsel,'https://cdn.example.com/main.jpg');
+  assert.equal(data.products[2].gorsel,'https://cdn.labs-connect.com/images/third.jpg');
+});

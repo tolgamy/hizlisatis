@@ -115,3 +115,12 @@ GitHub deposu oluşturma, `main` dalına kaynak dosyalarını push etme, Cloudfl
 Her satır bir varyanttır. Barkod hücrelerini **metin** olarak tutun; baştaki sıfır kaybolmamalıdır. Zorunlu: Ürün Adı, Stok, Satış Fiyatı ve Ürün Kodu veya Barkod. Geçersiz fiyat/stok/resim URL'si varsa dosya kaydedilmeden önce hatayı düzeltin.
 
 İçe aktarılan ürünler ayrı IndexedDB deposunda saklanır: XML senkronizasyonu mevcut Excel ürünlerini silmez; aynı barkodda Excel alanları önceliklidir, Excel görsel URL'si boşsa XML resim URL'si korunur. Satış geçmişi etkilenmez. **Veriler yalnızca yüklenen cihazdaki tarayıcıda bulunur; cihazlar arasında eşitlenmez.** Tarayıcı verilerini temizlemek ürünleri kaldırabilir. Ürün kartları çevrimdışı çalışsa da uzaktaki ürün fotoğrafları bağlantı gerektirebilir. Yalnızca modern tarayıcıda `.xlsx` kabul edilir (`.xls` değil).
+
+
+## v1.3 – XML Görselleri ve Excel
+
+- Cloudflare Function artık farklı XML görsel etiketlerini ve iç içe URL'leri normalleştirir.
+- Katalog başlığı altında URL bulunan/görseli açılamayan ürün sayısı görünür.
+- Excel şablonunda **Resim URL sütunu D** konumundadır. Cloudflare Pages npm run build ile yeni şablonu üretir.
+- Yeni XML verisini almak için **XML'i Şimdi Yenile**'ye basın. Yerel satış ve Excel kayıtları korunur.
+- URL var ama resim gösterilmiyorsa resme dokunup açılan kaynağı kontrol edin. Bazı üçüncü taraf siteler gömülü resimlere izin vermez.
