@@ -1047,14 +1047,25 @@ async function startScanner() {
         const supported=await window.BarcodeDetector.getSupportedFormats?.()||[];
         if(!supported.some(format=>['ean_13','ean_8','upc_a','code_128','code_39','itf'].includes(format)))return;
         if(!session.active||session.decoded||state.scanner!==session)return;
-        await scanner.stop();
-        await scanner.clear();
+        try{await scanner.stop();}catch{}
+        try{await scanner.clear();}catch{}
         session.lib=null;
         if(!session.active||state.scanner!==session)return;
         await startNativeScanner(session);
         dom.scanMessage.textContent='Alternatif barkod okuyucu açıldı. Barkodu çizgileriyle birlikte kameraya tutun.';
       }catch(error){
-        if(session.active)dom.scanMessage.textContent='Otomatik barkod algılama başarısız. Yeniden Dene, Fotoğraftan Oku veya elle giriş seçeneklerini kullanın.';
+        if(!session.active||state.scanner!==session)return;
+        // A failed native decoder must not leave the customer with a blank camera.
+        try{
+          if(session.stream){session.stream.getTracks().forEach(track=>track.stop());session.stream=null;}
+          $('scanVideo').style.display='none';$('html5-reader').style.display='block';
+          const backup=new Reader('html5-reader',options);
+          session.lib=backup;
+          await backup.start({facingMode:'environment'},config,onSuccess,()=>{});
+          dom.scanMessage.textContent='Barkod okuyucu yeniden hazır. Çizgileri tam kadraja alın.';
+        }catch{
+          dom.scanMessage.textContent='Barkod algılanamadı. Yeniden Dene, Fotoğraftan Oku veya elle giriş seçeneklerini kullanın.';
+        }
       }
     },8500);
   } catch (primaryError) {
