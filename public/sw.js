@@ -1,7 +1,7 @@
-const VERSION = 'cep-pos-shell-v14-category-art';
+const VERSION = 'cep-pos-shell-v15-product-management';
 const SHELL = [
   '/', '/index.html', '/styles.css', '/app.js', '/idb.js',
-  '/normalize.js', '/category-art.js', '/image-delivery.js', '/receipt-share.js', '/catalog-taxonomy.js', '/category-menu.js', '/barcode-lookup.js', '/bundled-catalog.js', '/xlsx-reader.js', '/excel-products.js', '/urun-yukleme-sablonu.xlsx', '/manifest.json',
+  '/normalize.js', '/product-lifecycle.js', '/product-management.js', '/category-art.js', '/image-delivery.js', '/receipt-share.js', '/catalog-taxonomy.js', '/category-menu.js', '/barcode-lookup.js', '/bundled-catalog.js', '/xlsx-reader.js', '/excel-products.js', '/urun-yukleme-sablonu.xlsx', '/manifest.json',
   '/icons/icon-192.png', '/icons/icon-512.png', '/icons/placeholder.svg',
   '/category-images/kasap.webp', '/category-images/manav.webp', '/category-images/firindan-yiyecek.webp',
   '/category-images/sut-kahvaltilik.webp', '/category-images/atistirmalik.webp', '/category-images/su-icecek.webp',
