@@ -280,7 +280,7 @@ async function installBuiltInCatalog() {
     }
   } catch (error) {
     console.warn('Built-in catalogue unavailable:', error);
-    if (!state.products.length) announce('Yerleşik katalog açılamadı. İnternet bağlantısını kontrol edip sayfayı yenileyin.', 'error');
+    if (!state.products.length) announce('Katalog veya merkezi ürün veritabanı açılamadı. D1 bağlantısını kontrol edin.', 'error');
   } finally { state.bundleLoading = false; }
 }
 
@@ -1164,7 +1164,7 @@ async function setup() {
   try{
     await openDB();const snapshot=await getSnapshot();
     setCatalog(snapshot.products,snapshot.adjustments,null,snapshot.excelCount,snapshot.bundleCount,snapshot.lifecycleMeta);
-  }catch(error){announce(`Yerel veritabanı açılamadı: ${error.message}`,'error');dom.complete.disabled=true;}
+  }catch(error){announce(`Merkezi ürün veritabanı açılamadı: ${error.message}`,'error');dom.complete.disabled=true;}
   applyRoute();installBuiltInCatalog();
   channel?.addEventListener('message',async()=>{
     try{const snapshot=await getSnapshot();setCatalog(snapshot.products,snapshot.adjustments,null,snapshot.excelCount,snapshot.bundleCount,snapshot.lifecycleMeta);}
