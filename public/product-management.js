@@ -175,7 +175,7 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
   async function persist(product,action) {
     try {
       await serializeMutation(()=>saveManagedProduct(product,action));
-      const snapshot=await refresh();
+      const snapshot=await refresh(product.id);
       const verified=snapshot.products.find(item=>item.id===product.id);
       if(!verified || productStatus(verified)!==productStatus(product))
         throw Error('Kaydedilen ürün durumu yeniden okunamadı. Ürün değiştirilmedi.');
@@ -252,7 +252,7 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
     try{
       const updated={...product,lifecycleStatus:'active',everActivated:true,source:'excel',statusChangedAt:now()};
       await serializeMutation(()=>saveManagedProduct(updated,'scan-activate'));
-      const snapshot=await refresh();
+      const snapshot=await refresh(product.id);
       if(productStatus(snapshot.products.find(item=>item.id===product.id))!=='active')
         throw Error('Aktif durumu kalıcı olarak doğrulanamadı.');
       channel?.postMessage('product-activated');
