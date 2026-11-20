@@ -159,6 +159,8 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
   function openManage(product=null,barcode='') {
     search.value='';filter=product?productStatus(product):'active';
     if(!managementDialog.open)managementDialog.showModal();
+    if(state.legacyPending)
+      announce('Bu cihazdaki bazı eski ürün değişiklikleri henüz merkezde değil. Önce Eski Cihaz Yedeğini İndir, sonra Kayıtları Taşı.','error');
     if(product||barcode)editProduct(product,barcode);else showOverview();
   }
   async function updateStatus(action) {
@@ -342,6 +344,15 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
     const backup=document.createElement('button');
     backup.type='button';backup.textContent='Eski Cihaz Yedeğini İndir (JSON)';
     button.after(backup);backup.addEventListener('click',exportLocalBackup);
+    const sync=document.createElement('button');sync.type='button';
+    sync.textContent='Merkezi Veritabanından Yenile';
+    backup.after(sync);
+    sync.addEventListener('click',async()=>{
+      sync.disabled=true;
+      try {await refresh();countsView();announce('Ürünler merkezi veritabanından yenilendi.','success');}
+      catch(error){announce('Yenileme başarısız: '+error.message,'error');}
+      finally{sync.disabled=false;}
+    });
     $('manageNew').addEventListener('click',()=>editProduct());
     $('manageBulkDeactivate').addEventListener('click',bulkDeactivate);
     $('manageExportBackup').addEventListener('click',exportBackup);
