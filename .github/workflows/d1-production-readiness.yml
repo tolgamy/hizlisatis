@@ -1,5 +1,11 @@
 name: Central D1 production readiness
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/d1-production-readiness.yml'
+      - 'public/index.html'
+      - 'functions/api/product-state.js'
   pull_request:
     paths:
       - 'functions/api/product-state.js'
@@ -9,24 +15,30 @@ on:
 jobs:
   verify-central-d1:
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 6
     steps:
       - name: Verify live Pages D1 catalog count without credentials
         shell: bash
         run: |
           set -euo pipefail
-          for attempt in $(seq 1 12); do
-            data="$(curl --connect-timeout 8 --max-time 12 -fsS 'https://hizlisatis.pages.dev/api/central-health' || true)"
-            if [ -n "$data" ] && printf '%s' "$data" | node -e '
-              let txt="";
-              process.stdin.on("data",chunk=>txt+=chunk);
-              process.stdin.on("end",()=>{try{
-                const p=JSON.parse(txt);
-                console.log("D1 readiness:",{ready:p.ready,count:p.count,expected:p.expected});
-                process.exit(p.ready===true && p.count>=19096 && p.expected===19096 ? 0 : 1);
-              }catch{process.exit(1)}})
-            '; then exit 0; fi
+          # Central POS is live only when the updated web shell AND API agree.
+          for attempt in $(seq 1 30); do
+            html="$(curl --connect-timeout 8 --max-time 12 -fsS 'https://hizlisatis.pages.dev/index.html' || true)"
+            payload="$(curl --connect-timeout 8 --max-time 12 -fsS 'https://hizlisatis.pages.dev/api/product-state?health=1' || true)"
+            if printf '%s' "$html" | grep -q 'v3.4.0' &&
+               [ -n "$payload" ] &&
+               printf '%s' "$payload" | node -e '
+                 let raw="";process.stdin.on("data",x=>raw+=x);
+                 process.stdin.on("end",()=>{
+                   try{const p=JSON.parse(raw);process.exit(p.ready===true&&p.count>=19096?0:1)}
+                   catch{process.exit(1)}
+                 });
+               '; then
+              echo "Central D1-backed POS v3.4.0 is live."
+              exit 0
+            fi
             sleep 6
           done
-          echo 'Central D1 production binding or seed not yet ready.' >&2
+          echo 'Central POS v3.4.0 not confirmed on Cloudflare Pages Production.' >&2
           exit 1
+
