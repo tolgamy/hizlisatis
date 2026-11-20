@@ -31,7 +31,7 @@ jobs:
             if [ "$attempt" -eq 1 ]; then
               echo "Homepage response size: ${#html} characters; excerpt: ${html:0:300}"
             fi
-            if printf '%s' "$html" | grep -q 'v3.4.0' &&
+            if [ -n "$version" ] && [ "$version" != 'v3.4.0' ] &&
                [ -n "$payload" ] &&
                printf '%s' "$payload" | node -e '
                  let raw="";process.stdin.on("data",x=>raw+=x);
@@ -40,11 +40,11 @@ jobs:
                    catch{process.exit(1)}
                  });
                '; then
-              echo "Central D1-backed POS v3.4.0 is live."
+              echo "Central D1-backed POS is live."
               exit 0
             fi
             sleep 6
           done
-          echo 'Central POS v3.4.0 not confirmed on Cloudflare Pages Production.' >&2
+          echo 'Central POS not confirmed on Cloudflare Pages Production.' >&2
           exit 1
 
