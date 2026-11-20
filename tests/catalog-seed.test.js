@@ -87,7 +87,7 @@ test('short/missing production secret explains Cloudflare configuration instead 
 
 test('admin import inline JavaScript parses and validates static catalog URLs',()=>{
  const html=readFileSync(new URL('../public/admin-import.html',import.meta.url),'utf8');
- const inline=html.match(/<script type="module">([\\s\\S]*?)<\\/script>/)?.[1];
+ const inline=html.match(/<script type="module">([\s\S]*?)<\/script>/)?.[1];
  assert.ok(inline,'inline importer module must exist');
  assert.doesNotThrow(()=>new Script(inline),'client-side code must be syntactically valid');
  assert.match(inline,/partTotal:rows.length/);
