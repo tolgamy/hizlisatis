@@ -11,7 +11,11 @@ function error(message, status=400) { return json({error:message},status); }
 function database(env) { return env?.DB?.prepare ? env.DB : null; }
 async function authorized(request, env) {
   const expected=String(env?.PRODUCT_WRITE_KEY||'');
-  const supplied=request.headers.get('X-Product-Key')||'';
+  const encoded=request.headers.get('X-Product-Key')||'';
+  // UTF-8 secrets are percent-encoded for ASCII-only HTTP headers.
+  if(encoded.length>2048)return false;
+  let supplied;
+  try { supplied=decodeURIComponent(encoded); } catch { return false; }
   // Never activate a public write endpoint without a configured strong secret.
   if(expected.length<24 || supplied.length>256 || supplied.length!==expected.length) return false;
   const encoder=new TextEncoder();
@@ -51,6 +55,11 @@ export async function onRequestGet({request,env}) {
     if(!seeded || Number(seeded.value)!==19096)
       return error('Merkezi katalog D1 üzerine yüklenmemiş. 19.096 ürün seed dosyalarını tamamlayın.',503);
     const url=new URL(request.url);
+    if(url.searchParams.has('health')) {
+      const row=await db.prepare('SELECT COUNT(*) AS count FROM product_changes').first();
+      return json({ready:true,count:Number(row?.count||0),
+        baseline:19096,central:true});
+    }
     if(url.searchParams.has('ids')) {
       let ids;
       try {ids=JSON.parse(url.searchParams.get('ids'));}
@@ -122,7 +131,7 @@ export async function onRequestPost({request,env}) {
                 THEN 'later-inactive' ELSE 'initial-inactive' END,
               '$.statusChangedAt', ?),
               updated_at=?
-          WHERE json_extract(payload,'$.lifecycleStatus')='active'`).bind(at,at),
+          WHERE COALESCE(json_extract(payload,'$.lifecycleStatus'),'active')='active'`).bind(at,at),
         db.prepare('INSERT INTO product_audit(product_id,action,happened_at) VALUES(?,?,?)')
           .bind('*','bulk-initial-deactivation',at)
       ]);
