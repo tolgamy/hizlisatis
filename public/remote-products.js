@@ -11,7 +11,7 @@ async function call(method='GET',body=null,query='') {
       writeKey=answer.trim();
     }
     headers['Content-Type']='application/json';
-    headers['X-Product-Key']=writeKey;
+    headers['X-Product-Key']=encodeURIComponent(writeKey);
   }
   let response;
   try {
