@@ -389,7 +389,8 @@ function updateCart(id, field, value) {
   if (!line) return;
   if (field === 'quantity') {
     const num = Number(value);
-    if (!Number.isInteger(num) || num < 0) { announce('Adet geçersiz.', 'error'); renderCart(); return; }
+    const weighted=['kg','g','litre'].includes(line.product.birim);
+    if (!Number.isFinite(num) || num < 0 || (!weighted && !Number.isInteger(num)) || (weighted && Math.round(num*1000)!==num*1000)) { announce('Miktar geçersiz.', 'error'); renderCart(); return; }
     if (num === 0) { state.cart.delete(id); renderCartBar(); renderCart(); return; }
     if (num > remaining(state.byId.get(id) || line.product)) {
       announce('İstenen adet kullanılabilir stoğu aşıyor.', 'error'); renderCart(); return;
@@ -427,7 +428,7 @@ function renderCart() {
     <div class="sale-line-actions">
       <div class="stepper">
         <button type="button" data-step="-1" aria-label="Adedi azalt">−</button>
-        <input type="number" min="1" step="1" inputmode="numeric" value="${line.quantity}" data-field="quantity" aria-label="Adet">
+        <input type="number" min="${['kg','g','litre'].includes(line.product.birim)?'0.001':'1'}" step="${['kg','g','litre'].includes(line.product.birim)?'0.001':'1'}" inputmode="${['kg','g','litre'].includes(line.product.birim)?'decimal':'numeric'}" value="${line.quantity}" data-field="quantity" aria-label="Miktar (${esc(line.product.birim||'adet')})">
         <button type="button" data-step="1" aria-label="Adedi artır">+</button>
       </div>
       <details class="sale-line-more"><summary aria-label="Fiyat ve iskonto düzenle" title="Fiyat / iskonto">⋯</summary>
@@ -442,7 +443,8 @@ function renderCart() {
       state.cart.delete(line.id); renderCart(); renderCartBar();
     });
     for (const step of el.querySelectorAll('[data-step]')) step.addEventListener('click', () => {
-      updateCart(line.id, 'quantity', line.quantity + Number(step.dataset.step));
+      const delta=['kg','g','litre'].includes(line.product.birim)?0.1:1;
+      updateCart(line.id, 'quantity', Math.round((line.quantity + Number(step.dataset.step)*delta)*1000)/1000);
     });
     for (const input of el.querySelectorAll('[data-field]')) input.addEventListener('change', () => {
       updateCart(line.id, input.dataset.field, input.value);
