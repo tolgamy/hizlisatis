@@ -1196,7 +1196,6 @@ async function setup() {
   }
   if('serviceWorker'in navigator&&window.isSecureContext)navigator.serviceWorker.register('/sw.js').catch(()=>{});
   try{
-    await openDB();
     const snapshot=await refreshManagedData();
     if(snapshot.legacyPending)announce('Eski cihazdaki ürün düzenlemelerini kontrol edin. Yedek için Ayarlar > Ürün Yönetimi bölümünü kullanın.','error');
   }catch(error){
