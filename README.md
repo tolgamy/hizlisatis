@@ -59,3 +59,7 @@ Ana sayfa yalnızca 12 görsel kategori kartı gösterir. Kullanıcının belirl
 - Değişiklikler IndexedDB'de işlem geçmişiyle saklanır. Kurulu katalog güncellendiğinde pasif/silinen durum bilgileri korunur. İçe aktarımla aynı kimliğe gelen ürünün eski durumu da korunur.
 - **Önemli:** Yerel IndexedDB verileri cihaz/tarayıcı bazındadır; cihazlar arası otomatik senkronizasyon veya sunucuya yedekleme bu sürümde yoktur. Tek cihazdaki 19 bin ürünün pasif durumunu başka cihazın otomatik görmesi beklenmemelidir. Toplu pasife alma öncesinde JSON yedeği indirin.
 - Görseller yerel fotoğraf olarak yüklendiyse en fazla 512 piksele küçültülüp cihaz veritabanına kaydedilir; aynı görsel başka cihazda otomatik belirmez.
+
+
+## Termal fiş yazdırma (v3.3.1)
+Ağ/AirPrint için fiş 80 mm (tercihe göre 58 mm) genişlikte ayrı bir önizleme sekmesinde açılır. Fişi Yazdır düğmesi sistem yazdırma ekranını çağırır. Yazdırma sayfa yüksekliği fişin gerçek boyuna göre ölçülür. AirPrint ve yazıcı sürücüsündeki kağıt boyutu ayrıca 80/58 mm olarak seçilmelidir; tarayıcı yazıcının A4 seçimini zorla değiştiremez. Bluetooth ESC/POS ve WhatsApp paylaşımı korunur.

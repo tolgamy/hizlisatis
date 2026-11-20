@@ -633,7 +633,66 @@ function renderReceipt(sale) {
     <div class="receipt-rule"></div>
     <div class="receipt-center receipt-small">Teşekkür ederiz!<br>Bu belge yasal mali fiş yerine geçmez.</div>`;
 }
-function printSale(sale) { renderReceipt(sale); window.print(); }
+function printSale(sale) {
+  renderReceipt(sale);
+  // Isolate roll paper from the POS layout; system printer must still select 80/58-mm media.
+  const mm = $('receiptWidth').value === '58' ? 58 : 80;
+  const receipt = $('receiptPrint').innerHTML;
+  let preview;
+  try { preview = window.open('', '_blank'); } catch { /* popup blocked */ }
+  if (!preview) {
+    announce('Fiş önizlemesi engellendi. Açılır pencerelere izin verin; yazıcıdan 80 mm kağıt seçin.', 'error');
+    window.print();
+    return;
+  }
+  try {
+    const initialHeight = Math.min(2500, Math.max(115, 90 + (sale.items?.length || 1) * 20));
+    const padding = mm === 58 ? 2 : 3;
+    const fontSize = mm === 58 ? 8 : 9;
+    const fontTitle = mm === 58 ? 11 : 13;
+    const style = '<style id="printPaper">@page{size:' + mm + 'mm ' + initialHeight + 'mm;margin:0}</style>' +
+      '<style>*{box-sizing:border-box}html,body{margin:0;padding:0}body{background:#eef2f5;color:#111;font-family:system-ui,-apple-system,sans-serif}' +
+      '.print-controls{max-width:520px;margin:15px auto;padding:14px;text-align:center;background:#fff;border-radius:12px}' +
+      '.print-controls button{background:#127653;color:white;border:0;border-radius:10px;padding:13px 24px;font-size:16px;font-weight:800}' +
+      '.print-controls p{font-size:12px;line-height:1.5;color:#475569;margin:10px 0 0}' +
+      '#receipt{width:' + mm + 'mm;max-width:100%;margin:12px auto;padding:5mm ' + padding + 'mm;background:#fff;' +
+        'box-shadow:0 4px 20px #14253b22;font: ' + fontSize + 'pt/1.36 monospace;overflow-wrap:anywhere}' +
+      '.receipt-title{text-align:center;font-weight:900;font-size:' + fontTitle + 'pt;margin-bottom:3mm}' +
+      '.receipt-center{text-align:center}.receipt-small{font-size:8pt}' +
+      '.receipt-rule{border-bottom:1px dashed #000;margin:2mm 0}' +
+      '.receipt-row{display:flex;justify-content:space-between;align-items:baseline;gap:2mm;min-width:0}' +
+      '.receipt-row span{min-width:0;overflow-wrap:anywhere}' +
+      '.receipt-row span:last-child{white-space:nowrap;text-align:right;flex:none}' +
+      '.receipt-product{margin:2mm 0;break-inside:avoid;page-break-inside:avoid}' +
+      '.receipt-grand{font-size:11pt;font-weight:900}' +
+      '@media print{html,body{width:' + mm + 'mm!important;max-width:' + mm + 'mm!important;background:#fff!important}' +
+      '.print-controls{display:none!important}#receipt{width:' + mm + 'mm!important;max-width:' + mm + 'mm!important;' +
+      'margin:0!important;padding:2mm ' + padding + 'mm!important;box-shadow:none!important}}</style>';
+    const page = '<!doctype html><html lang="tr"><head><meta charset="utf-8">' +
+      '<meta name="viewport" content="width=device-width,initial-scale=1">' +
+      '<title>Hizlisatis ' + mm + ' mm Fiş</title>' + style + '</head><body>' +
+      '<div class="print-controls"><button id="doPrint" type="button">Fişi Yazdır</button>' +
+      '<p>Kağıt: ' + mm + ' mm. Yazıcı / AirPrint kağıt ayarında da ' + mm +
+      ' mm termal rulo seçin; tarayıcı yazıcının A4 tercihini değiştiremez.</p></div>' +
+      '<main id="receipt" aria-label="Satış bilgi fişi">' + receipt + '</main></body></html>';
+    preview.document.open();
+    preview.document.write(page);
+    preview.document.close();
+    preview.document.getElementById('doPrint').addEventListener('click', () => {
+      const sheet = preview.document.getElementById('receipt');
+      const height = Math.min(2500, Math.max(110, Math.ceil(sheet.scrollHeight * 25.4 / 96 + 5)));
+      preview.document.getElementById('printPaper').textContent =
+        '@page{size:' + mm + 'mm ' + height + 'mm;margin:0}';
+      preview.focus();
+      preview.print();
+    });
+    preview.focus();
+  } catch (error) {
+    console.warn('Fiş önizlemesi açılamadı:', error);
+    announce('Fiş önizlemesi açılamadı; yazdırma ekranında 80 mm kağıt seçin.', 'error');
+    window.print();
+  }
+}
 
 async function printBluetoothReceipt(sale) {
   // Web Bluetooth is available primarily in Chromium/Android, not iOS Safari.

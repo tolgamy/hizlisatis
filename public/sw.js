@@ -1,4 +1,4 @@
-const VERSION = 'cep-pos-shell-v15-product-management';
+const VERSION = 'cep-pos-shell-v17-thermal-receipt';;
 const SHELL = [
   '/', '/index.html', '/styles.css', '/app.js', '/idb.js',
   '/normalize.js', '/product-lifecycle.js', '/product-management.js', '/category-art.js', '/image-delivery.js', '/receipt-share.js', '/catalog-taxonomy.js', '/category-menu.js', '/barcode-lookup.js', '/bundled-catalog.js', '/xlsx-reader.js', '/excel-products.js', '/urun-yukleme-sablonu.xlsx', '/manifest.json',
