@@ -46,7 +46,8 @@ test('catalogue import reads bundled Pages assets and never overwrites existing 
 test('UTF-8 Turkish administrator key is accepted through an ASCII-only request header',async()=>{
  const turkishKey='Şifre_ıöçğüş_Özel$Anahtar_987654321';
  const env={PRODUCT_WRITE_KEY:turkishKey,DB:{
-  prepare(sql){return {first:async()=>sql.includes('COUNT(*)')?{n:0}:null};}
+  prepare(sql){return {first:async()=>sql.includes('COUNT(*)')?{n:0}:null};},
+  async batch(){return [];}
  },ASSETS:{fetch:async()=>Response.json({})}};
  const response=await onRequest({request:request('GET',null,turkishKey),env});
  assert.equal(response.status,200);
