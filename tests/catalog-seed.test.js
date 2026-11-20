@@ -5,7 +5,7 @@ import { onRequest } from '../functions/api/catalog-seed.js';
 const secret='a-different-very-long-secret-admin-code-for-test';
 const url='https://example.pages.dev/api/catalog-seed';
 const request=(method='GET',body=null,key=secret)=>new Request(url,{
- method,headers:{'X-Product-Key':key,...(body?{'Content-Type':'application/json'}:{})},
+ method,headers:{'X-Product-Key':encodeURIComponent(key),...(body?{'Content-Type':'application/json'}:{})},
  body:body?JSON.stringify(body):undefined
 });
 test('catalogue import rejects absent and incorrect administrator keys before DB access',async()=>{
@@ -40,4 +40,24 @@ test('catalogue import reads bundled Pages assets and never overwrites existing 
  assert.equal(result.partComplete,true);
  assert.equal(sqls.length,1);
  assert.match(sqls[0].sql,/ON CONFLICT\(id\) DO NOTHING/);
+});
+
+
+test('UTF-8 Turkish administrator key is accepted through an ASCII-only request header',async()=>{
+ const turkishKey='Şifre_ıöçğüş_Özel$Anahtar_987654321';
+ const env={PRODUCT_WRITE_KEY:turkishKey,DB:{
+  prepare(sql){return {first:async()=>sql.includes('COUNT(*)')?{n:0}:null};}
+ },ASSETS:{fetch:async()=>Response.json({})}};
+ const response=await onRequest({request:request('GET',null,turkishKey),env});
+ assert.equal(response.status,200);
+ const result=await response.json();
+ assert.equal(result.count,0);
+ assert.equal(result.ready,false);
+ const bad=await onRequest({request:request('GET',null,turkishKey+'!'),env});
+ assert.equal(bad.status,401);
+});
+test('Malformed percent-encoded admin header is rejected safely',async()=>{
+ const bad=new Request(url,{headers:{'X-Product-Key':'%E0%A4%A'}});
+ const response=await onRequest({request:bad,env:{PRODUCT_WRITE_KEY:secret}});
+ assert.equal(response.status,401);
 });
