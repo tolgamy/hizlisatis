@@ -29,7 +29,7 @@ async function call(method='GET',body=null,query='') {
 }
 export async function fetchRemoteProducts(onProgress) {
   const products=[],seen=new Set();
-  let after='',bulkAt=null;
+  let after='',bulkAt=null,expected=0;
   for(let page=0;page<50;page++) {
     let data;
     for(let attempt=0;attempt<3;attempt++) {
@@ -46,13 +46,14 @@ export async function fetchRemoteProducts(onProgress) {
     if(!data||!Array.isArray(data.products))
       throw Error('Sunucudan geçersiz ürün verisi geldi.');
     bulkAt=data.bulkAt||null;
+    if(Number.isInteger(data.expected))expected=data.expected;
     for(const item of data.products) {
       if(!item.id||seen.has(item.id))throw Error('Sunucuda yinelenen ürün kimliği.');
       products.push(item);seen.add(item.id);
     }
-    onProgress?.({received:products.length,expected:19096});
+    onProgress?.({received:products.length,expected:expected||19096});
     if(!data.next) {
-      if(products.length<19096)
+      if(expected && products.length<expected)
         throw Error('Merkezi ürün listesinin yalnızca '+products.length+
           ' kaydı geldi. Tamamı gelmeden ekran açılmadı.');
       return {products,bulkAt};
