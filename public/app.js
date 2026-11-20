@@ -17,7 +17,7 @@ import { checkRemoteProductStates } from './remote-products.js';
 
 const $ = id => document.getElementById(id);
 const state = {
-  products: [], byId: new Map(), byBarcode: new Map(), categoryProductPhotos: new Map(), lifecycleMeta: null,
+  products: [], byId: new Map(), byBarcode: new Map(), categoryProductPhotos: new Map(), lifecycleMeta: null, legacyPending: false,
   sold: new Map(), cart: new Map(), category: '', brand: '',
   search: '', meta: null, sales: [], lastSale: null,
   saving: false, scanner: null, scanPurpose: 'sale',
@@ -1096,6 +1096,7 @@ async function refreshManagedData(productId=null) {
     }
   }
   const snapshot=await getSnapshot();
+  state.legacyPending=Boolean(snapshot.legacyPending);
   setCatalog(snapshot.products,snapshot.adjustments,snapshot.meta,
     snapshot.excelCount,snapshot.bundleCount,snapshot.lifecycleMeta);
   return snapshot;
@@ -1182,7 +1183,9 @@ async function setup() {
   if('serviceWorker'in navigator&&window.isSecureContext)navigator.serviceWorker.register('/sw.js').catch(()=>{});
   try{
     await openDB();const snapshot=await getSnapshot();
+    state.legacyPending=Boolean(snapshot.legacyPending);
     setCatalog(snapshot.products,snapshot.adjustments,null,snapshot.excelCount,snapshot.bundleCount,snapshot.lifecycleMeta);
+    if(state.legacyPending)announce('Bu cihazda henüz merkeze taşınmamış ürün değişiklikleri bulunuyor. Ayarlar > Ürün Yönetimi > Eski Cihaz Yedeğini İndir ve Kayıtları Taşı.','error');
   }catch(error){announce(`Merkezi ürün veritabanı açılamadı: ${error.message}`,'error');dom.complete.disabled=true;}
   applyRoute();installBuiltInCatalog();
   channel?.addEventListener('message',async()=>{
