@@ -244,7 +244,7 @@ body{background:var(--canvas)}
 .receipt-actions-dialog{max-width:min(100vw,520px);max-height:80dvh;border-radius:18px 18px 0 0}
 .receipt-actions-body{padding:19px 15px calc(22px + env(safe-area-inset-bottom))}
 .receipt-actions-total{text-align:center;font-size:28px;font-weight:950;color:#167453;margin:7px 0 22px}
-.receipt-actions-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.receipt-actions-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
 .receipt-actions-grid button{border:1px solid #d2dfe9;border-radius:14px;background:#f5f9fe;color:#143d5c;padding:16px 3px;min-height:100px;font-size:26px;font-weight:850;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:7px}
 .receipt-actions-grid button span{font-size:11px;font-weight:800}
 .receipt-actions-grid button:disabled{opacity:.5}
