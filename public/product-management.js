@@ -122,6 +122,7 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
     $('manageUnit').value=product?.birim||'adet';
     $('manageImage').value=product?.gorsel?.startsWith('data:')?'':product?.gorsel||'';
     $('manageImageFile').value='';
+    $('manageRemoveImage').checked=false;
     imagePreview(product?.gorsel);
     const parts=product?productCategoryPath(product):[];
     syncCategories(parts[0]||'',parts[1]||'');
@@ -203,7 +204,7 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
       birim:$('manageUnit').value,
       kategoriAna:main,kategoriAlt:sub,kategoriYolu:[main,sub],
       kategori:main+' > '+sub,kaynakKategori:main+' > '+sub,
-      gorsel:uploadImage||url||old?.gorsel||'',
+      gorsel:uploadImage||url||($('manageRemoveImage').checked?'':old?.gorsel||''),
       lifecycleStatus:finalStatus,everActivated:old?.everActivated||activate,
       statusChangedAt:activate?now():old?.statusChangedAt,source:'excel',
       importFormat:'hizlisatis',
