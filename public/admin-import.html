@@ -63,7 +63,7 @@ $('start').addEventListener('click',async()=>{
   if(manifest.count!==total||manifest.version!=='7f27e3a60ef04e77'||
      !Array.isArray(manifest.parts)||manifest.parts.length!==20||
      manifest.parts.some(path=>typeof path!=='string'||
-      !/^\\/catalog\\/products-[a-f0-9]{16}-\\d{2}\\.json$/i.test(path)))
+      !/^\/catalog\/products-[a-f0-9]{16}-\d{2}\.json$/i.test(path)))
     throw Error('Ürün kataloğu sürümü doğru değil.');
   let progressed=0;
   for(let part=0;part<manifest.parts.length;part++){
