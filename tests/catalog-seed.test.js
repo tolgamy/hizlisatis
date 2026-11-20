@@ -42,7 +42,7 @@ test('catalogue import uses DB without ASSETS and preserves previously edited ro
  assert.equal(result.nextOffset,1);
  assert.equal(result.partComplete,true);
  assert.equal(statements.length,1);
- assert.match(statements[0].sql,/ON CONFLICT\\(id\\) DO NOTHING/);
+ assert.ok(statements[0].sql.includes('ON CONFLICT(id) DO NOTHING'));
 });
 
 test('catalogue import rejects invalid batch and mismatched source version',async()=>{
