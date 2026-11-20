@@ -102,12 +102,21 @@ export async function getSnapshot() {
     lifecycleStatus:p.lifecycleStatus||(remote.bulkAt?'initial-inactive':'active'),
     everActivated:Boolean(p.everActivated)
   }));
+  const centralById=new Map(products.map(p=>[p.id,p]));
+  const legacyPending=Boolean((local.lifecycleMeta&&!remote.bulkAt)||
+    local.products.some(old=>{
+      const current=centralById.get(old.id);
+      if(!current)return true;
+      if((old.lifecycleStatus||'active')!==current.lifecycleStatus)return true;
+      return old.source!=='bundle' &&
+        ['baslik','barkod','marka','kategori','satisFiyati','kdv','gorsel'].some(
+          key=>old[key]!==current[key]);
+    }));
   return {...local,products,
     excelCount:products.filter(p=>p.source!=='bundle').length,
     bundleCount:products.filter(p=>p.source==='bundle').length,
     lifecycleMeta:remote.bulkAt?{at:remote.bulkAt}:null,
-    legacyPending:Boolean(local.lifecycleMeta||local.products.some(p=>
-      p.source!=='bundle'||p.everActivated||(p.lifecycleStatus&&p.lifecycleStatus!=='active')))};
+    legacyPending};
 }
 
 /** Atomically replace only bundled products and remove the deprecated XML store.
