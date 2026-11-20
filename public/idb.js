@@ -76,7 +76,7 @@ export async function installBundledProducts(products, version) {
     request.onsuccess=()=>{
       const saved=request.result;
       const existing=new Map(saved.map(p=>[p.id,p]));
-      for(const old of saved) if(old.source==='bundle'&&!incoming.has(old.id)) manual.delete(old.id);
+      for(const old of saved) if(old.source==='bundle'&&!incoming.has(old.id)&&!old.lifecycleStatus) manual.delete(old.id);
       for(const product of products) {
         const prior=existing.get(product.id);
         if(!prior||prior.source==='bundle') manual.put(prior ? { ...product,
