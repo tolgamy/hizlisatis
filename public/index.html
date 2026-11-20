@@ -18,7 +18,7 @@
     <header class="topbar">
       <div class="brandline">
         <div class="brandmark" aria-hidden="true">₺</div>
-        <div><strong>Cep Hızlı Satış</strong><small>Mobil POS · v1.8</small></div>
+        <div><strong>Cep Hızlı Satış</strong><small>Mobil POS · v1.9</small></div>
         <span id="connectionStatus" class="connection" role="status">Bağlanıyor</span>
       </div>
       <div class="searchline">
@@ -154,28 +154,44 @@
   </dialog>
 
   <dialog id="cartDialog" class="sheet sale-sheet" aria-labelledby="cartTitle">
-    <div class="sheet-header sale-sheet-header"><div><span class="sale-eyebrow">HIZLI KASA</span><h2 id="cartTitle">Satış Yap</h2></div><button type="button" class="closebutton" data-close="cartDialog" aria-label="Kapat">×</button></div>
-    <form id="saleBarcodeForm" class="sale-scanner"><label for="saleBarcode" class="sr-only">Satış için barkod</label><input id="saleBarcode" type="text" inputmode="search" placeholder="Barkod okutun veya ürün kodu yazın" autocomplete="off"><button type="submit" aria-label="Barkoddan ürün ekle">+ Ekle</button><button id="saleScanButton" type="button" aria-label="Kamera ile barkod okut">⌗</button></form>
-    <div class="sale-count-strip"><span>SEPETTE <strong id="saleLineCount">0</strong> ADET</span><span id="saleTopTotal">₺0,00</span></div>
-    <div id="cartItems" class="cart-items"></div>
+    <div class="sheet-header sale-sheet-header">
+      <h2 id="cartTitle">Satış <span id="saleLineCount" class="sale-count" aria-label="Sepetteki adet">0</span></h2>
+      <button type="button" class="closebutton" data-close="cartDialog" aria-label="Kapat">×</button>
+    </div>
+    <form id="saleBarcodeForm" class="sale-scanner">
+      <label for="saleBarcode" class="sr-only">Barkod</label>
+      <input id="saleBarcode" type="text" inputmode="search" placeholder="Barkod / ürün kodu" autocomplete="off" enterkeyhint="done">
+      <button class="sale-manual-add" type="submit" aria-label="Ürün ekle">+</button>
+      <button id="saleScanButton" type="button" aria-label="Kamerayla barkod oku">⌗</button>
+    </form>
+    <div id="cartItems" class="cart-items" aria-label="Sepetteki ürünler"></div>
     <div class="checkout-area">
-      <div id="cartTotals" class="cart-totals"></div>
-      <fieldset class="payment-types"><legend>Ödeme türü</legend>
+      <div id="cartTotals" class="cart-totals" aria-live="polite"></div>
+      <fieldset class="payment-types"><legend class="sr-only">Ödeme türü</legend>
         <label><input type="radio" name="payment" value="Nakit" checked><span>₺ Nakit</span></label>
         <label><input type="radio" name="payment" value="Kart"><span>▤ Kart</span></label>
         <label><input type="radio" name="payment" value="Veresiye"><span>◷ Veresiye</span></label>
       </fieldset>
-      <div id="cashBox" class="cash-box"><label for="cashReceived">Alınan nakit (₺)</label>
-        <input id="cashReceived" inputmode="decimal" type="text" placeholder="Örn. 500,00">
-        <p id="changeLabel">Para üstü: ₺0,00</p>
+      <details id="cashOption" class="sale-option">
+        <summary>Para üstü</summary>
+        <div id="cashBox" class="cash-box">
+          <label for="cashReceived">Alınan (₺)</label>
+          <input id="cashReceived" inputmode="decimal" type="text" placeholder="Alınan tutar">
+          <p id="changeLabel">₺0,00</p>
+        </div>
+      </details>
+      <div id="creditBox" class="credit-box" hidden>
+        <label for="creditName" class="sr-only">Müşteri</label>
+        <input id="creditName" type="text" maxlength="120" placeholder="Müşteri adı" aria-label="Veresiye müşteri adı">
       </div>
-      <div id="creditBox" class="credit-box" hidden><label for="creditName">Veresiye müşteri adı / not</label>
-        <input id="creditName" type="text" maxlength="120" placeholder="Müşteri adı (zorunlu)">
-      </div>
-      <div class="print-options"><label for="receiptWidth">Fiş genişliği</label><select id="receiptWidth"><option value="80">80 mm</option><option value="58">58 mm</option></select>
-      <label class="autoprint"><input id="autoPrint" type="checkbox"> Satıştan sonra fişi yazdır</label></div>
-      <button id="completeSale" class="primary-button" type="button">✓ Satışı Tamamla</button>
-      <p class="hint">Satışlar bu cihazın IndexedDB veritabanına kaydedilir. Merkezi POS'a aktarılmaz.</p>
+      <details class="sale-option sale-receipt-option">
+        <summary>Fiş</summary>
+        <div class="print-options"><label for="receiptWidth" class="sr-only">Fiş genişliği</label>
+          <select id="receiptWidth"><option value="80">80 mm</option><option value="58">58 mm</option></select>
+          <label class="autoprint"><input id="autoPrint" type="checkbox"> Otomatik yazdır</label>
+        </div>
+      </details>
+      <button id="completeSale" class="primary-button" type="button">Satışı Tamamla</button>
     </div>
   </dialog>
 

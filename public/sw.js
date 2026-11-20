@@ -1,4 +1,4 @@
-const VERSION = 'cep-pos-shell-v9-barcode-scanner';
+const VERSION = 'cep-pos-shell-v10-minimal-sale';
 const SHELL = [
   '/', '/index.html', '/styles.css', '/app.js', '/idb.js',
   '/normalize.js', '/xml-local.js', '/category-menu.js', '/bundled-catalog.js', '/xlsx-reader.js', '/excel-products.js', '/urun-yukleme-sablonu.xlsx', '/manifest.json',

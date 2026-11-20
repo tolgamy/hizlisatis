@@ -400,7 +400,6 @@ function renderCartBar() {
   dom.cartTotal.textContent = money(totals().total, cartCurrency());
   document.querySelector('.cart-label strong').textContent = count ? 'Satışa Devam Et' : 'Yeni Satış';
   $('saleLineCount').textContent = String(count);
-  $('saleTopTotal').textContent = money(totals().total, cartCurrency());
 }
 function addToCart(product) {
   const current = state.cart.get(product.id);
@@ -444,21 +443,29 @@ function updateCart(id, field, value) {
 function renderCart() {
   dom.cartItems.replaceChildren();
   if (!state.cart.size) {
-    dom.cartItems.innerHTML = '<div class="empty-state"><strong>Sepet boş</strong>Satışa başlamak için bir ürün ekleyin.</div>';
+    dom.cartItems.innerHTML = '<div class="sale-empty">Barkod okutun</div>';
   }
   for (const line of state.cart.values()) {
     const el = document.createElement('div'); el.className = 'cart-line';
-    el.innerHTML = `<div class="cart-line-top"><div class="cart-line-name">${esc(line.product.baslik)}
-      <small>${esc([line.product.barkod, line.product.beden, line.product.renk].filter(Boolean).join(' · '))}</small></div>
-      <button class="remove-button" type="button" data-remove>Sil</button></div>
-      <div class="cart-editor"><label>Adet<div class="stepper">
+    const amount = money(lineTotals(line).total, line.product.paraBirimi);
+    el.innerHTML = `<div class="sale-product-row">
+      <div class="cart-line-name">${esc(line.product.baslik)}</div>
+      <strong class="sale-line-price">${esc(amount)}</strong>
+    </div>
+    <div class="sale-line-actions">
+      <div class="stepper">
         <button type="button" data-step="-1" aria-label="Adedi azalt">−</button>
-        <input type="number" min="1" step="1" inputmode="numeric" value="${line.quantity}" data-field="quantity" aria-label="Manuel adet">
+        <input type="number" min="1" step="1" inputmode="numeric" value="${line.quantity}" data-field="quantity" aria-label="Adet">
         <button type="button" data-step="1" aria-label="Adedi artır">+</button>
-      </div></label></div>
-      <label>Birim fiyat<input type="text" inputmode="decimal" value="${line.unitPrice.toFixed(2)}" data-field="price"></label>
-      <label>İskonto %<input type="text" inputmode="decimal" value="${line.discountPct}" data-field="discount"></label></div>
-      <div class="line-total">Satır toplamı: ${esc(money(lineTotals(line).total, line.product.paraBirimi))}</div>`;
+      </div>
+      <details class="sale-line-more"><summary aria-label="Fiyat ve iskonto düzenle" title="Fiyat / iskonto">⋯</summary>
+        <div class="sale-line-edit">
+          <label>Fiyat<input type="text" inputmode="decimal" value="${line.unitPrice.toFixed(2)}" data-field="price"></label>
+          <label>İskonto %<input type="text" inputmode="decimal" value="${line.discountPct}" data-field="discount"></label>
+        </div>
+      </details>
+      <button class="remove-button" type="button" data-remove aria-label="Ürünü sil" title="Ürünü sil">×</button>
+    </div>`;
     el.querySelector('[data-remove]').addEventListener('click', () => {
       state.cart.delete(line.id); renderCart(); renderCartBar();
     });
@@ -471,18 +478,16 @@ function renderCart() {
     dom.cartItems.append(el);
   }
   const sum = totals(), currency = cartCurrency();
-  dom.totals.innerHTML = `<div class="total-row"><span>Ara toplam</span><strong>${esc(money(sum.base, currency))}</strong></div>
-    <div class="total-row"><span>İskonto</span><strong>−${esc(money(sum.discount, currency))}</strong></div>
-    <div class="total-row"><span>Dahil olan KDV</span><strong>${esc(money(sum.vat, currency))}</strong></div>
-    <div class="total-row grand"><span>Ödenecek tutar</span><strong>${esc(money(sum.total, currency))}</strong></div>`;
+  dom.totals.innerHTML = `<div class="total-row grand"><span>Toplam</span><strong>${esc(money(sum.total, currency))}</strong></div>`;
   dom.complete.disabled = !state.cart.size || state.saving;
   updatePayment();
 }
 function updatePayment() {
   const selected = document.querySelector('input[name="payment"]:checked').value;
-  $('cashBox').hidden = selected !== 'Nakit';
+  $('cashOption').hidden = selected !== 'Nakit';
   $('creditBox').hidden = selected !== 'Veresiye';
-  if (selected === 'Nakit' && !dom.cash.value.trim()) {
+  // Default to exact payment until the cashier explicitly enters a received amount.
+  if (selected === 'Nakit' && dom.cash.dataset.edited !== 'true') {
     dom.cash.value = totals().total.toFixed(2);
   }
   const change = parseLocaleNumber(dom.cash.value, 0) - totals().total;
@@ -700,7 +705,8 @@ async function completeSale() {
     await serializeMutation(() => saveSale(record));
     for (const line of record.items) state.sold.set(line.id, (state.sold.get(line.id) || 0) + line.quantity);
     state.lastSale = record; state.cart.clear();
-    dom.cash.value = ''; dom.credit.value = '';
+    dom.cash.value = ''; delete dom.cash.dataset.edited; dom.credit.value = '';
+    $('cashOption').open = false;
     dom.cartDialog.close();
     renderProducts(); renderCartBar(); renderHome();
     channel?.postMessage('sale-updated');
@@ -1041,7 +1047,7 @@ async function setup() {
   $('excelFile').addEventListener('change', () => selectExcelFile($('excelFile').files[0]));
   $('confirmExcelImport').addEventListener('click', confirmExcelImport);
   document.querySelectorAll('input[name="payment"]').forEach(el => el.addEventListener('change', updatePayment));
-  dom.cash.addEventListener('input', updatePayment);
+  dom.cash.addEventListener('input', () => { dom.cash.dataset.edited = 'true'; updatePayment(); });
   dom.complete.addEventListener('click', completeSale);
   $('historyButton').addEventListener('click', showHistory);
   $('exportSales').addEventListener('click', exportHistory);
