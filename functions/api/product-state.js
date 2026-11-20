@@ -86,7 +86,7 @@ export async function onRequestGet({request,env}) {
     const results=rows.results||[];
     const page=results.slice(0,1000);
     return json({products:page.map(row=>JSON.parse(row.payload)), bulkAt:meta?.value||null,
-      next:results.length>1000?page[page.length-1].id:null});
+      next:results.length>1000?page[page.length-1].id:null,expected:19096});
   } catch {
     return error('Merkezi veritabanı okunamadı; D1 şemasını kontrol edin.',503);
   }
