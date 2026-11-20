@@ -2,6 +2,33 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import 'fake-indexeddb/auto';
 
+// Mock the network boundary; IndexedDB is intentionally not authoritative.
+const server=new Map();
+let bulkAt=null;
+globalThis.window={prompt:()=>'test-secret-with-more-than-24-characters'};
+globalThis.fetch=async (url,options={})=>{
+  const parsed=new URL(url,'https://example.test');
+  if(options.method==='GET'){
+    const after=parsed.searchParams.get('after')||'';
+    return Response.json({products:[...server.values()].filter(p=>p.id>after),
+      bulkAt,next:null});
+  }
+  const body=JSON.parse(options.body);
+  if(body.action==='upsert'){
+    server.set(body.product.id,body.product);
+    return Response.json({ok:true,product:body.product});
+  }
+  if(body.action==='bulk-deactivate'){
+    bulkAt=new Date().toISOString();
+    return Response.json({ok:true,at:bulkAt});
+  }
+  if(body.action==='import'){
+    for(const p of body.products)server.set(p.id,p);
+    return Response.json({ok:true,count:body.products.length});
+  }
+  return Response.json({error:'unknown'},{status:400});
+};
+
 test('passive state persists after DB is reopened and catalogue is refreshed', async () => {
   const idb = await import('../public/idb.js');
   const initial = {
