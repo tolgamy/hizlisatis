@@ -2,9 +2,9 @@
  * Product catalog JSON and IndexedDB may cache reads but must never authorize writes.
  */
 let writeKey='';
-async function call(method='GET',body=null) {
+async function call(method='GET',body=null,query='') {
   const headers={'Accept':'application/json'};
-  if(body){ 
+  if(body&&typeof body==='object'){ 
     if(!writeKey){
       const answer=window.prompt('Merkezi veritabanı yönetim anahtarını girin (Cloudflare PRODUCT_WRITE_KEY):');
       if(!answer) throw Error('Sunucu yönetim anahtarı gerekli. Kayıt yapılmadı.');
@@ -15,7 +15,7 @@ async function call(method='GET',body=null) {
   }
   let response;
   try {
-    response=await fetch('/api/product-state'+(typeof body==='string'?body:''),{
+    response=await fetch('/api/product-state'+query,{
       method,headers,body:body&&typeof body==='object'?JSON.stringify(body):undefined,
       cache:'no-store',credentials:'same-origin'
     });
@@ -31,7 +31,7 @@ export async function fetchRemoteProducts() {
   const products=[],seen=new Set();
   let after='',bulkAt=null;
   for(let page=0;page<50;page++) {
-    const data=await call('GET','?after='+encodeURIComponent(after));
+    const data=await call('GET',null,'?after='+encodeURIComponent(after));
     if(!data||!Array.isArray(data.products)) throw Error('Sunucudan geçersiz ürün verisi geldi.');
     bulkAt=data.bulkAt||null;
     for(const item of data.products) {
