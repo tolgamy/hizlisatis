@@ -1,6 +1,19 @@
 const DB_NAME = 'cep-hizli-satis-db';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 let singleton;
+
+/** A separate ledger prevents catalog refresh/import from resetting passive/deleted states. */
+function lifecycleRecord(product) {
+  return { id: product.id, lifecycleStatus: product.lifecycleStatus || 'active',
+    everActivated: Boolean(product.everActivated), deletedFrom: product.deletedFrom || null,
+    statusChangedAt: product.statusChangedAt || null };
+}
+export function mergeProductLifecycle(product, record) {
+  if (!record) return product;
+  return { ...product, lifecycleStatus: record.lifecycleStatus,
+    everActivated: Boolean(record.everActivated), deletedFrom: record.deletedFrom || null,
+    statusChangedAt: record.statusChangedAt || null };
+}
 
 function requestPromise(request) {
   return new Promise((resolve, reject) => {
@@ -31,6 +44,17 @@ export function openDB() {
         manual.createIndex('barkod', 'barkod');
         manual.createIndex('variantKey', 'variantKey');
       }
+      if (!db.objectStoreNames.contains('productLifecycle')) {
+        const lifecycle = db.createObjectStore('productLifecycle', { keyPath: 'id' });
+        // One-time upgrade: preserve statuses saved before the independent ledger existed.
+        const cursor = req.transaction.objectStore('excelProducts').openCursor();
+        cursor.onsuccess = () => {
+          const row = cursor.result;
+          if (!row) return;
+          if (row.value.lifecycleStatus) lifecycle.put(lifecycleRecord(row.value));
+          row.continue();
+        };
+      }
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
@@ -41,17 +65,22 @@ export function openDB() {
 
 export async function getSnapshot() {
   const db = await openDB();
-  const tx = db.transaction(['excelProducts', 'adjustments', 'meta'], 'readonly');
+  const tx = db.transaction(['excelProducts', 'adjustments', 'meta', 'productLifecycle'], 'readonly');
   const products = requestPromise(tx.objectStore('excelProducts').getAll());
   const adjustments = requestPromise(tx.objectStore('adjustments').getAll());
+  const lifecycle = requestPromise(tx.objectStore('productLifecycle').getAll());
   const bundledMeta = requestPromise(tx.objectStore('meta').get('bundledCatalog'));
   const excelMeta = requestPromise(tx.objectStore('meta').get('excelImport'));
   const lifecycleMeta = requestPromise(tx.objectStore('meta').get('initialDeactivation'));
-  const [catalog, stock, bundled, imported, lifecycle] = await Promise.all([products,adjustments,bundledMeta,excelMeta,lifecycleMeta]);
+  const [stored, stock, statuses, bundled, imported, firstPass] =
+    await Promise.all([products, adjustments, lifecycle, bundledMeta, excelMeta, lifecycleMeta]);
+  const ledger = new Map(statuses.map(row => [row.id, row]));
+  const catalog = stored.map(product => mergeProductLifecycle(product, ledger.get(product.id)));
   return { products: catalog, adjustments: stock, meta: null,
     excelCount: catalog.filter(p => p.source !== 'bundle').length,
     bundleCount: catalog.filter(p => p.source === 'bundle').length,
-    bundleMeta: bundled?.value ?? null, excelMeta: imported?.value ?? null, lifecycleMeta: lifecycle?.value ?? null };
+    bundleMeta: bundled?.value ?? null, excelMeta: imported?.value ?? null,
+    lifecycleMeta: firstPass?.value ?? null };
 }
 
 /** Atomically replace only bundled products and remove the deprecated XML store.
@@ -118,24 +147,28 @@ export async function upsertExcelProducts(products, filename) {
   if (!Array.isArray(products) || !products.length) throw new Error('İçe aktarılacak ürün bulunamadı.');
   const db = await openDB();
   return new Promise((resolve, reject) => {
-    const tx = db.transaction(['excelProducts', 'meta'], 'readwrite');
+    const tx = db.transaction(['excelProducts', 'meta', 'productLifecycle'], 'readwrite');
     tx.oncomplete = () => resolve();
     tx.onabort = () => reject(tx.error || new Error('Excel katalog kaydı başarısız.'));
-    tx.onerror = () => {};
     const store = tx.objectStore('excelProducts');
-    for (const product of products) {
-      const oldReq = product.barkod ? store.index('barkod').get(product.barkod) : store.get(product.id);
-      oldReq.onsuccess = () => {
-        const old = oldReq.result;
-        const target = old && old.id !== product.id ? { ...product, id:old.id } : product;
-        store.put(old && product.lifecycleStatus === undefined ? { ...target,
-          lifecycleStatus: old.lifecycleStatus, everActivated: old.everActivated,
-          deletedFrom: old.deletedFrom, statusChangedAt: old.statusChangedAt } : target);
-      };
-    }
-    tx.objectStore('meta').put({ key: 'excelImport', value: {
-      updatedAt: new Date().toISOString(), filename, importedCount: products.length
-    }});
+    const statuses = tx.objectStore('productLifecycle').getAll();
+    statuses.onsuccess = () => {
+      const ledger = new Map(statuses.result.map(row => [row.id, row]));
+      for (const product of products) {
+        const oldReq = product.barkod ? store.index('barkod').get(product.barkod) : store.get(product.id);
+        oldReq.onsuccess = () => {
+          const old = oldReq.result;
+          const target = old && old.id !== product.id ? { ...product, id: old.id } : product;
+          const previous = old && product.lifecycleStatus === undefined
+            ? { ...target, lifecycleStatus: old.lifecycleStatus, everActivated: old.everActivated,
+                deletedFrom: old.deletedFrom, statusChangedAt: old.statusChangedAt } : target;
+          store.put(mergeProductLifecycle(previous, ledger.get(target.id)));
+        };
+      }
+      tx.objectStore('meta').put({ key: 'excelImport', value: {
+        updatedAt: new Date().toISOString(), filename, importedCount: products.length
+      }});
+    };
   });
 }
 
@@ -175,8 +208,9 @@ export async function saveManagedProduct(product, action = 'edit') {
   if (!product || !product.id || !product.baslik) throw Error('Ürün adı veya kimliği eksik.');
   const db = await openDB();
   return new Promise((resolve,reject) => {
-    const tx=db.transaction(['excelProducts','productHistory'],'readwrite');
+    const tx=db.transaction(['excelProducts','productHistory','productLifecycle'],'readwrite');
     const store=tx.objectStore('excelProducts'), history=tx.objectStore('productHistory');
+    const lifecycle=tx.objectStore('productLifecycle');
     tx.oncomplete=()=>resolve();
     tx.onabort=()=>reject(tx.error||Error('Ürün kaydedilemedi veya barkod zaten kayıtlı.'));
     const previousReq=store.get(product.id);
@@ -185,6 +219,7 @@ export async function saveManagedProduct(product, action = 'edit') {
       const check = product.barkod ? store.index('barkod').get(product.barkod) : null;
       const write=()=>{
         store.put(product);
+        lifecycle.put(lifecycleRecord(product));
         const summary=p=>p ? { name:p.baslik, barcode:p.barkod, price:p.satisFiyati,
           category:p.kategori, vat:p.kdv, status:p.lifecycleStatus||'active' } : null;
         history.add({ productId:product.id, at:new Date().toISOString(), action,
@@ -203,8 +238,9 @@ export async function saveManagedProduct(product, action = 'edit') {
 export async function initiallyDeactivateAll() {
   const db = await openDB();
   return new Promise((resolve,reject)=>{
-    const tx=db.transaction(['excelProducts','meta','productHistory'],'readwrite');
+    const tx=db.transaction(['excelProducts','meta','productHistory','productLifecycle'],'readwrite');
     const products=tx.objectStore('excelProducts'), meta=tx.objectStore('meta');
+    const lifecycle=tx.objectStore('productLifecycle');
     let total=0;
     const at=new Date().toISOString();
     tx.oncomplete=()=>resolve(total);
@@ -222,9 +258,13 @@ export async function initiallyDeactivateAll() {
         }
         const p=entry.value;
         if(!p.lifecycleStatus || p.lifecycleStatus==='active') {
-          entry.update({...p,lifecycleStatus:p.everActivated?'later-inactive':'initial-inactive',statusChangedAt:at,
-            everActivated:!!p.everActivated});
+          const updated={...p,lifecycleStatus:p.everActivated?'later-inactive':'initial-inactive',
+            statusChangedAt:at,everActivated:!!p.everActivated};
+          entry.update(updated);
+          lifecycle.put(lifecycleRecord(updated));
           total++;
+        } else if (p.lifecycleStatus) {
+          lifecycle.put(lifecycleRecord(p));
         }
         entry.continue();
       };

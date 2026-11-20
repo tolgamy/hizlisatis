@@ -63,3 +63,8 @@ Ana sayfa yalnızca 12 görsel kategori kartı gösterir. Kullanıcının belirl
 
 ## Termal fiş yazdırma (v3.3.1)
 Ağ/AirPrint için fiş 80 mm (tercihe göre 58 mm) genişlikte ayrı bir önizleme sekmesinde açılır. Fişi Yazdır düğmesi sistem yazdırma ekranını çağırır. Yazdırma sayfa yüksekliği fişin gerçek boyuna göre ölçülür. AirPrint ve yazıcı sürücüsündeki kağıt boyutu ayrıca 80/58 mm olarak seçilmelidir; tarayıcı yazıcının A4 seçimini zorla değiştiremez. Bluetooth ESC/POS ve WhatsApp paylaşımı korunur.
+
+## v3.3.2 — Kalıcı pasif ürünler ve barkod kamerası
+- Ürün yaşam döngüsü durumları katalogdan bağımsız `productLifecycle` IndexedDB deposuna da atomik kaydedilir. Eski durumlar veritabanı yükseltmesi sırasında taşınır ve Excel içe aktarımında korunur.
+- Barkod kamerası html5-qrcode kütüphanesinin farklı global adlarını destekler. Kamera seçimi başarısız olursa arka kameranın aygıt kimliğiyle yeniden denenir. QR kodu okuma desteklenen biçimler arasına eklenmez.
+- Çevrimdışı PWA kabuğunun sürümü yenilendi. Cihaz verileri yalnızca aynı tarayıcı/profilde korunur; gizli modda veya farklı cihazda otomatik senkronize olmaz.

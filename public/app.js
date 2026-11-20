@@ -10,6 +10,7 @@ import { fetchBundledCatalog } from './bundled-catalog.js';
 import { findBarcodeProduct } from './barcode-lookup.js';
 import { applyProductImage, detectImageResizing } from './image-delivery.js';
 import { isActive, productStatus } from './product-lifecycle.js';
+import { getBarcodeLibrary, supportedBarcodeFormats, acceptsBarcodeResult } from './barcode-scanner.js';
 import { createProductManager } from './product-management.js';
 
 const $ = id => document.getElementById(id);
@@ -885,12 +886,12 @@ async function stopScanner() {
 }
 let qrLibraryPromise;
 function ensureQrLibrary() {
-  if (window.Html5Qrcode) return Promise.resolve();
+  if (getBarcodeLibrary(window).Reader) return Promise.resolve();
   if (qrLibraryPromise) return qrLibraryPromise;
   qrLibraryPromise = new Promise((resolve, reject) => {
     const script = document.createElement('script');
     script.src = '/vendor/html5-qrcode.min.js';
-    script.onload = () => window.Html5Qrcode ? resolve() : reject(new Error('Barkod kütüphanesi bulunamadı.'));
+    script.onload = () => getBarcodeLibrary(window).Reader ? resolve() : reject(new Error('Barkod kütüphanesi bulunamadı.'));
     script.onerror = () => { script.remove(); reject(new Error('Barkod modülü yüklenemedi. İnternet bağlantısını kontrol edin.')); };
     document.head.append(script);
   }).catch(error => { qrLibraryPromise = null; throw error; });
@@ -908,10 +909,9 @@ function cameraError(error) {
   return `Kamera/okuyucu hatası: ${detail.slice(0, 150)}`;
 }
 function desiredFormats() {
-  const formats = window.Html5QrcodeSupportedFormats || {};
-  return ['EAN_13', 'EAN_8', 'UPC_A', 'UPC_E', 'CODE_128', 'CODE_39', 'ITF', 'CODABAR']
-    .map(name => formats[name]).filter(value => value != null);
+  return supportedBarcodeFormats(window);
 }
+
 async function startNativeScanner(session) {
   if (!('BarcodeDetector' in window)) throw new Error('Yerel barkod algılayıcı desteklenmiyor.');
   const supported = typeof BarcodeDetector.getSupportedFormats === 'function'
@@ -963,19 +963,37 @@ async function startScanner() {
     if (!session.active) return;
     const formats = desiredFormats();
     if (!formats.length) throw new Error('Çizgili barkod desteği bulunamadı.');
-    const scanner = new window.Html5Qrcode('html5-reader', {
-      verbose: false,
-      ...(formats.length ? { formatsToSupport: formats } : {}),
-      useBarCodeDetectorIfSupported: false
-    });
+    const { Reader } = getBarcodeLibrary(window);
+    if (!Reader) throw new Error('Barkod okuyucu yüklenemedi.');
+    const options = { verbose: false, formatsToSupport: formats,
+      useBarCodeDetectorIfSupported: false };
+    const config = { fps: 12, disableFlip: true };
+    const onSuccess = (decoded, details) => {
+      if (session.active && acceptsBarcodeResult(details)) scanned(decoded);
+    };
+    let scanner = new Reader('html5-reader', options);
     session.lib = scanner;
-    await scanner.start({ facingMode: 'environment' },
-      { fps: 12, disableFlip: true },
-      (decoded,details) => {
-        const format=String(details?.result?.format?.formatName || '');
-        if (session.active && !/QR[_ ]?CODE/i.test(format)) scanned(decoded);
-      }, () => {});
-    if (!session.active) { try { await scanner.stop(); } catch {} return; }
+    try {
+      await scanner.start({ facingMode: 'environment' }, config, onSuccess, () => {});
+    } catch (facingError) {
+      // Some iPhones/browsers reject facingMode but allow an explicit device ID.
+      try { await scanner.stop(); } catch {}
+      try { scanner.clear(); } catch {}
+      session.lib = null;
+      if (!session.active) return;
+      const cameras = await Reader.getCameras().catch(() => []);
+      const camera = cameras.find(item => /back|rear|environment|arka/i.test(item.label || ''))
+        || cameras[cameras.length - 1];
+      if (!camera) throw facingError;
+      scanner = new Reader('html5-reader', options);
+      session.lib = scanner;
+      await scanner.start(camera.id, config, onSuccess, () => {});
+    }
+    if (!session.active) {
+      try { await scanner.stop(); } catch {}
+      try { scanner.clear(); } catch {}
+      return;
+    }
     // No narrow qrbox restriction: 1D retail barcodes need a wide region.
     dom.scanMessage.textContent = 'Barkodu kadraja tutun';
     updateTorchButton(Boolean(torchFeature(session)),false);
@@ -1005,8 +1023,10 @@ async function scanBarcodePhoto(file) {
     await ensureQrLibrary();
     const formats = desiredFormats();
     if (!formats.length) throw new Error('Çizgili barkod desteği bulunamadı.');
-    const lib = new window.Html5Qrcode('html5-reader', {
-      verbose: false, ...(formats.length ? { formatsToSupport: formats } : {}),
+    const { Reader } = getBarcodeLibrary(window);
+    if (!Reader) throw new Error('Barkod okuyucu yüklenemedi.');
+    const lib = new Reader('html5-reader', {
+      verbose: false, formatsToSupport: formats,
       useBarCodeDetectorIfSupported: false
     });
     state.scanner = { active: true, lib, stream: null, timer: null };
