@@ -15,105 +15,45 @@
 </head>
 <body>
   <div id="app">
-    <header class="topbar">
-      <div class="brandline">
-        <div class="brandmark" aria-hidden="true">₺</div>
-        <div><strong>Cep Hızlı Satış</strong><small>Mobil POS · v2.0</small></div>
-        <span id="connectionStatus" class="connection" role="status">Bağlanıyor</span>
-      </div>
-      <div class="searchline">
-        <label for="search" class="sr-only">Ürün, SKU veya barkod ara</label>
-        <div class="searchbox">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg>
-          <input id="search" type="search" inputmode="search" placeholder="Barkod, ürün kodu, ad, marka..." autocomplete="off" enterkeyhint="done">
-          <kbd class="search-hint" aria-hidden="true">↵</kbd>
-        </div>
-        <button id="scanButton" class="iconbutton scanbutton" type="button" aria-label="Kamera ile barkod oku" title="Barkod oku">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M8 9v6m3-8v10m3-8v6m3-6v6"/></svg>
-        </button>
-      </div>
-      <div class="barcode-launch-row">
-        <button id="toggleBarcodePanel" class="barcode-launch" type="button" aria-expanded="false" aria-controls="barcodePanel">
-          <span class="barcode-launch-icon" aria-hidden="true">▥</span><span><strong>Barkodla hızlı satış</strong><small>Okut, ürünü anında sepete ekle</small></span><span class="launch-chevron" aria-hidden="true">⌄</span>
-        </button>
-      </div>
-      <form id="barcodePanel" class="barcode-panel" hidden>
-        <label for="quickBarcode" class="sr-only">Barkodu yaz veya el terminali ile okut</label>
-        <input id="quickBarcode" type="text" inputmode="search" autocomplete="off" placeholder="Barkod yazın veya okutun">
-        <button class="barcode-manual-add" type="submit">+ Ekle</button>
-        <button id="quickScanButton" class="barcode-camera" type="button" aria-label="Kamerayı aç">⌗</button>
-      </form>
-      <div class="quick-actions">
-        <button id="excelImportButton" type="button" class="excel-quick" aria-label="Excel dosyasından toplu ürün yükle">▤ Excel Ürün Yükle</button>
-        <details class="manage-details">
-          <summary>⚙ Ürün Yönetimi</summary>
-          <div class="sync-actions">
-            <a class="smallbutton secondary template-link" href="/urun-yukleme-sablonu.xlsx?v=5" download="Hizlisatis_Urun_Sablonu.xlsx">↓ Excel Şablonu</a>
-            <button id="refreshButton" type="button" class="smallbutton">↻ XML'i Şimdi Yenile</button>
-            <button id="importButton" type="button" class="smallbutton secondary">↑ Yerel XML Yükle</button>
-          </div>
-        </details>
-        <input id="excelFile" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
-        <input id="xmlFile" type="file" accept=".xml,text/xml,application/xml" hidden>
-      </div>
-      <div class="syncline"><span id="syncLabel" class="sync-label">Yerel katalog kontrol ediliyor...</span></div>
+    <header class="topbar clean-topbar">
+      <div class="brandline"><div class="brandmark" aria-hidden="true">₺</div><div><strong>Hizlisatis</strong><small>Mobil POS · v3.0</small></div><span id="connectionStatus" class="connection" role="status"></span></div>
+      <div class="searchline"><label for="search" class="sr-only">Ürün veya barkod ara</label><div class="searchbox"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><input id="search" type="search" placeholder="Ürün veya barkod ara" autocomplete="off" enterkeyhint="search"></div><button id="scanButton" class="iconbutton scanbutton" type="button" aria-label="Barkod okut">⌗</button></div>
+      <span id="syncLabel" class="sr-only" role="status"></span>
+      <input id="excelFile" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
     </header>
 
-    <main class="content" id="mainContent">
-      <section id="homeView" class="home-view" aria-label="Ana sayfa">
-        <div class="home-hero">
-          <span class="hero-eyebrow">HIZLISATIS · MOBİL KASA</span>
-          <h1>Satışın en hızlı hali.</h1>
-          <p>Ürün ara, barkod okut, satışını saniyeler içinde tamamla.</p>
-          <div class="hero-actions">
-            <button id="homeStartSale" type="button" class="hero-primary">▣ Satış Yap <span aria-hidden="true">↗</span></button>
-            <button id="homeScan" type="button" class="hero-secondary" aria-label="Barkod okut">⌗ Tara</button>
-          </div>
-          <div class="hero-orb" aria-hidden="true"></div>
-        </div>
-        <div class="home-stats" aria-label="Katalog özeti">
-          <div class="stat-tile"><span>TOPLAM ÜRÜN</span><strong id="homeProductCount">0</strong><small>Satış kataloğu</small></div>
-          <div class="stat-tile"><span>GÖRSELLİ ÜRÜN</span><strong id="homeImageCount">0</strong><small>Fotoğraflı kayıt</small></div>
-          <div class="stat-tile"><span>STOKTA</span><strong id="homeStockCount">0</strong><small>Satışa hazır</small></div>
-        </div>
-        <div class="section-heading"><div><span class="section-kicker">İŞLEMLER</span><h2>Hızlı erişim</h2></div><span class="section-subtle">Tek dokunuşla</span></div>
-        <div class="dashboard-grid">
-          <button id="homeBrowse" class="dashboard-tile" type="button"><span class="tile-icon blue">▦</span><strong>Ürünler</strong><small>Görselli katalog</small></button>
-          <button id="homeCategories" class="dashboard-tile" type="button"><span class="tile-icon teal">☰</span><strong>Kategoriler</strong><small>Ürün grupları</small></button>
-          <button id="homeExcel" class="dashboard-tile" type="button"><span class="tile-icon orange">⇧</span><strong>Excel Yükle</strong><small>Toplu ürün ekle</small></button>
-          <button id="homeHistory" class="dashboard-tile" type="button"><span class="tile-icon purple">▤</span><strong>Satış Geçmişi</strong><small>Fiş ve kayıtlar</small></button>
-        </div>
-        <div class="section-heading home-category-heading"><div><span class="section-kicker">KATEGORİLER</span><h2>Ürünleri keşfet</h2></div><button id="homeAllCategories" class="text-action" type="button">Tümünü aç ›</button></div>
-        <div id="homeCategoryShortcuts" class="home-category-shortcuts"></div>
-        <p class="home-footer-note">Çevrimdışı satış hazır · Ürünler ve fişler cihazda saklanır</p>
+    <main class="content clean-content" id="mainContent">
+      <section id="homeView" class="home-view clean-home" aria-label="Ana sayfa">
+        <div class="clean-home-actions"><button id="homeStartSale" class="clean-primary" type="button">⌗ Satış Yap</button><button id="homeBrowse" type="button" class="clean-secondary">▦ Ürünler</button></div>
+        <div class="clean-section-title"><h1>Kategoriler</h1><button id="homeAllCategories" type="button">Tümü ›</button></div>
+        <div id="homeCategoryShortcuts" class="home-category-shortcuts category-photo-grid"></div>
+        <button id="homeCategories" class="clean-see-all" type="button">Tüm Kategoriler</button>
       </section>
-
-      <section id="catalogView" class="catalog-view" aria-label="Ürün kataloğu" hidden>
-        <section class="catalog-header">
-          <div class="section-kicker">ÜRÜN KATALOĞU</div>
-          <div class="catalog-heading"><div><h1 id="browseHeading">Ürünler</h1><span id="resultCount">0 ürün</span></div><span id="imageHealth" class="image-health" aria-live="polite"></span></div>
-          <div class="catalog-toolbar">
-            <button id="openCategories" type="button" class="browse-menu-button" aria-haspopup="dialog" aria-controls="categoryDialog">☰ Kategoriler</button>
-            <button id="showAllProducts" type="button" class="browse-all-button">Tümü</button>
-            <div class="view-switch" role="group" aria-label="Ürün görünümü">
-              <button id="viewGrid" type="button" aria-pressed="true" title="Kart görünümü" aria-label="Kart görünümü">▦</button>
-              <button id="viewList" type="button" aria-pressed="false" title="Liste görünümü" aria-label="Liste görünümü">☷</button>
-            </div>
-          </div>
-          <div class="catalog-filter-row">
-            <button id="onlyInStock" type="button" class="stock-filter" aria-pressed="false">✓ Stoktakiler</button>
-            <label class="sort-label" for="sortProducts">Sırala <select id="sortProducts"><option value="name">Ürün adı A–Z</option><option value="price-low">Fiyat: artan</option><option value="price-high">Fiyat: azalan</option><option value="stock">Stok: fazla</option></select></label>
-          </div>
-          <div id="activeFilters" class="active-filters" hidden></div>
+      <section id="catalogView" class="catalog-view clean-catalog" aria-label="Ürünler" hidden>
+        <section id="categoryBrowser" class="clean-categories">
+          <div class="clean-page-head"><button id="categoryBack" type="button" class="clean-back" aria-label="Üst kategoriye dön">‹</button><h1 id="categoryTrailName">Kategoriler</h1></div>
+          <label class="sr-only" for="categorySearch">Kategori ara</label><input id="categorySearch" class="clean-category-search" type="search" placeholder="Kategori ara" autocomplete="off">
+          <div id="categoryTree" class="category-photo-grid category-grid-page" aria-label="Kategoriler"></div>
+          <button id="categoryAllProducts" type="button" class="clean-see-all">Tüm Ürünleri Göster</button>
         </section>
-        <section id="browseWelcome" class="browse-welcome" aria-label="Ürünleri keşfet">
-          <span class="welcome-icon" aria-hidden="true">☰</span><h2>Ürünlerinizi keşfedin</h2>
-          <p>Bir kategori seçin veya barkod / ürün adı arayın.</p>
-          <button id="welcomeCategories" type="button" class="browse-menu-button">Kategorileri Aç</button>
+        <section id="productResults" hidden>
+          <div class="clean-page-head"><button id="catalogBack" type="button" class="clean-back" aria-label="Kategorilere dön">‹</button><h1 id="browseHeading">Ürünler</h1><span id="resultCount" class="clean-result-count"></span></div>
+          <div class="clean-catalog-tools"><div class="view-switch" role="group" aria-label="Görünüm"><button id="viewGrid" type="button" aria-pressed="true" aria-label="Kart görünümü">▦</button><button id="viewList" type="button" aria-pressed="false" aria-label="Liste görünümü">☷</button></div><button id="onlyInStock" type="button" class="stock-filter" aria-pressed="false">Stokta</button><label class="sr-only" for="sortProducts">Sırala</label><select id="sortProducts" aria-label="Sırala"><option value="name">A–Z</option><option value="price-low">Ucuz</option><option value="price-high">Pahalı</option><option value="stock">Stok</option></select></div>
+          <section id="productList" class="products grid-view" aria-label="Ürünler"></section><button id="loadMoreProducts" class="load-more" type="button" hidden>Daha fazla göster</button><p id="productLimit" class="product-limit" hidden></p>
+          <span id="imageHealth" class="sr-only"></span>
         </section>
-        <section id="productList" class="products grid-view" aria-label="Filtrelenen ürünler" hidden></section>
-        <button id="loadMoreProducts" class="load-more" type="button" hidden>Daha fazla ürün göster</button>
-        <p id="productLimit" class="product-limit" hidden></p>
+      </section>
+      <section id="settingsView" class="settings-view" aria-label="Ayarlar" hidden>
+        <h1>Ayarlar</h1>
+        <div class="settings-links">
+          <button id="settingsExcel" type="button"><span>▤</span> Excel Ürün Yükle <b>›</b></button>
+          <button id="settingsManage" type="button"><span>▦</span> Ürün Yönetimi <b>›</b></button>
+          <button id="settingsHistory" type="button"><span>◷</span> Satış Geçmişi <b>›</b></button>
+          <button id="settingsExport" type="button"><span>↓</span> Satışları CSV İndir <b>›</b></button>
+          <a href="/urun-yukleme-sablonu.xlsx" download="Hizlisatis_Urun_Sablonu.xlsx"><span>▤</span> Excel Şablonu <b>›</b></a>
+        </div>
+        <div class="settings-options"><label for="settingsPrintWidth">Fiş Genişliği</label><select id="settingsPrintWidth"><option value="80">80 mm</option><option value="58">58 mm</option></select></div>
+        <p id="catalogSource" class="settings-catalog-count">Katalog yükleniyor...</p>
       </section>
     </main>
 
@@ -127,32 +67,10 @@
         <button id="navHome" type="button" class="nav-item active" aria-current="page"><span aria-hidden="true">⌂</span><small>Ana Sayfa</small></button>
         <button id="navProducts" type="button" class="nav-item"><span aria-hidden="true">▦</span><small>Ürünler</small></button>
         <button id="navSale" type="button" class="nav-item nav-sale"><span aria-hidden="true">⊕</span><small>Satış</small></button>
-        <button id="navHistory" type="button" class="nav-item"><span aria-hidden="true">▤</span><small>Geçmiş</small></button>
+        <button id="navSettings" type="button" class="nav-item"><span aria-hidden="true">⚙</span><small>Ayarlar</small></button>
       </nav>
-      <span id="catalogSource" class="sr-only">Katalog bekleniyor</span>
-      <button id="historyButton" class="sr-only-action" type="button" tabindex="-1">Satış Geçmişi</button>
     </div>
   </div>
-
-  <dialog id="categoryDialog" class="category-dialog" aria-labelledby="categoryTitle">
-    <div class="category-panel">
-      <div class="category-panel-top">
-        <button type="button" id="closeCategories" class="category-close" aria-label="Kategorileri kapat">×</button>
-        <strong id="categoryTitle">Hizlisatis</strong>
-        <button type="button" id="menuExcelImport" class="category-excel" aria-label="Excel ürün yükleme">▤ Excel</button>
-      </div>
-      <div class="category-search-wrap">
-        <label for="menuCategorySearch" class="sr-only">Kategori ara</label>
-        <input id="menuCategorySearch" type="search" placeholder="Kategori ara..." autocomplete="off">
-      </div>
-      <nav aria-label="Ürün kategorileri" class="category-nav">
-        <div id="categoryTrail" class="category-trail" hidden><button id="categoryBack" type="button">‹ Geri</button><strong id="categoryTrailName"></strong></div>
-        <button id="menuAllProducts" type="button" class="menu-all-products">Tüm ürünler <span aria-hidden="true">›</span></button>
-        <div id="categoryTree" class="category-tree category-photo-grid"></div>
-        <details class="menu-brands"><summary>Markaya göre filtrele</summary><div id="brandFilters" class="drawer-chips" aria-label="Marka filtreleri"></div></details>
-      </nav>
-    </div>
-  </dialog>
 
   <dialog id="cartDialog" class="sheet sale-sheet" aria-labelledby="cartTitle">
     <div class="sheet-header sale-sheet-header">
@@ -198,31 +116,28 @@
 
   <dialog id="productDetailDialog" class="sheet product-detail-sheet" aria-labelledby="productDetailTitle">
     <div class="sheet-header"><h2 id="productDetailTitle">Ürün Detayı</h2><button type="button" class="closebutton" data-close="productDetailDialog" aria-label="Kapat">×</button></div>
-    <div class="detail-body"><img id="detailImage" alt="Ürün görseli" src="/icons/placeholder.svg"><div id="detailBrand" class="detail-brand"></div><h3 id="detailName"></h3><p id="detailBarcode" class="detail-barcode"></p><div id="detailMeta" class="detail-meta"></div><div class="detail-footer"><strong id="detailPrice"></strong><button id="detailAdd" class="primary-button" type="button">+ Sepete Ekle</button></div></div>
+    <div class="detail-body"><div class="detail-media"><span id="detailEmoji" class="detail-emoji" aria-hidden="true">🛒</span><img id="detailImage" alt="Ürün görseli" src="/icons/placeholder.svg"></div><div id="detailBrand" class="detail-brand"></div><h3 id="detailName"></h3><p id="detailBarcode" class="detail-barcode"></p><div id="detailMeta" class="detail-meta"></div><div class="detail-footer"><strong id="detailPrice"></strong><button id="detailAdd" class="primary-button" type="button">+ Sepete Ekle</button></div></div>
   </dialog>
 
   <dialog id="excelDialog" class="sheet excel-sheet" aria-labelledby="excelTitle">
-    <div class="sheet-header"><h2 id="excelTitle">Excel / Tedarikçi Ürün Yükleme</h2><button type="button" class="closebutton" data-close="excelDialog" aria-label="Kapat">×</button></div>
-    <div class="excel-import-body">
-      <p class="hint"><strong>Resim URL alanı Excel şablonunun D sütunundadır.</strong> Gerçek resim bağlantılarını girin. 2.636 ürün ve 2.634 resim URL&#39;si artık her cihazda otomatik gelen yerleşik katalogdadır. Bu alandan farklı Excel dosyaları ekleyebilirsiniz. Dosyadaki yeni ürünler bu cihazın yerel kataloğuna eklenir. Aynı barkoda sahip ürün güncellenir. XML ürünleri, resim URL'leri ve satış geçmişi silinmez.</p>
-      <div id="excelSummary" class="excel-summary" role="status"></div>
-      <div id="excelErrors" class="excel-errors" hidden></div>
-      <div id="excelPreview" class="excel-preview"></div>
-      <button id="confirmExcelImport" type="button" class="primary-button" disabled>Ürünleri Yükle</button>
-      <p class="hint">Barkodla eşleşen XML ürünlerinde fiyat, stok ve KDV değiştirilmez; Excel'deki görsel URL kullanılır. XML'de olmayan ürünler eklenir. Bu Excel'de KDV sütunu yoksa yeni ürünlerin vergisini kontrol edin. Yükleme yalnız bu cihazda saklanır.</p>
+    <div class="sheet-header"><h2 id="excelTitle">Excel Ürün Yükle</h2><button type="button" class="closebutton" data-close="excelDialog" aria-label="Kapat">×</button></div>
+    <div class="excel-import-body"><div id="excelSummary" class="excel-summary" role="status"></div><div id="excelErrors" class="excel-errors" hidden></div><div id="excelPreview" class="excel-preview"></div><button id="confirmExcelImport" type="button" class="primary-button" disabled>Ürünleri Yükle</button></div>
+  </dialog>
+  <dialog id="manageDialog" class="sheet manage-sheet" aria-labelledby="manageTitle">
+    <div class="sheet-header"><h2 id="manageTitle">Ürün Yönetimi</h2><button type="button" class="closebutton" data-close="manageDialog" aria-label="Kapat">×</button></div>
+    <div class="manage-body"><label class="sr-only" for="manageSearch">Ürün bul</label><input id="manageSearch" type="search" placeholder="Ürün adı veya barkod" autocomplete="off"><div id="manageResults" class="manage-results"></div>
+      <form id="manageEditForm" hidden><h3>Ürünü Düzenle</h3><p id="manageBarcode"></p><label>Ürün adı<input id="manageName" type="text" required></label><label>Satış fiyatı (₺)<input id="managePrice" type="text" inputmode="decimal" placeholder="Fiyat girilmedi"></label><label>Stok adedi <small>(boş bırakılırsa takip edilmez)</small><input id="manageStock" type="number" min="0" step="1" inputmode="numeric"></label><label>Kategori<input id="manageCategory" type="text"></label><label>Görsel URL<input id="manageImage" type="url"></label><div class="manage-form-actions"><button id="manageCancel" type="button">Vazgeç</button><button type="submit">Kaydet</button></div></form>
     </div>
   </dialog>
-
   <dialog id="scanDialog" class="modal" aria-labelledby="scanTitle">
-    <div class="sheet-header"><h2 id="scanTitle">Barkod Tara</h2><div class="scan-header-actions"><button id="scanTorch" type="button" class="scan-torch" aria-label="Flaşı aç" aria-pressed="false" disabled>⚡ Flaş</button><button type="button" class="closebutton" data-close="scanDialog" aria-label="Kapat">×</button></div></div>
-    <p id="scanMessage" class="scan-message" role="status">Kameraya barkodu gösterin.</p>
+    <div class="sheet-header"><h2 id="scanTitle">Barkod Tara</h2><div class="scan-header-actions"><button id="scanTorch" type="button" class="scan-torch" aria-label="Flaşı aç" aria-pressed="false" title="Flaş, cihaz destekliyorsa kullanılabilir" disabled>⚡ Flaş</button><button type="button" class="closebutton" data-close="scanDialog" aria-label="Kapat">×</button></div></div>
+    <p id="scanMessage" class="scan-message" role="status">Barkodu kadraja tutun</p>
     <div id="scannerView" class="scanner-view"><video id="scanVideo" playsinline muted autoplay></video><div id="html5-reader"></div><div class="target-frame" aria-hidden="true"></div></div>
     <form id="scanManualForm" class="scan-manual" autocomplete="off">
-      <label for="scanManualBarcode">Barkod okunmuyorsa numarayı girin</label>
-      <div class="scan-manual-row"><input id="scanManualBarcode" type="text" inputmode="numeric" autocomplete="off" enterkeyhint="done" placeholder="Örn. 8690123456789"><button type="submit">Sepete Ekle</button></div>
+      <label for="scanManualBarcode">Barkod okunmuyorsa numarayı elle girin</label>
+      <div class="scan-manual-row"><input id="scanManualBarcode" type="text" inputmode="numeric" autocomplete="off" enterkeyhint="done" placeholder="Ör. 8690123456789"><button type="submit">Sepete Ekle</button></div>
     </form>
     <div class="scan-tools"><button id="scanRetry" type="button">↻ Kamerayı Yeniden Dene</button><label class="scan-photo-button">▣ Fotoğraftan Oku<input id="scanPhotoFile" type="file" accept="image/*" capture="environment" hidden></label></div>
-
   </dialog>
 
   <dialog id="pickProductDialog" class="sheet product-picker" aria-labelledby="pickProductTitle">

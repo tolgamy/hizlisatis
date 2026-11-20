@@ -30,4 +30,5 @@ jobs:
           test -f public/manifest.json
           test -f public/sw.js
           test -s public/vendor/html5-qrcode.min.js
-          test -f functions/api/products.js
+          test ! -e functions/api/products.js
+          test -f public/catalog/manifest.json

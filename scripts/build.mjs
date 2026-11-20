@@ -18,5 +18,5 @@ if (!source) {
 await mkdir(resolve('public/vendor'), { recursive: true });
 await copyFile(source, resolve('public/vendor/html5-qrcode.min.js'));
 await generateTemplate();
-console.log('Build completed. Static output: public/; Pages Functions: functions/.');
+console.log('Build completed. Static output: public/ (Excel catalogue; no Pages Functions).');
 

@@ -1,4 +1,3 @@
-import { mergeCatalog, variantKey } from './excel-products.js';
 const DB_NAME = 'cep-hizli-satis-db';
 const DB_VERSION = 2;
 let singleton;
@@ -38,96 +37,73 @@ export function openDB() {
 
 export async function getSnapshot() {
   const db = await openDB();
-  const tx = db.transaction(['products', 'excelProducts', 'adjustments', 'meta'], 'readonly');
-  const products = requestPromise(tx.objectStore('products').getAll());
-  const excelProducts = requestPromise(tx.objectStore('excelProducts').getAll());
+  const tx = db.transaction(['excelProducts', 'adjustments', 'meta'], 'readonly');
+  const products = requestPromise(tx.objectStore('excelProducts').getAll());
   const adjustments = requestPromise(tx.objectStore('adjustments').getAll());
-  const meta = requestPromise(tx.objectStore('meta').get('catalog'));
-  const excelMeta = requestPromise(tx.objectStore('meta').get('excelImport'));
   const bundledMeta = requestPromise(tx.objectStore('meta').get('bundledCatalog'));
-  const [catalog, manual, stock, info, imported, bundled] = await Promise.all([
-    products, excelProducts, adjustments, meta, excelMeta, bundledMeta
-  ]);
-  return { products: mergeCatalog(catalog, manual), adjustments: stock, meta: info?.value ?? null,
-    excelCount: manual.filter(p => p.source !== 'bundle').length,
-    bundleCount: manual.filter(p => p.source === 'bundle').length,
+  const excelMeta = requestPromise(tx.objectStore('meta').get('excelImport'));
+  const [catalog, stock, bundled, imported] = await Promise.all([products,adjustments,bundledMeta,excelMeta]);
+  return { products: catalog, adjustments: stock, meta: null,
+    excelCount: catalog.filter(p => p.source !== 'bundle').length,
+    bundleCount: catalog.filter(p => p.source === 'bundle').length,
     bundleMeta: bundled?.value ?? null, excelMeta: imported?.value ?? null };
 }
 
-/** Install the built-in catalogue exactly once per version, without replacing manually
- * uploaded Excel products or deleting offline sales / stock adjustments. */
+/** Atomically replace only bundled products and remove the deprecated XML store.
+ * Device-specific Excel edits and sales persist. Legacy XML stock movements follow
+ * matching barcodes onto their new Excel ids instead of being discarded.
+ */
 export async function installBundledProducts(products, version) {
-  if (!Array.isArray(products) || products.length < 1 || typeof version !== 'string')
-    throw new Error('Yerleşik ürün kataloğu geçersiz.');
-  const db = await openDB();
-  const current = await requestPromise(db.transaction('meta', 'readonly')
-    .objectStore('meta').get('bundledCatalog'));
-  if (current?.value?.version === version) return { installed: false, count: current.value.count };
-  const incoming = new Map(products.map(p => [p.id, p]));
-  if (incoming.size !== products.length) throw new Error('Yerleşik ürün barkodları tekrarlı.');
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(['excelProducts','meta'], 'readwrite');
-    tx.oncomplete = () => resolve({ installed: true, count: products.length });
-    tx.onabort = () => reject(tx.error || new Error('Yerleşik katalog kaydı başarısız.'));
-    const store = tx.objectStore('excelProducts');
-    // A newer bundle replaces only previously bundled rows, not user imports.
-    const getAll = store.getAll();
-    getAll.onsuccess = () => {
-      for (const saved of getAll.result) {
-        if (saved.source === 'bundle' && !incoming.has(saved.id)) store.delete(saved.id);
+  if (!Array.isArray(products) || !products.length || !version) throw Error('Ürün kataloğu geçersiz.');
+  const incoming=new Map(products.map(p=>[p.id,p]));
+  if (incoming.size !== products.length) throw Error('Tekrarlanan ürün barkodu.');
+  const db=await openDB();
+  const savedMeta=await requestPromise(db.transaction('meta','readonly').objectStore('meta').get('bundledCatalog'));
+  if (savedMeta?.value?.version===version) return {installed:false,count:savedMeta.value.count};
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction(['excelProducts','products','adjustments','meta'],'readwrite');
+    tx.oncomplete=()=>resolve({installed:true,count:products.length});
+    tx.onabort=()=>reject(tx.error||Error('Katalog kaydı tamamlanamadı.'));
+    const manual=tx.objectStore('excelProducts');
+    const legacy=tx.objectStore('products');
+    const stock=tx.objectStore('adjustments');
+    const request=manual.getAll();
+    request.onsuccess=()=>{
+      const saved=request.result;
+      const existing=new Map(saved.map(p=>[p.id,p]));
+      for(const old of saved) if(old.source==='bundle'&&!incoming.has(old.id)) manual.delete(old.id);
+      for(const product of products) {
+        const prior=existing.get(product.id);
+        if(!prior||prior.source==='bundle') manual.put(product);
       }
-      const existing = new Map(getAll.result.map(p => [p.id, p]));
-      for (const product of products) {
-        const old = existing.get(product.id);
-        if (!old || old.source === 'bundle') store.put(product);
-      }
-      tx.objectStore('meta').put({ key: 'bundledCatalog', value: {
-        version, count: products.length, installedAt: new Date().toISOString()
-      }});
-    };
-  });
-}
-
-/** Source-only catalog is needed to compare an Excel feed without existing Excel overrides. */
-export async function getXmlCatalog() {
-  const db = await openDB();
-  const tx = db.transaction('products', 'readonly');
-  return requestPromise(tx.objectStore('products').getAll());
-}
-
-export async function replaceCatalog(products, meta) {
-  if (!Array.isArray(products) || !products.length) throw new Error('Boş katalog kaydedilemez.');
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(['products', 'meta', 'adjustments'], 'readwrite');
-    tx.oncomplete = () => resolve();
-    tx.onabort = () => reject(tx.error || new Error('Katalog kaydı başarısız.'));
-    tx.onerror = () => {}; // abort receives final failure
-    const store = tx.objectStore('products');
-    store.clear();
-    for (const product of products) store.put(product);
-    // Preserve sales made from the built-in catalogue if a matching XML SKU
-    // arrives later under a different product ID. Never clear sales or totals.
-    const barcodeToXmlId = new Map(products.filter(p => p.barkod).map(p => [p.barkod, p.id]));
-    const adjustments = tx.objectStore('adjustments');
-    const existing = adjustments.getAll();
-    existing.onsuccess = () => {
-      for (const sold of existing.result) {
-        if (!sold.id.startsWith('excel::b:') || !sold.soldQuantity) continue;
-        const barcode = sold.id.slice('excel::b:'.length);
-        const xmlId = barcodeToXmlId.get(barcode);
-        if (!xmlId || xmlId === sold.id) continue;
-        const current = adjustments.get(xmlId);
-        current.onsuccess = () => {
-          adjustments.put({ id: xmlId, soldQuantity: (current.result?.soldQuantity || 0) + sold.soldQuantity });
-          adjustments.delete(sold.id);
+      const legacyReq=legacy.getAll();
+      legacyReq.onsuccess=()=>{
+        const move=new Map();
+        for(const old of legacyReq.result) {
+          if (!old.barkod) continue;
+          const key=`excel::b:${String(old.barkod).trim()}`;
+          if (key!==old.id && (incoming.has(key)||existing.has(key))) move.set(old.id,key);
+        }
+        const stockReq=stock.getAll();
+        stockReq.onsuccess=()=>{
+          const all=new Map(stockReq.result.map(x=>[x.id,x.soldQuantity||0]));
+          for(const [oldId,newId] of move) {
+            const quantity=all.get(oldId)||0;
+            if(!quantity) continue;
+            all.set(newId,(all.get(newId)||0)+quantity);
+            all.delete(oldId);
+            stock.delete(oldId);
+            stock.put({id:newId,soldQuantity:all.get(newId)});
+          }
+          legacy.clear();
+          const meta=tx.objectStore('meta');
+          meta.delete('catalog');
+          meta.put({key:'bundledCatalog',value:{version,count:products.length,installedAt:new Date().toISOString()}});
         };
-      }
+      };
     };
-    tx.objectStore('meta').put({ key: 'catalog', value: meta });
   });
 }
-
 
 export async function upsertExcelProducts(products, filename) {
   if (!Array.isArray(products) || !products.length) throw new Error('İçe aktarılacak ürün bulunamadı.');
@@ -145,48 +121,25 @@ export async function upsertExcelProducts(products, filename) {
 }
 
 export async function saveSale(record) {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(['sales', 'adjustments', 'products', 'excelProducts'], 'readwrite');
-    tx.oncomplete = () => resolve();
-    tx.onabort = () => reject(tx.error || new Error('Satış kaydedilemedi. Stok değişmiş olabilir.'));
-    tx.onerror = () => {};
+  const db=await openDB();
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction(['sales','adjustments','excelProducts'],'readwrite');
+    tx.oncomplete=()=>resolve();
+    tx.onabort=()=>reject(tx.error||Error('Satış kaydedilemedi.'));
     tx.objectStore('sales').add(record);
-    const stock = tx.objectStore('adjustments');
-    const baseStore = tx.objectStore('products');
-    const excelStore = tx.objectStore('excelProducts');
-    for (const item of record.items) {
-      // All reads and stock writes are in the same transaction. Manual Excel
-      // products survive XML sync and their stock overrides XML matches.
-      const baseRequest = baseStore.get(item.id);
-      baseRequest.onsuccess = () => {
-        const base = baseRequest.result;
-        const finish = manual => {
-          const product = (manual?.importFormat === 'market-12' && base) ? base : (manual || base);
-          if (!product) { tx.abort(); return; }
-          const stockRequest = stock.get(item.id);
-          stockRequest.onsuccess = () => {
-            const soldQuantity = stockRequest.result?.soldQuantity ?? 0;
-            if (soldQuantity + item.quantity > product.stok) { tx.abort(); return; }
-            stock.put({ id: item.id, soldQuantity: soldQuantity + item.quantity });
-          };
+    const stock=tx.objectStore('adjustments');
+    const catalog=tx.objectStore('excelProducts');
+    for(const item of record.items) {
+      const productReq=catalog.get(item.id);
+      productReq.onsuccess=()=>{
+        const product=productReq.result;
+        if(!product) {tx.abort();return;}
+        const stockReq=stock.get(item.id);
+        stockReq.onsuccess=()=>{
+          const sold=stockReq.result?.soldQuantity||0;
+          if(!product.stokBelirsiz && sold+item.quantity>product.stok) {tx.abort();return;}
+          stock.put({id:item.id,soldQuantity:sold+item.quantity});
         };
-        if (!base) {
-          const req = excelStore.get(item.id);
-          req.onsuccess = () => finish(req.result);
-        } else if (base.barkod) {
-          const req = excelStore.index('barkod').get(base.barkod);
-          req.onsuccess = () => {
-            if (req.result) finish(req.result);
-            else if (base.urunKodu) {
-              const fallback = excelStore.index('variantKey').get(variantKey(base));
-              fallback.onsuccess = () => finish(fallback.result || base);
-            } else finish(base);
-          };
-        } else if (base.urunKodu) {
-          const req = excelStore.index('variantKey').get(variantKey(base));
-          req.onsuccess = () => finish(req.result || base);
-        } else finish(base);
       };
     }
   });

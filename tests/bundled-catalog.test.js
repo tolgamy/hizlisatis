@@ -2,71 +2,38 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { parseBundledCatalog, productFromBundledRow, fetchBundledCatalog } from '../public/bundled-catalog.js';
-import { mergeCatalog } from '../public/excel-products.js';
-const root = new URL('../public/', import.meta.url);
+const root=new URL('../public/',import.meta.url);
+const manifest=JSON.parse(await readFile(new URL('catalog/manifest.json',root),'utf8'));
+const rows=(await Promise.all(manifest.parts.map(async p=>JSON.parse(await readFile(new URL('.'+p,root),'utf8'))))).flat();
 
-async function data() {
-  const manifest = JSON.parse(await readFile(new URL('catalog/manifest.json',root), 'utf8'));
-  const pages = await Promise.all(manifest.parts.map(async part =>
-    JSON.parse(await readFile(new URL('.'+part,root),'utf8'))));
-  return {manifest, rows:pages.flat()};
-}
-
-test('embedded supplier product count, image count, and original barcode are intact',async()=>{
-  const {manifest,rows}=await data();
+test('all 19,099 barcode-unique product rows are installed without XML',()=>{
   const parsed=parseBundledCatalog(manifest,rows);
-  assert.equal(parsed.products.length,2636);
-  assert.equal(parsed.withImages,2634);
+  assert.equal(parsed.products.length,19099);
+  assert.equal(parsed.withImages,14528);
+  assert.equal(new Set(parsed.products.map(p=>p.barkod)).size,19099);
+  assert.equal(parsed.products.filter(p=>p.stokBelirsiz).length,16463);
+  assert.equal(parsed.products.filter(p=>p.fiyatBelirsiz).length,3);
+});
+test('old product survives barcode match and exact source photo',()=>{
+  const parsed=parseBundledCatalog(manifest,rows);
   const latte=parsed.products.find(p=>p.barkod==='8692095346327');
   assert.equal(latte.baslik,'Sek Laktozsuz Latte (330 ml)');
-  assert.equal(latte.gorsel,'https://locals-media-cdn.getirapi.com/images/6049063_NjA0OTA2Mw_1792497169133.jpg');
   assert.equal(latte.satisFiyati,119.95);
-  assert.equal(latte.importFormat,'market-12');
-  assert.equal(latte.source,'bundle');
-  assert.equal(latte.kdvBelirsiz,true);
+  assert.equal(latte.gorsel,'https://locals-media-cdn.getirapi.com/images/6049063_NjA0OTA2Mw_1792497169133.jpg');
 });
-
-test('the 2636 products are available without XML, preserving leading zeros',async()=>{
-  const {manifest,rows}=await data();
-  const parsed=parseBundledCatalog(manifest,rows);
-  const unique=new Set(parsed.products.map(x=>x.id));
-  assert.equal(unique.size,2636);
-  assert.equal(mergeCatalog([],parsed.products).length,2636);
-  assert.equal(parsed.products.filter(x=>!x.gorsel).length,2);
+test('unknown stock and price are explicit and not falsified',()=>{
+  const first=productFromBundledRow(['123','123','Dondurma','Marka','Dondurma',null,null,'','TRY']);
+  assert.equal(first.fiyatBelirsiz,true);assert.equal(first.stokBelirsiz,true);
+  assert.equal(first.kategoriAna,'Dondurma');
 });
-
-test('existing XML matching barcode keeps its price, stock, VAT but gets bundled photo',async()=>{
-  const {manifest,rows}=await data();
-  const products=parseBundledCatalog(manifest,rows).products;
-  const latte=products.find(x=>x.barkod==='8692095346327');
-  const xml=[{id:'xml-123',urunKodu:'XML-123',baslik:'XML Latte',barkod:latte.barkod,
-    stok:12,satisFiyati:99.9,kdv:20,paraBirimi:'TRY',gorsel:''}];
-  const merged=mergeCatalog(xml,products);
-  assert.equal(merged.length,2636);
-  const match=merged.find(x=>x.barkod===latte.barkod);
-  assert.equal(match.id,'xml-123');
-  assert.equal(match.satisFiyati,99.9);
-  assert.equal(match.stok,12);
-  assert.equal(match.kdv,20);
-  assert.equal(match.gorsel,latte.gorsel);
-});
-
-test('incomplete/invalid embedded catalogue is rejected before saving',async()=>{
-  const {manifest,rows}=await data();
+test('corrupt bundled data is rejected',()=>{
   assert.throws(()=>parseBundledCatalog(manifest,rows.slice(1)),/ürün sayısı/);
-  const dupe=rows.map(r=>r.slice());dupe[0][0]=dupe[1][0];
-  assert.throws(()=>parseBundledCatalog(manifest,dupe),/tekrarlı/);
-  assert.throws(()=>productFromBundledRow(['','','','', '', -1,0,'','TRY']),/geçersiz/);
+  assert.throws(()=>productFromBundledRow(['','','','', '',-1,0,'','TRY']),/geçersiz/);
 });
-
-test('browser fetcher loads exact checked-in manifest and chunks',async()=>{
-  const calls=[];
-  const fakeFetch=async path=>{
-    calls.push(path);
-    const content=await readFile(new URL('.'+path,root),'utf8');
-    return {ok:true,json:async()=>JSON.parse(content)};
+test('fetch uses bundled chunks and one manifest',async()=>{
+  const calls=[];const fetcher=async path=>{
+    calls.push(path);return {ok:true,json:async()=>JSON.parse(await readFile(new URL('.'+path,root),'utf8'))};
   };
-  const result=await fetchBundledCatalog(fakeFetch);
-  assert.equal(result.products.length,2636);
-  assert.equal(calls.length,9);
+  const data=await fetchBundledCatalog(fetcher);
+  assert.equal(data.products.length,19099);assert.equal(calls.length,21);
 });

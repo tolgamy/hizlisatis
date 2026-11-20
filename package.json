@@ -1,9 +1,9 @@
 {
   "name": "cep-hizli-satis-pwa",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "private": true,
   "type": "module",
-  "description": "Cloudflare Pages + Functions based offline-first Turkish mobile point of sale",
+  "description": "Mobile-first offline Excel catalogue POS",
   "scripts": {
     "build": "node scripts/build.mjs",
     "dev": "wrangler pages dev public",
@@ -11,7 +11,6 @@
     "check": "npm test && npm run build"
   },
   "dependencies": {
-    "fast-xml-parser": "^5.12.0",
     "html5-qrcode": "2.3.8"
   },
   "devDependencies": {

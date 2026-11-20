@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "Cep Hızlı Satış",
-  "short_name": "Cep POS",
+  "name": "Hizlisatis",
+  "short_name": "Hizlisatis",
   "description": "Çevrimdışı çalışan barkodlu mobil hızlı satış",
   "lang": "tr-TR",
   "start_url": "/",

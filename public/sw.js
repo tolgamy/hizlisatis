@@ -1,7 +1,7 @@
-const VERSION = 'cep-pos-shell-v11-grid-receipts-torch';
+const VERSION = 'cep-pos-shell-v12-excel-19099';
 const SHELL = [
   '/', '/index.html', '/styles.css', '/app.js', '/idb.js',
-  '/normalize.js', '/receipt-share.js', '/xml-local.js', '/category-menu.js', '/bundled-catalog.js', '/xlsx-reader.js', '/excel-products.js', '/urun-yukleme-sablonu.xlsx', '/manifest.json',
+  '/normalize.js', '/receipt-share.js', '/catalog-taxonomy.js', '/category-menu.js', '/barcode-lookup.js', '/bundled-catalog.js', '/xlsx-reader.js', '/excel-products.js', '/urun-yukleme-sablonu.xlsx', '/manifest.json',
   '/icons/icon-192.png', '/icons/icon-512.png', '/icons/placeholder.svg',
   '/vendor/html5-qrcode.min.js'
 ];
@@ -20,7 +20,7 @@ self.addEventListener('install', event => {
       if (response.ok) {
         const manifest = await response.clone().json();
         await cache.put('/catalog/manifest.json', response);
-        if (Array.isArray(manifest.parts) && manifest.parts.length <= 20) {
+        if (Array.isArray(manifest.parts) && manifest.parts.length <= 30) {
           await Promise.allSettled(manifest.parts.filter(path =>
             typeof path === 'string' && /^\/catalog\/products-[0-9a-f]{16}-\d{2}\.json$/i.test(path))
             .map(async path => {

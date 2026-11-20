@@ -3,6 +3,7 @@
  * starter catalogue automatically on its first successful online visit.
  */
 import { safeImageUrl } from './normalize.js';
+import { categorizeProduct } from './catalog-taxonomy.js';
 
 const asText = value => String(value ?? '').trim();
 const cleanKey = str => asText(str).toLocaleLowerCase('tr-TR')
@@ -17,10 +18,12 @@ export function productFromBundledRow(row) {
   const urunKodu = asText(skuRaw);
   const baslik = asText(titleRaw);
   const kategori = asText(categoryRaw);
-  const kategoriYolu = kategori.split('>').map(s => s.trim()).filter(Boolean);
+  const kategoriYolu = categorizeProduct(kategori, baslik);
+  const stokBelirsiz = stockRaw === null || stockRaw === '';
+  const fiyatBelirsiz = priceRaw === null || priceRaw === '';
   const marka = asText(brandRaw);
   const paraBirimi = asText(currencyRaw).toUpperCase() || 'TRY';
-  const stok = Number(stockRaw), satisFiyati = Number(priceRaw);
+  const stok = stokBelirsiz ? 0 : Number(stockRaw), satisFiyati = fiyatBelirsiz ? 0 : Number(priceRaw);
   if (!baslik || (!barkod && !urunKodu) || !Number.isInteger(stok) || stok < 0 ||
       !Number.isFinite(satisFiyati) || satisFiyati < 0 || !/^(TRY|EUR|USD|GBP)$/.test(paraBirimi))
     throw new Error('Yerleşik katalogda geçersiz ürün bilgisi.');
@@ -31,10 +34,10 @@ export function productFromBundledRow(row) {
   return {
     id: barkod ? `excel::b:${barkod}` : `excel::s:${variantKey}`,
     urunKodu, baslik, aciklama: baslik, aciklamaMetin: baslik,
-    kategori, kategoriAna: kategoriYolu[0] || 'Diğer',
+    kategori: kategoriYolu.join(' > '), kaynakKategori: kategori, kategoriAna: kategoriYolu[0] || 'Diğer',
     kategoriAlt: kategoriYolu.slice(1).join(' > '), kategoriYolu,
     marka, barkod, beden: '', renk: '', stok,
-    satisFiyati, piyasaFiyati: 0, kdv: 0, kdvBelirsiz: true,
+    satisFiyati, fiyatBelirsiz, stokBelirsiz, piyasaFiyati: 0, kdv: 0, kdvBelirsiz: true,
     paraBirimi, gorsel, variantKey, source: 'bundle', importFormat: 'market-12'
   };
 }
@@ -66,7 +69,7 @@ export async function fetchBundledCatalog(fetcher = fetch) {
     const res = await fetcher(path, { cache: 'default' });
     if (!res.ok) throw new Error(`Katalog parçası yüklenemedi: ${path}`);
     const page = await res.json();
-    if (!Array.isArray(page) || page.length > 500) throw new Error('Katalog parçası geçersiz.');
+    if (!Array.isArray(page) || page.length > 1000) throw new Error('Katalog parçası geçersiz.');
     return page;
   }));
   return parseBundledCatalog(manifest, pages.flat());
