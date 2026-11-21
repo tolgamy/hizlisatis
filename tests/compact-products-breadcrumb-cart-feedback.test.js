@@ -6,7 +6,7 @@ const read=name=>readFileSync(new URL('../public/'+name,import.meta.url),'utf8')
 const app=read('app.js'),css=read('styles.css'),html=read('index.html'),sw=read('sw.js');
 
 test('compact grid removes excessive card height and flexible blank area; list layout preserved',()=>{
-  const segment=css.slice(css.indexOf('/* v3.9 approved improvements:'));
+  const segment=css.slice(css.indexOf('/* v3.9 approved improvements:'),css.indexOf('/* v4.0 — approved dedicated home dashboard.'));
   assert.ok(segment.startsWith('/* v3.9 approved improvements:'));
   assert.match(segment,/#productResults \.products\.grid-view \.product-card\{[\s\S]*?min-height:0!important/);
   assert.match(segment,/#productResults \.products\.grid-view \.product-info\{[\s\S]*?flex:0 0 auto!important/);
@@ -53,7 +53,7 @@ test('approved cart confirmation is beneath the sticky search, never above botto
   assert.ok(header.indexOf('class="searchline"')<header.indexOf('id="cartToast"'));
   assert.ok(header.includes('id="cartToastText"'));
   assert.ok(header.includes('id="cartToastClose"'));
-  const segment=css.slice(css.indexOf('/* v3.9 approved improvements:'));
+  const segment=css.slice(css.indexOf('/* v3.9 approved improvements:'),css.indexOf('/* v4.0 — approved dedicated home dashboard.'));
   assert.match(segment,/\.clean-topbar \.cart-confirm-toast\{[\s\S]*?top:calc\(100% \+ 7px\);bottom:auto/);
   assert.match(app,/function showCartConfirmation\(product\)/);
   assert.match(app,/showCartConfirmation\(product\);[\s\n]*return true/);
