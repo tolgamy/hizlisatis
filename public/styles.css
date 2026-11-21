@@ -770,3 +770,7 @@ body.view-home .clean-topbar .searchline{display:flex!important}
 .receipt-save-status.pending{color:#80550b;background:#fff6e3;font-weight:800}
 .receipt-save-status.saved{color:#0d644b;background:#e5f8ec;font-weight:850}
 .receipt-save-status.error{color:#a62c33;background:#fff0ef;font-weight:800}
+
+/* Incremental product browsing for large inactive categories. */
+.manage-results .manage-more-button{width:100%;padding:13px 12px;margin:10px 0 2px;background:#e9f5f2;
+  color:#11654e;border:1px solid #9bcdbc;border-radius:11px;font-size:13px;font-weight:850;min-height:47px}
