@@ -56,7 +56,7 @@ const PHOTOS=new Map([
   ["Manav > Meyve",8426698],
   ["Manav > Sebze",12765459],
   ["PetShop > Bakım & Aksesuar",3791591],
-  ["PetShop > Kedi Kumları",12928245],
+  ["PetShop > Kedi Kumları",13705497],
   ["PetShop > Kedi Mamaları",27130348],
   ["PetShop > Köpek Mamaları",8434635],
   ["PetShop > Kuş Yemleri",28552092],
