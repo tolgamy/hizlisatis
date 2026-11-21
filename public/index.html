@@ -3,21 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#10243a">
+  <meta name="theme-color" content="#ff6a00">
   <meta name="description" content="Çevrimdışı çalışan, barkod destekli cep hızlı satış uygulaması.">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="manifest" href="/manifest.json">
-  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="/icons/icon-192.svg">
   <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg">
   <link rel="stylesheet" href="/styles.css">
   <style id="receiptPaperSize"></style>
-  <title>Hizlisatis · Mobil POS</title>
+  <title>HızlıSatış · Mobil POS</title>
 </head>
 <body>
   <div id="app">
     <header class="topbar clean-topbar">
-      <div class="brandline"><button id="brandHome" type="button" class="brand-home" aria-label="Hızlı Satış ana sayfasına dön"><span class="brandmark" aria-hidden="true">₺</span><span><strong>Hizlisatis</strong><small>Mobil POS · v3.5.3</small></span></button><span id="connectionStatus" class="connection" role="status"></span></div>
+      <div class="brandline"><button id="brandHome" type="button" class="brand-home" aria-label="Hızlı Satış ana sayfasına dön"><span class="brandmark" aria-hidden="true"><img src="/icons/brand-mark.svg" alt=""></span><span><strong>Hızlı<span>Satış</span></strong><small>HIZLI · KOLAY · GÜVENLİ</small></span></button><span id="connectionStatus" class="connection" role="status"></span></div>
       <div class="searchline"><label for="search" class="sr-only">Ürün veya barkod ara</label><div class="searchbox"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><input id="search" type="search" placeholder="Ürün veya barkod ara" autocomplete="off" enterkeyhint="search"></div><button id="scanButton" class="iconbutton scanbutton" type="button" aria-label="Barkod okut">⌗</button></div>
       <span id="syncLabel" class="sr-only" role="status"></span>
       <input id="excelFile" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
