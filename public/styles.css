@@ -1662,49 +1662,81 @@ body.view-home .clean-topbar .searchline{display:flex!important}
 /* When users shrink a desktop browser, the media queries drop the sidebar
    automatically and restore the mobile/tablet bottom bar. */
 
-/* v4.3 — premium, touch-first iOS-style navigation. Desktop sidebar remains intact. */
+/* v4.4 — Four equal-sized, individually colorful premium iOS navigation tiles.
+   Selected tile is emphasized without changing its geometry or moving it up.
+   Desktop/tablet landscape sidebar keeps its established layout. */
 .bottom-shell .bottom-nav .nav-glyph svg{
   width:25px;height:25px;display:block;fill:none;stroke:currentColor;
   stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;
 }
 @media (max-width:899px), (min-width:900px) and (max-width:1439px) and (orientation:portrait){
   .bottom-shell{
-    background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(248,250,255,.98));
-    -webkit-backdrop-filter:blur(22px);backdrop-filter:blur(22px);
-    border-top:1px solid rgba(209,220,236,.7);
-    box-shadow:0 -10px 34px rgba(15,36,76,.09);
+    background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(248,250,255,.97));
+    -webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);
+    border-top:1px solid rgba(209,220,236,.78);
+    box-shadow:0 -8px 26px rgba(15,36,76,.07);
   }
   .bottom-shell .bottom-nav{
     display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
-    align-items:center;gap:clamp(4px,1.8vw,12px);
-    max-width:680px;margin:0 auto;
+    align-items:stretch;gap:clamp(5px,1.4vw,10px);
+    width:100%;max-width:680px;margin:0 auto;
   }
-  .bottom-shell .bottom-nav .nav-item{
-    min-width:0;min-height:68px;border:0;border-radius:18px;
-    display:flex;flex-direction:column;justify-content:center;align-items:center;
-    gap:3px;padding:5px 2px;color:#61728d;background:transparent;
-    transition:background .2s ease,color .2s ease,transform .2s ease;
-  }
-  .bottom-shell .bottom-nav .nav-item small{
-    font-size:clamp(10px,2.8vw,13px);font-weight:800;line-height:1.15;
-    letter-spacing:-.025em;color:inherit;
-  }
-  .bottom-shell .bottom-nav .nav-glyph{
-    width:34px;height:32px;display:grid;place-items:center;flex:none;
-  }
-  .bottom-shell .bottom-nav .nav-item.active:not(.nav-sale){
-    background:linear-gradient(145deg,#eaf3ff,#d9e9ff);
-    color:#0867d8;box-shadow:inset 0 1px 0 #fff,0 5px 13px #3b85dc17;
-  }
+  .bottom-shell .bottom-nav .nav-item,
+  .bottom-shell .bottom-nav .nav-item.active,
   .bottom-shell .bottom-nav .nav-sale,
   .bottom-shell .bottom-nav .nav-sale.active{
-    color:#fff;background:linear-gradient(150deg,#ffb300 0%,#ff6926 50%,#ef1774 100%);
-    box-shadow:0 7px 19px rgba(240,68,85,.27),inset 0 1px 0 rgba(255,255,255,.65);
-    border:1px solid rgba(255,255,255,.5);border-radius:19px;
-    transform:translateY(-3px);
+    box-sizing:border-box;width:100%;min-width:0;
+    height:68px;min-height:68px;max-height:68px;
+    margin:0;padding:7px 2px 6px;
+    border:1px solid rgba(255,255,255,.87);border-radius:17px;
+    display:flex;flex-direction:column;
+    justify-content:center;align-items:center;gap:3px;
+    color:var(--tab-ink);background:var(--tab-bg);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.8),0 3px 8px rgba(22,48,83,.07);
+    transform:none;transition:background .18s,color .18s,box-shadow .18s;
   }
-  .bottom-shell .bottom-nav .nav-sale .nav-glyph svg{width:28px;height:28px;stroke-width:2.25}
-  .bottom-shell .bottom-nav .nav-sale small{font-weight:900}
+  .bottom-shell .bottom-nav #navHome{
+    --tab-ink:#0961b7;--tab-bg:linear-gradient(145deg,#eaf5ff,#cee6ff);
+    --tab-active:linear-gradient(145deg,#2795f8,#0763cf);
+  }
+  .bottom-shell .bottom-nav #navSale{
+    --tab-ink:#a43d16;--tab-bg:linear-gradient(145deg,#fff0d8,#ffd5c6);
+    --tab-active:linear-gradient(145deg,#ffad31,#f05236);
+  }
+  .bottom-shell .bottom-nav #navProducts{
+    --tab-ink:#673bb7;--tab-bg:linear-gradient(145deg,#f2ecff,#ddceff);
+    --tab-active:linear-gradient(145deg,#956af0,#673bd0);
+  }
+  .bottom-shell .bottom-nav #navSettings{
+    --tab-ink:#087b68;--tab-bg:linear-gradient(145deg,#e6fff7,#bcefe3);
+    --tab-active:linear-gradient(145deg,#18b8a0,#087f73);
+  }
+  .bottom-shell .bottom-nav .nav-item.active,
+  .bottom-shell .bottom-nav .nav-item.active:not(.nav-sale),
+  .bottom-shell .bottom-nav .nav-sale.active{
+    color:#fff;background:var(--tab-active);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.34),0 4px 12px rgba(34,65,106,.18);
+    transform:none;
+  }
+  .bottom-shell .bottom-nav .nav-glyph{
+    display:grid;place-items:center;flex:none;
+    width:30px;height:29px;min-width:0;
+    color:inherit;
+  }
+  .bottom-shell .bottom-nav .nav-item .nav-glyph svg,
+  .bottom-shell .bottom-nav .nav-sale .nav-glyph svg{
+    width:25px;height:25px;stroke-width:2;display:block;
+  }
+  .bottom-shell .bottom-nav .nav-item small,
+  .bottom-shell .bottom-nav .nav-sale small{
+    display:block;max-width:100%;overflow:visible;
+    color:inherit;font-size:clamp(10px,2.6vw,12px);
+    line-height:1.12;font-weight:800;letter-spacing:-.01em;
+    white-space:nowrap;text-overflow:clip;
+  }
+  .bottom-shell .bottom-nav .nav-item:focus-visible{
+    outline:3px solid #73b8ff;outline-offset:2px;
+  }
 }
 @media (prefers-reduced-motion:reduce){
   .bottom-shell .bottom-nav .nav-item{transition:none}
