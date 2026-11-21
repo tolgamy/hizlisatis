@@ -17,6 +17,7 @@ import { checkRemoteProductStates } from './remote-products.js';
 import { createCustomerManager } from './customer-ui.js';
 import { recordCustomerCredit } from './customer-api.js';
 import { readReceiptSettings,saveReceiptSettings } from './receipt-settings.js';
+import { writeActiveProductsLocalStorage } from './active-products-cache.js';
 
 const $ = id => document.getElementById(id);
 const state = {
@@ -119,6 +120,9 @@ function setCatalog(products, adjustments, meta, excelCount = 0, bundleCount = 0
     }
   }
   state.categoryProductPhotos = picturePaths;
+  // Mirror only verified ACTIVE product records after every successful D1 refresh.
+  // A localStorage write failure must not change the authoritative catalog.
+  writeActiveProductsLocalStorage(products);
   renderAll();
 }
 
