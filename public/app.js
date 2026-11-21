@@ -12,7 +12,6 @@ import { fetchBundledCatalog } from './bundled-catalog.js';
 import { findBarcodeProduct } from './barcode-lookup.js';
 import { applyProductImage, detectImageResizing } from './image-delivery.js';
 import { isActive, productStatus } from './product-lifecycle.js';
-import { writeActiveCache } from './active-product-cache.js';
 import { getBarcodeLibrary, supportedBarcodeFormats, acceptsBarcodeResult } from './barcode-scanner.js';
 import { createProductManager } from './product-management.js';
 import { checkRemoteProductStates } from './remote-products.js';
@@ -103,9 +102,6 @@ function setCatalog(products, adjustments, meta, excelCount = 0, bundleCount = 0
   state.excelCount = excelCount;
   state.bundleCount = bundleCount;
   state.products = products;
-  // D1 has been read and verified. Mirror ONLY explicit active rows;
-  // each refresh removes any formerly active product now marked passive.
-  writeActiveCache(products);
   state.byId = new Map(products.map(product => [product.id, product]));
   state.byBarcode = new Map();
   for (const product of products) {
