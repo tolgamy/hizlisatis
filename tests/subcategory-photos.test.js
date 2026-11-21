@@ -26,7 +26,7 @@ test('exactly 86 separate category-matched photos, no product SKU photo selectio
 });
 
 test('approved main category art and management category browser stay unchanged',()=>{
-  assert.match(app,/if\(path\.includes\(' > '\)\) return subcategoryPhoto\(path\)\|\|categoryArtwork\(path\)/);
+  assert.match(app,/return path\.includes\(' > '\)\?\(subcategoryPhoto\(path\)\|\|categoryArtwork\(path\)\):categoryArtwork\(path\)/);
   assert.match(app,/return categoryArtwork\(path\)/);
   assert.match(manager,/illustration\.src=categoryArtwork\(choice\.path\)/);
   assert.match(css,/#categoryTree\.category-grid-page/);
