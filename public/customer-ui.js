@@ -61,7 +61,7 @@ export function createCustomerManager({announce}) {
     if(!found.length)box.textContent='Henüz kayıtlı müşteri bulunmuyor.';
   }
   function showList(){
-    form.hidden=true;account.hidden=true;$('customerToolbarDummy');
+    form.hidden=true;account.hidden=true;
     $('customerList').hidden=false;document.querySelector('.customer-toolbar').hidden=false;
     renderList();
   }
