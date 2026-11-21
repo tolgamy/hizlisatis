@@ -385,19 +385,23 @@ function renderCartBar() {
   document.querySelector('.cart-label strong').textContent = count ? 'Satışa Devam Et' : 'Yeni Satış';
   $('saleLineCount').textContent = String(count);
 }
-function addToCart(product) {
+function addToCart(product, quantity=1) {
+  const weighted=['kg','g','litre'].includes(product.birim);
+  if(!Number.isFinite(quantity)||quantity<=0||(!weighted&&!Number.isInteger(quantity))) {
+    announce('Geçerli bir miktar girin.','error');return false;
+  }
   if(!isActive(product)) { announce('Ürün pasif. Satış için önce aktifleştirin.','error'); return false; }
   const current = state.cart.get(product.id);
   if (product.fiyatBelirsiz) { announce('Bu ürünün satış fiyatı girilmemiş. Ayarlar’dan fiyatı düzenleyin.', 'error'); return false; }
   if (state.cart.size && product.paraBirimi !== cartCurrency()) {
     announce('Farklı para birimleri tek sepette birleştirilemez.', 'error'); return false;
   }
-  if (remaining(product) <= (current?.quantity ?? 0)) {
+  if (remaining(product) + 0.000001 < (current?.quantity ?? 0)+quantity) {
     announce('Bu ürün için yeterli yerel stok yok.', 'error'); return false;
   }
-  if (current) current.quantity += 1;
+  if (current) current.quantity=Math.round((current.quantity+quantity)*1000)/1000;
   else state.cart.set(product.id, { id: product.id, product: { ...product },
-    quantity: 1, unitPrice: product.satisFiyati, discountPct: 0 });
+    quantity, unitPrice: product.satisFiyati, discountPct: 0 });
   renderCartBar();
   if (dom.cartDialog.open) renderCart();
   announce(`${product.baslik} sepete eklendi.`, 'success');
@@ -410,17 +414,21 @@ function updateCart(id, field, value) {
     const num = Number(value);
     const weighted=['kg','g','litre'].includes(line.product.birim);
     if (!Number.isFinite(num) || num < 0 || (!weighted && !Number.isInteger(num)) || (weighted && Math.round(num*1000)!==num*1000)) { announce('Miktar geçersiz.', 'error'); renderCart(); return; }
-    if (num === 0) { state.cart.delete(id); renderCartBar(); renderCart(); return; }
+    if (num === 0) {
+      if(!confirm(line.product.baslik+' sepetten silinsin mi?')){renderCart();return;}
+      state.cart.delete(id);renderCartBar();renderCart();return;
+    }
     if (num > remaining(state.byId.get(id) || line.product)) {
       announce('İstenen adet kullanılabilir stoğu aşıyor.', 'error'); renderCart(); return;
     }
+    if(num>line.quantity)chirp();
     line.quantity = num;
   } else if (field === 'price') {
     const num = parseLocaleNumber(value, NaN);
     if (!Number.isFinite(num) || num < 0) { announce('Geçerli bir birim fiyat girin.', 'error'); renderCart(); return; }
     line.unitPrice = round2(num);
   } else if (field === 'discount') {
-    const num = parseLocaleNumber(value, NaN);
+    const num = value.trim()===''?0:parseLocaleNumber(value, NaN);
     if (!Number.isFinite(num) || num < 0 || num > 100) {
       announce('İskonto %0 ile %100 arasında olmalı.', 'error'); renderCart(); return;
     }
@@ -453,12 +461,13 @@ function renderCart() {
       <details class="sale-line-more"><summary aria-label="Fiyat ve iskonto düzenle" title="Fiyat / iskonto">⋯</summary>
         <div class="sale-line-edit">
           <label>Fiyat<input type="text" inputmode="decimal" value="${line.unitPrice.toFixed(2)}" data-field="price"></label>
-          <label>İskonto %<input type="text" inputmode="decimal" value="${line.discountPct}" data-field="discount"></label>
+          <label>İskonto %<input type="text" inputmode="decimal" value="${line.discountPct||''}" data-field="discount" placeholder="Boş"></label>
         </div>
       </details>
       <button class="remove-button" type="button" data-remove aria-label="Ürünü sil" title="Ürünü sil">×</button>
     </div>`;
     el.querySelector('[data-remove]').addEventListener('click', () => {
+      if(!confirm(line.product.baslik+' sepetten silinsin mi?'))return;
       state.cart.delete(line.id); renderCart(); renderCartBar();
     });
     for (const step of el.querySelectorAll('[data-step]')) step.addEventListener('click', () => {
@@ -477,16 +486,39 @@ function renderCart() {
 }
 function updatePayment() {
   const selected = document.querySelector('input[name="payment"]:checked').value;
-  $('cashOption').hidden = selected !== 'Nakit';
-  $('creditBox').hidden = selected !== 'Veresiye';
-  // Default to exact payment until the cashier explicitly enters a received amount.
-  if (selected === 'Nakit' && dom.cash.dataset.edited !== 'true') {
-    dom.cash.value = totals().total.toFixed(2);
+  $('creditBox').hidden=selected!=='Veresiye';
+  const paid=dom.cash.value.trim()===''?NaN:parseLocaleNumber(dom.cash.value,NaN);
+  const total=totals().total;
+  const change=Number.isFinite(paid)?round2(paid-total):NaN;
+  $('cashPayTotal').textContent=money(total,cartCurrency());
+  dom.change.textContent=Number.isNaN(change)?'Alınan tutarı girin':change>=0?
+    'Para üstü: '+money(change,cartCurrency()):'Eksik ödeme: '+money(-change,cartCurrency());
+  dom.change.style.color=change<0?'#a73b46':'#136c49';
+  $('cashConfirm').disabled=!Number.isFinite(change)||change<-.009||!state.cart.size;
+}
+function openCashPayment(){
+  if(!state.cart.size){announce('Önce sepete ürün ekleyin.','error');return;}
+  document.querySelector('input[name="payment"][value="Nakit"]').checked=true;
+  updatePayment();
+  if(!$('cashPaymentDialog').open)$('cashPaymentDialog').showModal();
+  dom.cash.focus({preventScroll:true});
+}
+function adjustScanQuantity(delta) {
+  const input=$('scanQuantityInput'),weighted=pendingScanProduct&&
+    ['kg','g','litre'].includes(pendingScanProduct.product.birim);
+  const step=weighted?0.1:1,current=Number(input.value)||0;
+  input.value=String(Math.max(weighted?.001:1,Math.round((current+delta*step)*1000)/1000));
+}
+function confirmScannedQuantity() {
+  const pending=pendingScanProduct;
+  if(!pending)return;
+  const {product,sourceInput}=pending,qty=Number($('scanQuantityInput').value);
+  if(addToCart(product,qty)) {
+    if(sourceInput)sourceInput.value='';
+    pendingScanProduct=null;
+    $('scanQuantityDialog').close();
+    chirp();
   }
-  const change = parseLocaleNumber(dom.cash.value, 0) - totals().total;
-  dom.change.textContent = change >= 0 ? `Para üstü: ${money(round2(change), cartCurrency())}` :
-    `Eksik ödeme: ${money(round2(-change), cartCurrency())}`;
-  dom.change.style.color = change < -0.009 ? '#b23a42' : '#136c49';
 }
 function renderAll() { renderHome(); renderFilters(); renderProducts(); renderCartBar(); setSyncStatus(); updateNavigation(); if (dom.cartDialog.open) renderCart(); }
 function exactProduct(raw) {
