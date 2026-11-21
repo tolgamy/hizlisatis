@@ -955,3 +955,91 @@ body.view-home .clean-topbar .searchline{display:flex!important}
 .category-image-status.success{background:#eaf7ed;color:#176346;font-weight:850}
 .category-image-status.error{background:#fff0ee;color:#a5392b;font-weight:800}
 @media(max-width:350px){.category-image-body{padding:12px}.category-image-previews{gap:7px}}
+
+
+/* v3.9 approved improvements: tight mobile cards, tappable category trail,
+   and cart-only confirmation below the sticky search. Bottom bar unchanged. */
+#productResults .products.grid-view .product-card{
+  min-height:0!important;
+  height:auto!important;
+  align-self:start!important;
+  gap:0!important;
+}
+#productResults .products.grid-view .product-photo{
+  height:clamp(112px,35vw,150px)!important;
+  min-height:0!important;
+  flex:none!important;
+  padding:6px!important;
+}
+#productResults .products.grid-view .product-info{
+  flex:0 0 auto!important;
+  min-height:0!important;
+  padding:7px 9px 2px!important;
+}
+#productResults .products.grid-view .product-title{
+  min-height:0!important;
+  line-height:1.3!important;
+  margin:0!important;
+}
+#productResults .products.grid-view .product-right{
+  margin-top:0!important;
+  padding:5px 9px 9px!important;
+  gap:4px!important;
+}
+#browseHeading{
+  display:flex!important;align-items:center;gap:4px;
+  min-width:0;overflow-x:auto!important;
+  text-overflow:clip!important;white-space:nowrap!important;
+  user-select:none;-webkit-user-select:none;scrollbar-width:none;
+}
+#browseHeading::-webkit-scrollbar{display:none}
+#browseHeading .catalog-breadcrumb-button{
+  appearance:none;border:0;background:transparent;color:#19384d;
+  font:inherit;font-size:inherit;font-weight:850;
+  padding:6px 3px;line-height:1.25;min-height:40px;
+  max-width:57vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  flex:0 0 auto;touch-action:manipulation;
+  user-select:none;-webkit-user-select:none;cursor:pointer;
+}
+#browseHeading .catalog-breadcrumb-button:not([aria-current="page"]){
+  color:#14689d;text-decoration:underline;text-decoration-thickness:1px;
+  text-underline-offset:4px;
+}
+#browseHeading .catalog-breadcrumb-button:focus-visible{
+  outline:2px solid #ff8a30;outline-offset:1px;border-radius:6px;
+}
+#browseHeading .catalog-breadcrumb-separator{
+  flex:0 0 auto;color:#93a4b2;font-weight:700;pointer-events:none;
+}
+#categoryTrailName{user-select:none;-webkit-user-select:none}
+/* This banner is an absolute child of the existing sticky header:
+   it stays below the search at any page scroll position. */
+.clean-topbar .cart-confirm-toast{
+  position:absolute;top:calc(100% + 7px);bottom:auto;
+  left:50%;transform:translateX(-50%);
+  display:flex;align-items:center;justify-content:center;gap:9px;
+  box-sizing:border-box;
+  width:max-content;max-width:calc(100vw - 26px);min-width:min(280px,calc(100vw - 26px));
+  background:#087546;color:#fff;
+  border:1px solid #48b685;border-radius:11px;
+  padding:10px 12px;box-shadow:0 5px 17px #102f2699;
+  font-size:clamp(11px,3vw,13px);font-weight:800;
+  line-height:1.25;text-align:center;z-index:15;
+}
+.clean-topbar .cart-confirm-toast[hidden]{display:none!important}
+.cart-confirm-check{
+  display:grid;place-items:center;flex:0 0 auto;
+  width:21px;height:21px;border-radius:50%;
+  color:#087546;background:#fff;font-size:15px;font-weight:900;
+}
+.cart-confirm-text{
+  flex:1 1 auto;min-width:0;
+  overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;
+  -webkit-line-clamp:2;overflow-wrap:anywhere;
+}
+.cart-confirm-close{
+  flex:0 0 auto;display:grid;place-items:center;
+  width:26px;height:27px;min-height:27px;
+  border:0;border-radius:6px;background:transparent;color:#fff;
+  font-size:20px;line-height:1;padding:0;cursor:pointer;
+}
