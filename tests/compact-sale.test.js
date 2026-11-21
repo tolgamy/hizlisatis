@@ -8,12 +8,11 @@ const saleHtml = html.slice(html.indexOf('<dialog id="cartDialog"'), html.indexO
 const cartRenderer = app.slice(app.indexOf('function renderCart() {'), app.indexOf('function updatePayment() {'));
 
 test('minimal checkout has only a compact header, barcode input, cart, total, payment, confirm', () => {
-  for (const id of ['saleBarcode','saleScanButton','cartItems','cartTotals','completeSale','cashOption','receiptWidth','creditName']) {
+  for (const id of ['saleBarcode','saleScanButton','cartItems','cartTotals','completeSale',
+    'creditName','creditCustomerSearch','saleQuickHome','saleQuickProducts','saleQuickSettings']) {
     assert.match(saleHtml, new RegExp(`id="${id}"`));
   }
-  assert.doesNotMatch(saleHtml, /sale-eyebrow|sale-count-strip|Merkezi POS|<legend>Ödeme türü<\/legend>/);
-  assert.match(saleHtml, /<summary>Para üstü<\/summary>/);
-  assert.match(saleHtml, /<summary>Fiş<\/summary>/);
+  assert.doesNotMatch(saleHtml, /id="cashOption"|id="receiptWidth"|sale-eyebrow|sale-count-strip|Merkezi POS/);
   assert.match(saleHtml, /<legend class="sr-only">Ödeme türü/);
 });
 test('item price and discount remain accessible on demand while stock editing remains', () => {
@@ -27,8 +26,10 @@ test('item price and discount remain accessible on demand while stock editing re
   assert.doesNotMatch(cartRenderer, /<span>Ara toplam<\/span>|<span>Dahil olan KDV<\/span>|Satır toplamı:/);
   assert.match(styles, /\.sale-sheet\[open\]\{display:flex/);
 });
-test('cash amount follows updated cart unless manually overwritten', () => {
-  assert.match(app, /dom\.cash\.dataset\.edited !== 'true'/);
-  assert.match(app, /dom\.cash\.dataset\.edited = 'true'/);
-  assert.match(app, /delete dom\.cash\.dataset\.edited/);
+test('cash payment is a separate amount-and-change dialog', () => {
+  assert.match(app,/function openCashPayment\(/);
+  assert.match(app,/cashPayTotal/);
+  assert.match(app,/Alınan tutarı girin/);
+  assert.match(app,/cashConfirm/);
+  assert.match(html,/id="cashPaymentDialog"/);
 });

@@ -82,7 +82,7 @@ function renderPage(ctx, page, pageNo, count, sale, groups, summary) {
     ctx.strokeStyle = '#d9e1e8'; ctx.lineWidth = 1; ctx.beginPath();
     ctx.moveTo(40, y); ctx.lineTo(W - 40, y); ctx.stroke();
   }
-  line('CEP HIZLI SATIŞ', 40, 58, 23, true);
+  line(safe(sale.receiptSettings?.title||'CEP HIZLI SATIŞ'), 40, 58, 23, true);
   line('SATIŞ BİLGİ FİŞİ', W - 40, 56, 12, true, 'right');
   line('MALİ DEĞERİ YOKTUR', W - 40, 74, 9, false, 'right', '#a03b3b');
   rule(89);
@@ -128,7 +128,10 @@ function renderPage(ctx, page, pageNo, count, sale, groups, summary) {
     }
   }
   rule(H - 70);
-  line('Bu belge mali fiş / fatura yerine geçmez.', 40, H - 49, 9, false, 'left', muted);
+  line('Bu belge mali fiş / fatura yerine geçmez.', 40, H - 61, 9, false, 'left', muted);
+  const contact=[sale.receiptSettings?.phone&&'Tel: '+safe(sale.receiptSettings.phone),
+    safe(sale.receiptSettings?.website||'')].filter(Boolean).join('  •  ');
+  if(contact)line(contact,40,H - 45,9,true);
   line('Sayfa ' + pageNo + ' / ' + count, W - 40, H - 49, 9, false, 'right', muted);
 }
 function canvasJpeg(canvas) {

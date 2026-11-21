@@ -17,7 +17,7 @@
 <body>
   <div id="app">
     <header class="topbar clean-topbar">
-      <div class="brandline"><div class="brandmark" aria-hidden="true">₺</div><div><strong>Hizlisatis</strong><small>Mobil POS · v3.4.2</small></div><span id="connectionStatus" class="connection" role="status"></span></div>
+      <div class="brandline"><button id="brandHome" type="button" class="brand-home" aria-label="Hızlı Satış ana sayfasına dön"><span class="brandmark" aria-hidden="true">₺</span><span><strong>Hizlisatis</strong><small>Mobil POS · v3.5.0</small></span></button><span id="connectionStatus" class="connection" role="status"></span></div>
       <div class="searchline"><label for="search" class="sr-only">Ürün veya barkod ara</label><div class="searchbox"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><input id="search" type="search" placeholder="Ürün veya barkod ara" autocomplete="off" enterkeyhint="search"></div><button id="scanButton" class="iconbutton scanbutton" type="button" aria-label="Barkod okut">⌗</button></div>
       <span id="syncLabel" class="sr-only" role="status"></span>
       <input id="excelFile" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
@@ -48,11 +48,19 @@
           <button id="settingsExcel" type="button"><span>▤</span> Excel Ürün Yükle <b>›</b></button>
           <button id="settingsAdd" type="button"><span>＋</span> Yeni Ürün Ekle <b>›</b></button>
           <button id="settingsManage" type="button"><span>▦</span> Ürün Yönetimi <b>›</b></button>
+          <button id="settingsCustomers" type="button"><span>♙</span> Müşteri Yönetimi / Veresiye <b>›</b></button>
           <button id="settingsHistory" type="button"><span>◷</span> Satış Geçmişi <b>›</b></button>
           <button id="settingsExport" type="button"><span>↓</span> Satışları CSV İndir <b>›</b></button>
           <a href="/urun-yukleme-sablonu.xlsx" download="Hizlisatis_Urun_Sablonu.xlsx"><span>▤</span> Excel Şablonu <b>›</b></a>
         </div>
-        <div class="settings-options"><label for="settingsPrintWidth">Fiş Genişliği</label><select id="settingsPrintWidth"><option value="80">80 mm</option><option value="58">58 mm</option></select></div>
+        <section class="settings-receipt" aria-label="Fiş yazıcı ayarları">
+          <h2>Fiş Yazıcı Ayarları</h2>
+          <label>Fiş Genişliği <select id="settingsPrintWidth"><option value="80">80 mm</option><option value="58">58 mm</option></select></label>
+          <label>Fiş Başlığı <input id="settingsReceiptTitle" type="text" maxlength="80" placeholder="CEP HIZLI SATIŞ"></label>
+          <label>Fiş Altı Telefon <input id="settingsReceiptPhone" type="tel" maxlength="35" placeholder="İsteğe bağlı"></label>
+          <label>Fiş Altı Web Sitesi <input id="settingsReceiptWebsite" type="text" maxlength="110" placeholder="İsteğe bağlı"></label>
+          <small>Seçimler otomatik kaydedilir; sonraki fişlerde kullanılır.</small>
+        </section>
         <p id="catalogSource" class="settings-catalog-count">Katalog yükleniyor...</p>
       </section>
     </main>
@@ -91,29 +99,93 @@
         <label><input type="radio" name="payment" value="Kart"><span>▤ Kart</span></label>
         <label><input type="radio" name="payment" value="Veresiye"><span>◷ Veresiye</span></label>
       </fieldset>
-      <details id="cashOption" class="sale-option">
-        <summary>Para üstü</summary>
-        <div id="cashBox" class="cash-box">
-          <label for="cashReceived">Alınan (₺)</label>
-          <input id="cashReceived" inputmode="decimal" type="text" placeholder="Alınan tutar">
-          <p id="changeLabel">₺0,00</p>
-        </div>
-      </details>
       <div id="creditBox" class="credit-box" hidden>
-        <label for="creditName" class="sr-only">Müşteri</label>
-        <input id="creditName" type="text" maxlength="120" placeholder="Müşteri adı" aria-label="Veresiye müşteri adı">
+        <label for="creditCustomerSearch">Müşteri seç (isim veya telefon)</label>
+        <input id="creditCustomerSearch" type="search" maxlength="100" placeholder="Müşteri adı veya telefon ara" autocomplete="off">
+        <input id="creditName" type="text" readonly placeholder="Seçilen müşteri" aria-label="Seçilen veresiye müşterisi">
+        <div id="creditCustomerResults" class="credit-customer-results"></div>
+        <button id="creditNewCustomer" type="button" class="sale-secondary-button">+ Yeni müşteri</button>
       </div>
-      <details class="sale-option sale-receipt-option">
-        <summary>Fiş</summary>
-        <div class="print-options"><label for="receiptWidth" class="sr-only">Fiş genişliği</label>
-          <select id="receiptWidth"><option value="80">80 mm</option><option value="58">58 mm</option></select>
-
-        </div>
-      </details>
+      <nav class="sale-quick-nav" aria-label="Sayfalar">
+        <button id="saleQuickHome" type="button"><span aria-hidden="true">⌂</span>Ana Sayfa</button>
+        <button id="saleQuickProducts" type="button"><span aria-hidden="true">▦</span>Ürünler</button>
+        <button id="saleQuickSettings" type="button"><span aria-hidden="true">⚙</span>Ayarlar</button>
+      </nav>
       <button id="completeSale" class="primary-button" type="button">Satışı Tamamla</button>
     </div>
   </dialog>
 
+  <dialog id="scanQuantityDialog" class="modal quantity-dialog" aria-labelledby="scanQuantityTitle">
+    <div class="sheet-header"><h2 id="scanQuantityTitle">Kaç adet sepete eklensin?</h2><button class="closebutton" type="button" data-close="scanQuantityDialog" aria-label="Kapat">×</button></div>
+    <div class="quantity-body"><strong id="scanQuantityProduct"></strong>
+      <div class="quantity-stepper">
+        <button type="button" id="scanQuantityMinus" aria-label="Azalt">−</button>
+        <input id="scanQuantityInput" type="number" min="1" step="1" inputmode="numeric" value="1" aria-label="Sepete eklenecek adet">
+        <button type="button" id="scanQuantityPlus" aria-label="Artır">+</button>
+      </div>
+      <button id="scanQuantityConfirm" class="primary-button" type="button">Sepete Ekle</button>
+      <button id="scanQuantityCancel" class="sale-secondary-button" type="button">Vazgeç</button>
+    </div>
+  </dialog>
+  <dialog id="cashPaymentDialog" class="modal cash-payment-dialog" aria-labelledby="cashPaymentTitle">
+    <div class="sheet-header"><h2 id="cashPaymentTitle">Nakit Ödeme</h2><button class="closebutton" type="button" data-close="cashPaymentDialog" aria-label="Kapat">×</button></div>
+    <div class="cash-payment-body">
+      <p>Hesap Tutarı</p><strong id="cashPayTotal">₺0,00</strong>
+      <label for="cashReceived">Alınan Para (₺)</label>
+      <input id="cashReceived" type="text" inputmode="decimal" placeholder="Ör. 800" autocomplete="off">
+      <div id="changeLabel" class="cash-change" role="status">Para üstü: ₺0,00</div>
+      <button id="cashConfirm" type="button" class="primary-button">Tamam</button>
+      <button id="cashCancel" type="button" class="sale-secondary-button">Vazgeç</button>
+    </div>
+  </dialog>
+  <dialog id="manageActivationDialog" class="modal activation-choice-dialog" aria-labelledby="manageActivationTitle">
+    <div class="sheet-header"><h2 id="manageActivationTitle">Ürünü Satışa Aç</h2></div>
+    <div class="activation-choice-body">
+      <strong id="manageActivationName"></strong>
+      <p>Ürünü aktifleştirmeden önce bilgilerini güncellemek istiyor musunuz?</p>
+      <button id="manageUpdateActivate" type="button" class="primary-button">Güncelle ve Aktifleştir</button>
+      <button id="manageDirectActivate" type="button" class="sale-secondary-button">Doğrudan Aktifleştir</button>
+      <button id="manageCancelActivate" type="button" class="sale-secondary-button">Vazgeç</button>
+    </div>
+  </dialog>
+  <dialog id="customerDialog" class="sheet customer-sheet" aria-labelledby="customerTitle">
+    <div class="sheet-header"><h2 id="customerTitle">Müşteri Yönetimi</h2><button type="button" class="closebutton" data-close="customerDialog" aria-label="Kapat">×</button></div>
+    <div class="customer-body">
+      <div class="customer-toolbar"><input id="customerSearch" type="search" placeholder="İsim veya telefon ara" autocomplete="off">
+        <button id="customerNew" type="button">+ Yeni</button></div>
+      <p id="customerStatus" role="status"></p>
+      <div id="customerList" class="customer-list"></div>
+      <form id="customerForm" class="customer-form" hidden>
+        <h3 id="customerFormTitle">Yeni Müşteri</h3>
+        <label>Ad Soyad / İşletme Adı *<input id="customerName" type="text" maxlength="150" autocomplete="name" required></label>
+        <label>Telefon *<input id="customerPhone" type="tel" inputmode="tel" maxlength="25" autocomplete="tel" required></label>
+        <label>Adres<input id="customerAddress" type="text" maxlength="500"></label>
+        <div class="customer-two-col"><label>Vergi Dairesi<input id="customerTaxOffice" type="text" maxlength="100"></label>
+          <label>Vergi No / T.C. No<input id="customerTaxNumber" type="text" maxlength="20"></label></div>
+        <div class="customer-two-col"><label>Veresiye Limiti (₺)<input id="customerLimit" type="text" inputmode="decimal"></label>
+          <label>Açılış Borcu (₺)<input id="customerOpeningDebt" type="text" inputmode="decimal"></label></div>
+        <label>Notlar<input id="customerNotes" type="text" maxlength="500"></label>
+        <button class="primary-button" type="submit">Müşteriyi Kaydet</button>
+        <button id="customerFormCancel" class="sale-secondary-button" type="button">Listeye Dön</button>
+      </form>
+      <section id="customerAccount" class="customer-account" hidden>
+        <h3 id="customerAccountName"></h3>
+        <p id="customerAccountPhone"></p>
+        <strong id="customerAccountBalance"></strong>
+        <div class="customer-account-actions"><button id="customerEdit" type="button">Bilgileri Düzenle</button>
+          <button id="customerCollect" type="button">Tahsilat Ekle</button></div>
+        <form id="customerCollectForm" hidden>
+          <label>Tahsilat Tutarı (₺)<input id="customerCollectAmount" type="text" inputmode="decimal" required></label>
+          <label>Ödeme Türü<select id="customerCollectPayment"><option>Nakit</option><option>Kart</option></select></label>
+          <label>Not<input id="customerCollectNotes" type="text" maxlength="500"></label>
+          <button class="primary-button" type="submit">Tahsilatı Kaydet</button>
+        </form>
+        <h4>Hesap Hareketleri</h4>
+        <div id="customerAccountEntries" class="customer-account-entries"></div>
+        <button id="customerAccountBack" class="sale-secondary-button" type="button">Müşteri Listesi</button>
+      </section>
+    </div>
+  </dialog>
   <dialog id="productDetailDialog" class="sheet product-detail-sheet" aria-labelledby="productDetailTitle">
     <div class="sheet-header"><h2 id="productDetailTitle">Ürün Detayı</h2><button type="button" class="closebutton" data-close="productDetailDialog" aria-label="Kapat">×</button></div>
     <div class="detail-body"><div class="detail-media"><span id="detailEmoji" class="detail-emoji" aria-hidden="true">🛒</span><img id="detailImage" alt="Ürün görseli" src="/icons/placeholder.svg"></div><div id="detailBrand" class="detail-brand"></div><h3 id="detailName"></h3><p id="detailBarcode" class="detail-barcode"></p><div id="detailMeta" class="detail-meta"></div><div class="detail-footer"><strong id="detailPrice"></strong><button id="detailAdd" class="primary-button" type="button">+ Sepete Ekle</button></div></div>
@@ -194,7 +266,7 @@
       <strong id="passiveProductName"></strong>
       <p id="passiveProductBarcode"></p><p id="passiveProductStatus"></p>
       <p>Ürün pasif durumda. Aktifleştirip satışa açmak istiyor musunuz?</p>
-      <button id="passiveActivate" type="button" class="primary-button">Aktifleştir ve Satışa Ekle</button>
+      <button id="passiveActivate" type="button" class="primary-button">Aktifleştir ve Adet Seç</button>
       <button id="passiveEdit" type="button">Önce Ürünü Düzenle</button>
       <button id="passiveCancel" type="button">Vazgeç</button>
     </div>

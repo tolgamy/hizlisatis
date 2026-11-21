@@ -47,7 +47,7 @@ function compressImage(file) {
   });
 }
 export function createProductManager({state,serializeMutation,refresh,announce,channel,openManageScanner}) {
-  let filter='active',selection=null,created=false,uploadImage='',pendingSale=null;
+  let filter='active',selection=null,created=false,uploadImage='',pendingSale=null,pendingManualActivation=null;
   const managementDialog=$('manageDialog'), activationDialog=$('passiveProductDialog');
   const search=$('manageSearch'), form=$('manageEditForm'), results=$('manageResults');
 
@@ -103,7 +103,11 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
       sub.textContent=[product.barkod,format(product.satisFiyati)].filter(Boolean).join(' · ');
       body.append(name,sub);button.append(body);
       const mark=document.createElement('span');mark.textContent='›';button.append(mark);
-      button.addEventListener('click',()=>editProduct(product));
+      button.addEventListener('click',()=>{
+        if(productStatus(product)==='initial-inactive'||productStatus(product)==='later-inactive')
+          offerManualActivation(product);
+        else editProduct(product);
+      });
       results.append(button);
     }
     if(!matching.length) results.textContent='Bu bölümde ürün bulunamadı.';
@@ -176,6 +180,25 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
     if(state.legacyPending)
       announce('Bu cihazdaki bazı eski ürün değişiklikleri henüz merkezde değil. Önce Eski Cihaz Yedeğini İndir, sonra Kayıtları Taşı.','error');
     if(product||barcode)editProduct(product,barcode);else showOverview();
+  }
+  function offerManualActivation(product) {
+    pendingManualActivation=product;
+    $('manageActivationName').textContent=product.baslik+' · '+(product.barkod||'');
+    if(!$('manageActivationDialog').open)$('manageActivationDialog').showModal();
+  }
+  async function activateManualNow() {
+    const product=pendingManualActivation;
+    if(!product)return;
+    const button=$('manageDirectActivate');button.disabled=true;
+    try {
+      const updated={...product,lifecycleStatus:'active',everActivated:true,source:'excel',
+        statusChangedAt:now()};
+      await persist(updated,'manual-activate');
+      if(productStatus(state.byId.get(product.id))==='active') {
+        pendingManualActivation=null;
+        $('manageActivationDialog').close();
+      }
+    }finally{button.disabled=false;}
   }
   async function updateStatus(action) {
     if(!selection)return;
@@ -386,7 +409,7 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
     $('manageCancel').addEventListener('click',showOverview);
     form.addEventListener('submit',event=>saveForm(event,false));
     $('manageSaveActivate').addEventListener('click',event=>saveForm(event,true));
-    $('manageActivate').addEventListener('click',()=>updateStatus('activate'));
+    $('manageActivate').addEventListener('click',()=>{if(selection)offerManualActivation(selection);});
     $('manageDeactivate').addEventListener('click',()=>updateStatus('deactivate'));
     $('manageDelete').addEventListener('click',()=>updateStatus('delete'));
     $('manageRestore').addEventListener('click',()=>updateStatus('restore'));
@@ -403,6 +426,18 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
     });
     $('manageScan').addEventListener('click',openManageScanner);
     $('passiveActivate').addEventListener('click',confirmSaleActivation);
+    $('manageUpdateActivate').addEventListener('click',()=>{
+      const product=pendingManualActivation;pendingManualActivation=null;
+      $('manageActivationDialog').close();
+      if(product) {
+        editProduct(product);
+        announce('Bilgileri düzenleyip Kaydet ve Satışa Aç düğmesine basın.','success');
+      }
+    });
+    $('manageDirectActivate').addEventListener('click',activateManualNow);
+    $('manageCancelActivate').addEventListener('click',()=>{
+      pendingManualActivation=null;$('manageActivationDialog').close();
+    });
     $('passiveEdit').addEventListener('click',()=>{
       if(!pendingSale)return;
       const product=pendingSale.product;pendingSale=null;activationDialog.close();

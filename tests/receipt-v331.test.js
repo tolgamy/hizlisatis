@@ -5,7 +5,7 @@ const app=readFileSync(new URL('../public/app.js', import.meta.url), 'utf8');
 const print=app.slice(app.indexOf('function printSale(sale) {'),app.indexOf('async function printBluetoothReceipt(sale)'));
 test('80 and 58 mm roll receipt opens in a separate tab',()=>{
   assert.match(print,/window\.open\('', '_blank'\)/);
-  assert.match(print,/mm = \$\('receiptWidth'\)\.value === '58' \? 58 : 80/);
+  assert.match(print,/sale\.receiptSettings\?\.width\|\|readReceiptSettings\(\)\.width/);
   assert.match(print,/preview\.document\.write\(page\)/);
 });
 test('paper height follows printed receipt and does not include POS page',()=>{
