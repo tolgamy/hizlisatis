@@ -95,3 +95,6 @@ export function subcategoryPhoto(path) {
   return id ? `https://images.pexels.com/photos/${id}/pexels-photo-${id}.jpeg?auto=compress&cs=tinysrgb&w=360&h=320&fit=crop` : null;
 }
 export const SUBCATEGORY_PHOTO_COUNT=PHOTOS.size;
+
+/** Real catalogue subcategory paths for the settings image editor. */
+export const SUBCATEGORY_PATHS=Object.freeze([...PHOTOS.keys()]);

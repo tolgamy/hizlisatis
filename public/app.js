@@ -5,6 +5,8 @@ import { parseLocaleNumber, safeImageUrl } from './normalize.js';
 import { buildCategoryTree, categoryMatches, showCategoryInBrowse } from './category-menu.js';
 import { categoryArtwork, sortCategoryNodes } from './category-art.js';
 import { subcategoryPhoto } from './subcategory-photos.js';
+import { categoryOverrideUrl } from './category-image-overrides.js';
+import { createCategoryImageManager } from './category-image-manager.js';
 import { categorizeProduct, productPictureEmoji } from './catalog-taxonomy.js';
 import { receiptAsText, escPosReceipt } from './receipt-share.js';
 import { receiptPdfBlob } from './receipt-pdf.js';
@@ -232,12 +234,12 @@ function categoryEmoji(path) {
   if (/elektronik/.test(name)) return '🔌';
   return '🛍️';
 }
+function originalCategoryCover(path) {
+  // Immutable first-install art, available again whenever an override is reset.
+  return path.includes(' > ')?(subcategoryPhoto(path)||categoryArtwork(path)):categoryArtwork(path);
+}
 function categoryCover(path) {
-  // Home's 12 approved category images remain unchanged.
-  // Subcategory photos are curated Pexels editorial images, never random SKU
-  // thumbnails. The source artwork remains only if assets are unavailable.
-  if(path.includes(' > ')) return subcategoryPhoto(path)||categoryArtwork(path);
-  return categoryArtwork(path);
+  return categoryOverrideUrl(path)||originalCategoryCover(path);
 }
 function categoryTile(node, hasChildren = false) {
   const button = document.createElement('button');
@@ -248,7 +250,16 @@ function categoryTile(node, hasChildren = false) {
   const fallback = document.createElement('span'); fallback.className = 'photo-category-fallback';
   fallback.textContent = categoryEmoji(node.path); photo.append(fallback);
   const url = categoryCover(node.path);
-  if (url) {
+  const original = originalCategoryCover(node.path);
+  if(url) {
+    // When a custom photo cannot load, the original image remains underneath.
+    // A failed network request must not leave the category blank.
+    if(url!==original && original) {
+      const backup = document.createElement('img');
+      backup.alt = '';
+      applyProductImage(backup,original,320,'high');
+      photo.append(backup);
+    }
     const img = document.createElement('img');
     img.alt = '';
     applyProductImage(img,url,320,'high');
@@ -1256,9 +1267,14 @@ async function setup() {
       openCamera(); state.scanPurpose='manage';
     }
   });
+  // Read-only startup sync; any saved photo is loaded from D1, not from device.
+  const categoryImageManager=createCategoryImageManager({
+    onImagesChanged:()=>{renderHome();renderCategoryTree($('categorySearch').value);}
+  });
+  categoryImageManager.reload(true).catch(()=>{});
   setConnection();
   detectImageResizing().then(enabled=>{ if(enabled) { renderHome();renderCategoryTree();renderProducts(); } });
-  window.addEventListener('online',()=>{setConnection();refreshManagedData().catch(error=>announce('Merkezden yenileme başarısız: '+error.message,'error'));});
+  window.addEventListener('online',()=>{setConnection();categoryImageManager.reload(true).catch(()=>{});refreshManagedData().catch(error=>announce('Merkezden yenileme başarısız: '+error.message,'error'));});
   window.addEventListener('offline',setConnection);
   window.addEventListener('hashchange',applyRoute);
   dom.search.addEventListener('input',()=>{
@@ -1354,7 +1370,7 @@ async function setup() {
   $('receiptPdfShare').addEventListener('click',()=>{if(state.lastSale)shareReceiptPdf(state.lastSale);});
   $('receiptClose').addEventListener('click',()=>{$('receiptActionsDialog').close();openSale();});
   $('exportSales').addEventListener('click',exportHistory);
-  for(const dialog of [dom.cartDialog,dom.scanDialog,dom.historyDialog,$('excelDialog'),$('manageDialog'),$('passiveProductDialog'),$('productDetailDialog'),$('pickProductDialog'),$('receiptActionsDialog'),$('cashPaymentDialog'),$('scanQuantityDialog'),$('manageActivationDialog'),$('customerDialog')]){
+  for(const dialog of [dom.cartDialog,dom.scanDialog,dom.historyDialog,$('excelDialog'),$('manageDialog'),$('passiveProductDialog'),$('productDetailDialog'),$('pickProductDialog'),$('receiptActionsDialog'),$('cashPaymentDialog'),$('scanQuantityDialog'),$('manageActivationDialog'),$('customerDialog'),$('categoryImageDialog')]){
     dialog.addEventListener('click',event=>{if(event.target===dialog)dialog.close();});
   }
   if('serviceWorker'in navigator&&window.isSecureContext)navigator.serviceWorker.register('/sw.js').catch(()=>{});

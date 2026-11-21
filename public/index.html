@@ -48,6 +48,7 @@
           <button id="settingsExcel" type="button"><span>▤</span> Excel Ürün Yükle <b>›</b></button>
           <button id="settingsAdd" type="button"><span>＋</span> Yeni Ürün Ekle <b>›</b></button>
           <button id="settingsManage" type="button"><span>▦</span> Ürün Yönetimi <b>›</b></button>
+          <button id="settingsCategoryImages" type="button"><span>▧</span> Kategori Görsellerini Yönet <b>›</b></button>
           <button id="settingsCustomers" type="button"><span>♙</span> Müşteri Yönetimi / Veresiye <b>›</b></button>
           <button id="settingsHistory" type="button"><span>◷</span> Satış Geçmişi <b>›</b></button>
           <button id="settingsExport" type="button"><span>↓</span> Satışları CSV İndir <b>›</b></button>
@@ -195,6 +196,35 @@
   <dialog id="excelDialog" class="sheet excel-sheet" aria-labelledby="excelTitle">
     <div class="sheet-header"><h2 id="excelTitle">Excel Ürün Yükle</h2><button type="button" class="closebutton" data-close="excelDialog" aria-label="Kapat">×</button></div>
     <div class="excel-import-body"><div id="excelSummary" class="excel-summary" role="status"></div><div id="excelErrors" class="excel-errors" hidden></div><div id="excelPreview" class="excel-preview"></div><button id="confirmExcelImport" type="button" class="primary-button" disabled>Ürünleri Yükle</button></div>
+  </dialog>
+  <dialog id="categoryImageDialog" class="sheet category-image-sheet" aria-labelledby="categoryImageTitle">
+    <div class="sheet-header"><h2 id="categoryImageTitle">Kategori Görsellerini Yönet</h2><button type="button" class="closebutton" data-close="categoryImageDialog" aria-label="Kapat">×</button></div>
+    <div class="category-image-body">
+      <p>12 ana kategori ve 86 alt kategori görselini değiştirebilirsiniz. Kayıtlar merkezi veritabanında saklanır.</p>
+      <div class="category-image-tabs" role="group" aria-label="Kategori türü">
+        <button id="imageEditMainTab" type="button" aria-pressed="true">12 Ana Kategori</button>
+        <button id="imageEditSubTab" type="button" aria-pressed="false">86 Alt Kategori</button>
+      </div>
+      <label>Ana kategori
+        <select id="imageEditMain" aria-label="Ana kategori seç"></select>
+      </label>
+      <label id="imageEditSubWrap" hidden>Alt kategori
+        <select id="imageEditSub" aria-label="Alt kategori seç"></select>
+      </label>
+      <p id="imageEditDimensions" class="category-image-sizes">Mevcut: 320 × 320 px · Önerilen yükleme: 640 × 640 px.</p>
+      <div class="category-image-previews">
+        <figure><div class="category-image-frame"><img id="imageEditOriginal" alt="İlk kurulum görseli"></div><figcaption>İlk kurulum görseli</figcaption></figure>
+        <figure><div class="category-image-frame"><img id="imageEditCurrent" alt="Seçili kategori görseli"></div><figcaption id="imageEditCurrentLabel">Şu an kullanılan</figcaption></figure>
+      </div>
+      <label for="imageEditFile" class="category-image-upload">▧ Galeriden Yeni Görsel Seç</label>
+      <input id="imageEditFile" type="file" accept="image/jpeg,image/png,image/webp">
+      <p class="category-image-hint">JPG, PNG veya WebP · En fazla 12 MB. Görsel uygun ölçüye otomatik kırpılıp küçültülür.</p>
+      <div class="category-image-actions">
+        <button id="imageEditSave" type="button" class="primary-button" disabled>Görseli Kaydet</button>
+        <button id="imageEditReset" type="button" disabled>İlk Görsele Dön</button>
+      </div>
+      <p id="imageEditStatus" class="category-image-status" role="status" aria-live="polite">Kategori seçerek başlayın.</p>
+    </div>
   </dialog>
   <dialog id="manageDialog" class="sheet manage-sheet" aria-labelledby="manageTitle">
     <div class="sheet-header"><h2 id="manageTitle">Ürün Yönetimi</h2><button type="button" class="closebutton" data-close="manageDialog" aria-label="Kapat">×</button></div>

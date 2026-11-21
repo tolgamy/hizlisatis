@@ -14,7 +14,7 @@ test('twelve named main categories in three columns and custom artwork for child
   assert.match(styles,/\.home-category-shortcuts\{display:grid!important;grid-template-columns:repeat\(3/);
   assert.match(styles,/#homeCategoryShortcuts \.photo-category-name\{/);
   assert.match(styles,/display:-webkit-box!important/);
-  assert.match(app,/if\(path\.includes\(' > '\)\) return subcategoryPhoto\(path\)\|\|categoryArtwork\(path\);/);
+  assert.match(app,/return categoryOverrideUrl\(path\)\|\|originalCategoryCover\(path\);/);
   assert.match(app,/sortCategoryNodes\(state\.categoryTreeData\)/);
 });
 test('barcode scan prompts for one quantity; no repeated scanning for quantities',()=>{
