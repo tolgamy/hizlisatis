@@ -14,13 +14,16 @@ import { isActive, productStatus } from './product-lifecycle.js';
 import { getBarcodeLibrary, supportedBarcodeFormats, acceptsBarcodeResult } from './barcode-scanner.js';
 import { createProductManager } from './product-management.js';
 import { checkRemoteProductStates } from './remote-products.js';
+import { createCustomerManager } from './customer-ui.js';
+import { recordCustomerCredit } from './customer-api.js';
+import { readReceiptSettings,saveReceiptSettings } from './receipt-settings.js';
 
 const $ = id => document.getElementById(id);
 const state = {
   products: [], byId: new Map(), byBarcode: new Map(), categoryProductPhotos: new Map(), lifecycleMeta: null, legacyPending: false,
   catalogLoading:true,catalogProgress:0,catalogError:'',
   sold: new Map(), cart: new Map(), category: '', brand: '',
-  search: '', meta: null, sales: [], lastSale: null,
+  search: '', meta: null, sales: [], lastSale: null, pendingCreditSale:null,
   saving: false, scanner: null, scanPurpose: 'sale',
   excelCount: 0, bundleCount: 0, bundleLoading: false, categoryPage: '', excelPreview: null, excelUploading: false, browseAll: false,
   view: 'home', catalogMode: 'categories', categoryTreeData: [],
@@ -38,7 +41,7 @@ const dom = {
 };
 const channel = 'BroadcastChannel' in window ? new BroadcastChannel('cep-pos-changes') : null;
 let toastTimer;
-let productManager;
+let productManager,customerManager,pendingScanProduct=null;
 let mutationQueue = Promise.resolve();
 function serializeMutation(operation) {
   const next = mutationQueue.then(operation, operation);
@@ -187,17 +190,25 @@ function openCamera() {
   if (!dom.scanDialog.open) dom.scanDialog.showModal();
   startScanner();
 }
+function selectScannedQuantity(product,sourceInput=null) {
+  if(!product)return;
+  pendingScanProduct={product,sourceInput};
+  const weighted=['kg','g','litre'].includes(product.birim);
+  $('scanQuantityProduct').textContent=product.baslik+' · '+money(product.satisFiyati,product.paraBirimi);
+  const input=$('scanQuantityInput');
+  input.min=weighted?'0.001':'1';input.step=weighted?'0.1':'1';input.value='1';
+  if(dom.scanDialog.open)dom.scanDialog.close();
+  if(!$('scanQuantityDialog').open)$('scanQuantityDialog').showModal();
+  input.focus({preventScroll:true});
+  input.select();
+}
 function barcodeAdd(raw, sourceInput) {
   const code = String(raw || '').trim();
   if (!code) return;
   const product = exactProduct(code);
-  if(product && productManager?.offerSaleActivation(product, active => {
-    if(active && addToCart(active) && sourceInput) sourceInput.value='';
-  })) return;
-  if (product && addToCart(product)) {
-    chirp(); if (sourceInput) sourceInput.value = '';
-    announce(`${product.baslik} sepete eklendi ✓`, 'success');
-  } else if (!product) announce(`${code} barkodlu ürün bulunamadı.`, 'error');
+  if(!product){announce(code+' barkodlu ürün bulunamadı.','error');return;}
+  if(productManager?.offerSaleActivation(product,active=>selectScannedQuantity(active,sourceInput)))return;
+  selectScannedQuantity(product,sourceInput);
 }
 
 function categoryEmoji(path) {
@@ -216,7 +227,10 @@ function categoryEmoji(path) {
   if (/elektronik/.test(name)) return '🔌';
   return '🛍️';
 }
-function categoryCover(path) { return path.includes(' > ') ? (state.categoryProductPhotos.get(path) || categoryArtwork(path)) : categoryArtwork(path); }
+function categoryCover(path) {
+  // Never show a product photo as a category tile: illustrated category navigation only.
+  return categoryArtwork(path);
+}
 function categoryTile(node, hasChildren = false) {
   const button = document.createElement('button');
   button.type = 'button'; button.className = 'photo-category-tile';
@@ -239,6 +253,7 @@ function categoryTile(node, hasChildren = false) {
     badge.textContent = '›';
     photo.append(badge);
   }
+  if(node.path===state.category)button.classList.add('is-return-target');
   const name = document.createElement('span');
   name.className = 'photo-category-name';
   name.textContent = node.name;
@@ -855,22 +870,12 @@ function scanned(raw) {
   if (text === lastScanText && now - lastScanTime < 1400) return;
   lastScanText = text; lastScanTime = now;
   const product = exactProduct(text);
-  if (product) {
-    if(productManager?.offerSaleActivation(product,active=>{
-      if(active && addToCart(active)) {
-        dom.scanMessage.textContent=active.baslik+' aktifleştirildi ve sepete eklendi ✓';
-        $('scanManualBarcode').value='';
-      }
-    })) return;
-    if (addToCart(product)) {
-      chirp();
-      dom.scanMessage.textContent = `${product.baslik} sepete eklendi ✓`;
-      $('scanManualBarcode').value = '';
-    } else {
-      dom.scanMessage.textContent = `${product.baslik}: stok veya sepet limitini kontrol edin.`;
-    }
-  } else {
-    dom.scanMessage.textContent = `Barkod okundu (${text}) fakat katalogda bulunamadı. İsterseniz arama kutusunda kontrol edin.`;
+  if(product) {
+    chirp();
+    if(productManager?.offerSaleActivation(product,active=>selectScannedQuantity(active,$('scanManualBarcode'))))return;
+    selectScannedQuantity(product,$('scanManualBarcode'));
+  }else{
+    dom.scanMessage.textContent='Barkod '+text+' bulundu ancak katalogda ürün yok.';
   }
 }
 
