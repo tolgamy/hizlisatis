@@ -65,3 +65,11 @@ test('new PWA shell includes category icons and revokes old version cache',()=>{
   assert.match(sw,/v27-passive-category-paging/);
   assert.match(sw,/\/subcategory-icons\.js/);
 });
+
+test('category browser can reveal every inactive product beyond the first 40, without resets on activation',()=>{
+  assert.match(manager,/manageVisibleLimit=40/);
+  assert.match(manager,/matching\.slice\(0,manageVisibleLimit\)/);
+  assert.match(manager,/manageVisibleLimit\+=60/);
+  assert.match(manager,/Daha Fazla Ürün Göster/);
+  assert.match(css,/\.manage-results \.manage-more-button/);
+});
