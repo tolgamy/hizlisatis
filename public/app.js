@@ -128,6 +128,9 @@ function setConnection() {
   const el = $('connectionStatus');
   el.textContent = navigator.onLine ? '● Çevrimiçi' : '● Çevrimdışı';
   el.className = `connection ${navigator.onLine ? 'online' : 'offline'}`;
+  // The desktop sidebar reflects the same connection state; no fake status.
+  $('desktopConnectionText').textContent = navigator.onLine ? 'Çevrimiçi' : 'Çevrimdışı';
+  document.querySelector('.desktop-sidebar-status').classList.toggle('offline',!navigator.onLine);
 }
 function setSyncStatus() {
   $('syncLabel').textContent = state.bundleLoading ? 'Ürünler yükleniyor…' : `${state.products.length.toLocaleString('tr-TR')} ürün`;
@@ -169,12 +172,19 @@ function updateNavigation() {
   $('homeView').hidden = state.view !== 'home';
   $('catalogView').hidden = state.view !== 'catalog';
   $('settingsView').hidden = state.view !== 'settings';
-  const active = dom.cartDialog.open ? 'sale' :
-    state.view==='catalog' ? (state.catalogMode==='category-home' ? 'products' : state.catalogEntry) : state.view;
-  for (const [id,value] of [['navHome','home'],['navCategories','categories'],['navSale','sale'],['navProducts','products'],['navSettings','settings']]) {
-    const el=$(id); const yes=active===value; el.classList.toggle('active',yes);
-    if(yes) el.setAttribute('aria-current','page'); else el.removeAttribute('aria-current');
+  // Four mobile/portrait-tablet tabs and the desktop sidebar share one
+  // route/state. The old duplicate Categories tab is intentionally removed.
+  const active=dom.cartDialog.open?'sale':state.view==='catalog'?'products':state.view;
+  for (const [id,value] of [
+    ['navHome','home'],['navSale','sale'],['navProducts','products'],['navSettings','settings'],
+    ['desktopNavHome','home'],['desktopNavSale','sale'],['desktopNavProducts','products'],['desktopNavSettings','settings']
+  ]) {
+    const el=$(id);const selected=active===value;
+    el.classList.toggle('active',selected);
+    if(selected)el.setAttribute('aria-current','page');
+    else el.removeAttribute('aria-current');
   }
+  if(active!=='products')$('desktopNavStock').classList.remove('active');
 }
 function navigate(hash) { if(location.hash!==hash) location.hash=hash; else applyRoute(); }
 function applyRoute() {
@@ -321,8 +331,16 @@ function categoryTile(node, hasChildren = false) {
 }
 function renderHome() {
   // Preserve the original approved 12-tile home unchanged on Products.
-  const target=$('homeCategoryShortcuts');target.replaceChildren();
-  for(const node of sortCategoryNodes(state.categoryTreeData)) target.append(categoryTile(node,Boolean(node.children.length)));
+  const target=$('homeCategoryShortcuts');
+  const desktop=$('desktopHomeCategoryGrid');
+  target.replaceChildren();
+  desktop.replaceChildren();
+  for(const node of sortCategoryNodes(state.categoryTreeData)) {
+    // Product gallery and desktop home both use the same approved category
+    // image overrides, order, click route and original-image fallback.
+    target.append(categoryTile(node,Boolean(node.children.length)));
+    desktop.append(categoryTile(node,Boolean(node.children.length)));
+  }
   // A deleted record should not inflate the central catalogue count.
   $('homeTotalProducts').textContent=state.products.length?
     state.products.filter(product=>productStatus(product)!=='deleted').length.toLocaleString('tr-TR'):'—';
@@ -1380,7 +1398,11 @@ async function setup() {
     else renderProducts();
   });
   $('navHome').addEventListener('click',()=>setView('home'));
-  $('navCategories').addEventListener('click',openCategoryBrowser);
+  $('desktopNavHome').addEventListener('click',()=>setView('home'));
+  $('desktopNavProducts').addEventListener('click',openProductCategoryHome);
+  $('desktopNavSale').addEventListener('click',openSale);
+  $('desktopNavSettings').addEventListener('click',()=>setView('settings'));
+  $('desktopNavReports').addEventListener('click',showHistory);
   $('brandHome').addEventListener('click',()=>{
     if(dom.cartDialog.open)dom.cartDialog.close();
     setView('home');
@@ -1393,10 +1415,16 @@ async function setup() {
   $('homeQuickSale').addEventListener('click',openSale);
   $('homeQuickProducts').addEventListener('click',()=>productManager.openManage());
   $('homeQuickBarcode').addEventListener('click',()=>productManager.openNew());
-  $('homeQuickStock').addEventListener('click',()=>{
+  const openStockProducts=()=>{
     state.stockOnly=false;state.sort='stock';$('sortProducts').value='stock';
     state.catalogEntry='products';showAllProducts();
-  });
+    $('desktopNavProducts').classList.remove('active');
+    $('desktopNavProducts').removeAttribute('aria-current');
+    $('desktopNavStock').classList.add('active');
+    $('desktopNavStock').setAttribute('aria-current','page');
+  };
+  $('homeQuickStock').addEventListener('click',openStockProducts);
+  $('desktopNavStock').addEventListener('click',openStockProducts);
   $('homeQuickReports').addEventListener('click',showHistory);
   $('homeTodaySalesButton').addEventListener('click',showHistory);
   $('homeTotalProductsButton').addEventListener('click',openProductCategoryHome);
