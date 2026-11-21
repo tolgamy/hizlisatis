@@ -81,11 +81,13 @@ test('activation never prompts for 1453 but manual deactivation retains its PIN'
  const form=text.slice(text.indexOf('async function saveForm('),text.indexOf('function manageScannedBarcode('));
  assert.doesNotMatch(form,/activate&&old&&!isActive\(old\)&&!authorizePassiveAction\(/);
 });
-test('scanner keeps linear-only decoding and uses a mobile native fallback',()=>{
+test('browser barcode decoder supports QR and PDF417 without unstable camera switching',()=>{
  const app=readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
  assert.match(app,/useBarCodeDetectorIfSupported: false/);
- assert.match(app,/8500/);
+ assert.doesNotMatch(app,/8500/);
+ assert.match(app,/9000/);
  assert.match(app,/await startNativeScanner\(session\)/);
- assert.match(app,/window\.BarcodeDetector/);
- assert.doesNotMatch(app,/\['qr_code'/);
+ assert.match(app,/BarcodeDetector/);
+ assert.match(app,/'qr_code', 'pdf417'/);
 });
+

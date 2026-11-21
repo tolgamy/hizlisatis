@@ -94,3 +94,14 @@ Bu özellik, canlı POS kodunu değiştirmeden D1'e ilk 19.096 ürünü yükleme
 Bu araç yayına alındıktan sonra telefonla `https://hizlisatis.pages.dev/admin-import.html` adresini açın. `PRODUCT_WRITE_KEY` *değerini* burada girin (ChatGPT'ye/GitHub'a yazmayın), **19.096 Ürünü D1'e Yükle** düğmesine basın; ekranı kapanmadan aktarımın 19.096/19.096 olarak doğrulanmasını bekleyin. Yarıda kesilirse tekrar başlatmak güvenlidir; önceki düzenlemeler `ON CONFLICT DO NOTHING` ile korunur.
 
 Yalnızca başlangıç kataloğu yüklenir. **Önceden pasife alınmış veya değiştirilmiş cihaz kayıtları ayrı olarak taşınmalıdır.** Merkezi ürün yönetimi istemcisi henüz canlıya geçmemişse mevcut POS sistemi yerel kayıtları kullanmaya devam eder. D1 merkezi API istemcisine geçiş **ayrı bir dağıtım** ve iki cihazlı kontrol gerektirir.
+
+
+## v4.3 — Premium mobil gezinme ve kamera barkod okuyucu
+
+Alt gezinmede dört bölüm korunur: **Ana Sayfa, Satış, Ürünler, Ayarlar**. Satış sekmesi daha belirgin turuncu/pembe sepet simgesiyle vurgulanır. Geniş ekranlarda mevcut masaüstü kenar menüsü korunur.
+
+**Barkod Okuyucu**, uygulama içinden doğrudan telefonun arka kamerasını açar. Ekranda antrasit zemin, elektrik mavisi köşeler, yatay tarama alanı ve hareketli lazer bulunur. Başarılı okumada yeşil onay ve cihaz destekliyorsa ses/titreşim verilir. **EAN-13, EAN-8, UPC-A/E, Code 128, Code 39, QR ve PDF417** biçimleri, uygulamaya paketlenmiş `html5-qrcode` (ZXing tabanlı) ile çözümlenir. Tarayıcıda yerel `BarcodeDetector` desteklenirse kamera başlangıcı başarısız olduğunda alternatif olarak kullanılır. QR/PDF417 destekleri v4.3 ile kullanıcının yeni isteği doğrultusunda açılmıştır.
+
+Flaş ve sürekli odak yalnızca kamera/tarayıcı desteklediğinde etkinleştirilir. Galeriden görsel seçimi, elle giriş ve cihazda tutulan son 20 barkodun geçmişi sunulur. Aynı barkodun istemeden tekrar okunmasını sınırlayan süre koruması bulunur. Tarama sonucu mevcut satıştaki adet seçimine veya ürün düzenleme alanına aktarılır; kod bilinmiyorsa numara satış giriş alanına taşınır. Uygulama arka plana alındığında veya okuyucu kapatıldığında kamera kaynağı serbest bırakılır.
+
+**Sınırlar:** Bu, Cloudflare Pages üzerinde çalışan PWA'dır; Google ML Kit Android/iOS native SDK'sı doğrudan entegre edilmemiştir. Gerçek kamera odağı, flaş, PDF417 okuma hızı ve titreşim desteği cihaz ile tarayıcıya bağlıdır. iOS Safari/Android Chrome fiziksel cihaz testleri yapılmalıdır. Kamera HTTPS ve kullanıcının iznini gerektirir.

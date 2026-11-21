@@ -1661,3 +1661,213 @@ body.view-home .clean-topbar .searchline{display:flex!important}
 }
 /* When users shrink a desktop browser, the media queries drop the sidebar
    automatically and restore the mobile/tablet bottom bar. */
+
+/* v4.3 — premium, touch-first iOS-style navigation. Desktop sidebar remains intact. */
+.bottom-shell .bottom-nav .nav-glyph svg{
+  width:25px;height:25px;display:block;fill:none;stroke:currentColor;
+  stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;
+}
+@media (max-width:899px), (min-width:900px) and (max-width:1439px) and (orientation:portrait){
+  .bottom-shell{
+    background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(248,250,255,.98));
+    -webkit-backdrop-filter:blur(22px);backdrop-filter:blur(22px);
+    border-top:1px solid rgba(209,220,236,.7);
+    box-shadow:0 -10px 34px rgba(15,36,76,.09);
+  }
+  .bottom-shell .bottom-nav{
+    display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+    align-items:center;gap:clamp(4px,1.8vw,12px);
+    max-width:680px;margin:0 auto;
+  }
+  .bottom-shell .bottom-nav .nav-item{
+    min-width:0;min-height:68px;border:0;border-radius:18px;
+    display:flex;flex-direction:column;justify-content:center;align-items:center;
+    gap:3px;padding:5px 2px;color:#61728d;background:transparent;
+    transition:background .2s ease,color .2s ease,transform .2s ease;
+  }
+  .bottom-shell .bottom-nav .nav-item small{
+    font-size:clamp(10px,2.8vw,13px);font-weight:800;line-height:1.15;
+    letter-spacing:-.025em;color:inherit;
+  }
+  .bottom-shell .bottom-nav .nav-glyph{
+    width:34px;height:32px;display:grid;place-items:center;flex:none;
+  }
+  .bottom-shell .bottom-nav .nav-item.active:not(.nav-sale){
+    background:linear-gradient(145deg,#eaf3ff,#d9e9ff);
+    color:#0867d8;box-shadow:inset 0 1px 0 #fff,0 5px 13px #3b85dc17;
+  }
+  .bottom-shell .bottom-nav .nav-sale,
+  .bottom-shell .bottom-nav .nav-sale.active{
+    color:#fff;background:linear-gradient(150deg,#ffb300 0%,#ff6926 50%,#ef1774 100%);
+    box-shadow:0 7px 19px rgba(240,68,85,.27),inset 0 1px 0 rgba(255,255,255,.65);
+    border:1px solid rgba(255,255,255,.5);border-radius:19px;
+    transform:translateY(-3px);
+  }
+  .bottom-shell .bottom-nav .nav-sale .nav-glyph svg{width:28px;height:28px;stroke-width:2.25}
+  .bottom-shell .bottom-nav .nav-sale small{font-weight:900}
+}
+@media (prefers-reduced-motion:reduce){
+  .bottom-shell .bottom-nav .nav-item{transition:none}
+}
+
+/* Premium electric-blue camera reader; all visual layers are pointer transparent. */
+#scanDialog.premium-scanner{
+  position:fixed;inset:0;box-sizing:border-box;width:100%;max-width:100vw;
+  height:100dvh;max-height:100dvh;margin:0;padding:0;
+  display:flex;flex-direction:column;gap:0;overflow-y:auto;
+  border:0;border-radius:0;color:#f4f8ff;
+  background:linear-gradient(155deg,#101a2c 0%,#070c16 53%,#111e35 100%);
+  -webkit-overflow-scrolling:touch;
+}
+#scanDialog.premium-scanner:not([open]){display:none}
+#scanDialog .scanner-topbar{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:calc(15px + env(safe-area-inset-top)) 17px 12px;flex:none;
+}
+#scanDialog .scanner-heading{display:flex;align-items:center;gap:11px;min-width:0}
+#scanDialog .scanner-heading-icon{
+  display:grid;place-items:center;flex:none;width:42px;height:42px;
+  border-radius:14px;background:linear-gradient(135deg,#11b2ff,#065ce6);
+  box-shadow:0 6px 20px #0075ff55;color:#fff;font-size:27px;
+}
+#scanDialog .scanner-eyebrow{
+  display:block;margin-bottom:3px;color:#7fb2e6;
+  font-size:9px;font-weight:850;letter-spacing:.14em;
+}
+#scanDialog #scanTitle{
+  color:#fff;font-size:21px;font-weight:880;line-height:1.2;margin:0;letter-spacing:-.035em;
+}
+#scanDialog .scan-header-actions{display:flex;gap:8px;align-items:center}
+#scanDialog .scan-torch,#scanDialog .scanner-close{
+  width:45px;height:45px;min-height:45px;display:grid;place-items:center;
+  flex:none;border:1px solid #52648079;border-radius:14px;
+  background:#ffffff13;color:#ecf5ff;font-size:21px;
+  -webkit-backdrop-filter:blur(13px);backdrop-filter:blur(13px);
+}
+#scanDialog .scan-torch span{display:none}
+#scanDialog .scan-torch[aria-pressed="true"]{
+  background:#ffdd71;color:#443104;border-color:#ffe99b;
+  box-shadow:0 0 20px #ffcc3270;
+}
+#scanDialog .scan-torch:disabled{opacity:.36}
+#scanDialog .scanner-close{font-size:29px;font-weight:300}
+#scanDialog .scan-instruction{
+  flex:none;margin:7px 20px 15px;text-align:center;color:#c3d5ed;
+  font-size:14px;font-weight:650;line-height:1.35;
+}
+#scanDialog #scannerView.scanner-view{
+  flex:1 0 auto;position:relative;isolation:isolate;width:calc(100% - 24px);
+  min-height:260px;height:clamp(260px,50dvh,570px);max-height:57dvh;
+  margin:0 12px;border-radius:24px;border:1px solid #417ab74a;
+  overflow:hidden;background:#040912;
+  box-shadow:0 18px 40px #0007,inset 0 0 25px #0008;
+}
+#scanDialog #html5-reader,#scanDialog #scanVideo{
+  position:absolute;inset:0;width:100%;height:100%;border:0;
+  object-fit:cover;overflow:hidden;background:#050a12;
+}
+#scanDialog #html5-reader{min-height:0}
+#scanDialog #html5-reader video,#scanDialog #scanVideo{
+  width:100%!important;height:100%!important;max-height:none!important;
+  object-fit:cover!important;border:0!important;
+}
+#scanDialog #html5-reader>div{max-width:none!important;width:100%!important}
+#scanDialog .target-frame{
+  position:absolute;z-index:6;inset:auto auto auto 7%;top:50%;
+  transform:translateY(-50%);width:86%;
+  height:clamp(125px,38vw,205px);max-height:50%;
+  border:0;border-radius:19px;opacity:1;pointer-events:none;
+  box-shadow:0 0 0 900px rgba(1,5,13,.43),0 0 29px #008ff51b;
+  background:linear-gradient(180deg,#16a9ff08,#0c7fff03);
+}
+#scanDialog .scan-corner{
+  position:absolute;display:block;width:37px;height:37px;
+  border:4px solid #19b5ff;filter:drop-shadow(0 0 5px #00aaff)
+    drop-shadow(0 0 12px #178cffaa);
+  border-radius:10px;
+}
+#scanDialog .scan-corner-tl{top:-1px;left:-1px;border-right:0;border-bottom:0;border-radius:13px 0 0 0}
+#scanDialog .scan-corner-tr{top:-1px;right:-1px;border-left:0;border-bottom:0;border-radius:0 13px 0 0}
+#scanDialog .scan-corner-bl{bottom:-1px;left:-1px;border-right:0;border-top:0;border-radius:0 0 0 13px}
+#scanDialog .scan-corner-br{bottom:-1px;right:-1px;border-left:0;border-top:0;border-radius:0 0 13px 0}
+#scanDialog .scan-laser{
+  position:absolute;left:5%;right:5%;height:2px;top:10%;
+  background:linear-gradient(90deg,transparent,#4be5ff 17%,#0f97ff 50%,#4be5ff 83%,transparent);
+  box-shadow:0 0 9px 3px #009dffb8,0 0 27px #0085ff;
+  animation:premium-laser 2.4s ease-in-out infinite alternate;
+}
+@keyframes premium-laser{from{top:9%}to{top:90%}}
+#scanDialog .scan-confirm{
+  position:absolute;top:50%;left:50%;display:grid;place-items:center;
+  transform:translate(-50%,-50%) scale(.65);opacity:0;
+  width:78px;height:78px;border-radius:50%;background:#0e9e5cbb;
+  border:2px solid #9cffc9;box-shadow:0 0 38px #00ed79aa;
+  font-size:44px;color:#fff;transition:opacity .18s,transform .24s;
+}
+#scanDialog.is-success .scan-corner{
+  border-color:#44ff9d;filter:drop-shadow(0 0 10px #17ea78);
+}
+#scanDialog.is-success .scan-laser{animation-play-state:paused;opacity:0}
+#scanDialog.is-success .scan-confirm{opacity:1;transform:translate(-50%,-50%) scale(1)}
+#scanDialog .scan-message{
+  flex:none;min-height:22px;margin:13px 14px 8px;text-align:center;
+  font-size:13px;font-weight:780;color:#70ceff;line-height:1.35;
+}
+#scanDialog.is-success .scan-message{color:#70ffaf}
+#scanDialog .scan-tools{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;padding:7px 15px;flex:none;margin:0;
+}
+#scanDialog .scan-tools button,#scanDialog .scan-tools .scan-photo-button{
+  display:flex;align-items:center;justify-content:center;gap:8px;min-width:0;
+  height:53px;min-height:53px;border-radius:16px;border:1px solid #536881;
+  background:linear-gradient(140deg,#263956,#1c293e);
+  box-shadow:inset 0 1px 0 #ffffff15;color:#f6faff;font-size:14px;font-weight:800;
+  cursor:pointer;
+}
+#scanDialog .scan-tools button span,#scanDialog .scan-tools label span{font-size:19px;color:#67bdff}
+#scanDialog .scan-manual{flex:none;padding:8px 15px 0}
+#scanDialog .scan-manual>label{display:block;color:#a2b9d3;font-size:11px;font-weight:750;margin-bottom:6px}
+#scanDialog .scan-manual-row{display:flex;gap:8px}
+#scanDialog .scan-manual-row input{
+  min-width:0;flex:1;height:46px;background:#131f32;color:white;border:1px solid #3e526c;
+  border-radius:13px;padding:0 12px;font-size:15px;
+}
+#scanDialog .scan-manual-row input::placeholder{color:#849ab4}
+#scanDialog .scan-manual-row button{
+  min-height:46px;min-width:71px;background:linear-gradient(140deg,#0789ff,#075bd5);
+  color:#fff;border:0;border-radius:13px;font-size:13px;
+}
+#scanDialog .scan-footer{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:10px 16px calc(15px + env(safe-area-inset-bottom));flex:none;
+}
+#scanDialog .scan-footer button{
+  min-height:37px;color:#89c8ff;border:0;background:transparent;
+  font-size:12px;font-weight:800;text-align:left;padding:0;
+}
+#scanDialog .scan-footer small{color:#7289a5;text-align:right;font-size:10px}
+#scanDialog .scan-history-panel{
+  flex:1 0 auto;min-height:240px;max-height:57dvh;
+  margin:0 12px;border-radius:22px;border:1px solid #3d5777;
+  padding:17px;overflow:auto;background:#121f31;
+}
+#scanDialog .scan-history-title{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
+#scanDialog .scan-history-title strong{font-size:17px}
+#scanDialog .scan-history-title button{color:#6bc6ff;background:#193653;border:1px solid #355c88;padding:8px 12px;border-radius:10px;font-size:12px}
+#scanDialog .scan-history-list{display:grid;gap:8px}
+#scanDialog .scan-history-entry{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;border-radius:12px;border:1px solid #3c5370;background:#1d3046;color:#fff;text-align:left;padding:11px 13px}
+#scanDialog .scan-history-entry strong{display:block;font-size:13px;word-break:break-all}
+#scanDialog .scan-history-entry small{display:block;color:#9eb5cf;font-size:11px;margin-top:3px}
+#scanDialog .scan-history-empty{color:#a4b7ce;font-size:13px;line-height:1.5}
+@media (max-height:700px){
+  #scanDialog .scanner-topbar{padding-top:calc(8px + env(safe-area-inset-top))}
+  #scanDialog .scan-instruction{margin:3px 15px 8px}
+  #scanDialog #scannerView.scanner-view{height:40dvh;min-height:210px;max-height:44dvh}
+  #scanDialog .scan-tools button,#scanDialog .scan-tools .scan-photo-button{min-height:45px;height:45px}
+  #scanDialog .scan-footer{padding-top:3px}
+}
+@media (prefers-reduced-motion:reduce){
+  #scanDialog .scan-laser{animation:none;top:50%}
+  #scanDialog .scan-confirm{transition:none}
+}
