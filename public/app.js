@@ -234,7 +234,7 @@ function categoryEmoji(path) {
 }
 function categoryCover(path) {
   // Home's 12 approved category images remain unchanged.
-  // Subcategory photos are dedicated CC0 editorial images, never random SKU
+  // Subcategory photos are curated Pexels editorial images, never random SKU
   // thumbnails. The source artwork remains only if assets are unavailable.
   if(path.includes(' > ')) return subcategoryPhoto(path)||categoryArtwork(path);
   return categoryArtwork(path);
