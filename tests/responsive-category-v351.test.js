@@ -20,7 +20,7 @@ test('home displays 3x4 slightly larger visual tiles with legible text',()=>{
   assert.match(css,/transform:scale\(1\.19\)/);
   assert.match(css,/#homeCategoryShortcuts \.photo-category-name\{/);
   assert.match(css,/grid-template-columns:repeat\(3,minmax\(0,1fr\)\)!important/);
-  assert.match(html,/Mobil POS · v3\.5\.2/);
+  assert.match(html,/Mobil POS · v3\.5\.3/);
 });
 test('subcategory cards are three columns with original native vector category art, no emoji collages',()=>{
   assert.match(css,/#categoryTree\.category-grid-page\{/);
