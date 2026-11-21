@@ -1,4 +1,4 @@
-const VERSION = 'cep-pos-shell-v30-photographic-subcategories';
+const VERSION = 'cep-pos-shell-v31-photo-cards-active-mirror';
 const SHELL = [
   '/', '/index.html', '/styles.css', '/app.js', '/idb.js',
   '/normalize.js', '/active-products-cache.js', '/remote-products.js', '/product-lifecycle.js', '/product-management.js', '/lifecycle-backup.js', '/passive-auth.js', '/receipt-pdf.js', '/barcode-scanner.js', '/category-art.js', '/subcategory-icons.js', '/subcategory-photos.js', '/customer-api.js', '/customer-ui.js', '/receipt-settings.js', '/image-delivery.js', '/receipt-share.js', '/catalog-taxonomy.js', '/category-menu.js', '/barcode-lookup.js', '/bundled-catalog.js', '/xlsx-reader.js', '/excel-products.js', '/urun-yukleme-sablonu.xlsx', '/manifest.json',
@@ -34,6 +34,21 @@ self.addEventListener('fetch', event => {
   const request = event.request;
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
+  // Cache only curated public category photography for offline revisits.
+  // Browser image responses can be opaque: CacheStorage accepts them.
+  if(url.protocol==='https:' && url.hostname==='images.pexels.com' && request.destination==='image'){
+    event.respondWith((async()=>{
+      const cache=await caches.open('cep-pos-subcategory-photos-v1');
+      const stored=await cache.match(request);
+      if(stored)return stored;
+      try {
+        const response=await fetch(request);
+        if(response.ok||response.type==='opaque')await cache.put(request,response.clone());
+        return response;
+      }catch{return Response.error();}
+    })());
+    return;
+  }
   if (url.origin !== self.location.origin) return;
   if (url.pathname === '/api/image' && url.searchParams.has('url')) {
     event.respondWith((async()=>{
