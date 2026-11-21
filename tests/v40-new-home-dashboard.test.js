@@ -32,7 +32,9 @@ test('the original twelve 3x4 picture tiles are moved to Products, without delet
   assert.match(products,/id="productCategoryHome" hidden/);
   assert.match(products,/id="homeCategoryShortcuts" class="home-category-shortcuts category-photo-grid"/);
   assert.equal(MAIN_CATEGORY_ORDER.length,12);
-  assert.match(app,/for\(const node of sortCategoryNodes\(state\.categoryTreeData\)\) target\.append\(categoryTile\(node,Boolean\(node\.children\.length\)\)\)/);
+  assert.match(app,/for\(const node of sortCategoryNodes\(state\.categoryTreeData\)\) \{/);
+  assert.match(app,/target\.append\(categoryTile\(node,hasChildren\)\)/);
+  assert.match(app,/desktop\.append\(card\)/);
   assert.match(app,/\$\('productCategoryHome'\)\.hidden=state\.catalogMode!=='category-home'/);
   assert.match(app,/\$\('catalogCategoryNavigator'\)\.hidden=state\.catalogMode!=='categories'/);
   assert.match(css,/#homeCategoryShortcuts \u002ephoto-category-image\{/);
