@@ -1312,10 +1312,10 @@ body.view-home .clean-topbar .searchline{display:flex!important}
   }
   .bottom-shell .bottom-nav .nav-item{min-height:58px}
 }
-/* Tablet landscape (>=1024px) and spacious desktop windows (>=1280px):
+/* Tablet landscape (>=900px wide and >=600px high) or wide desktop (>=1440px):
    left navigation, top search, real live metrics and 4×3 categories.
    All content uses the same DOM and shared D1 data as mobile. */
-@media (min-width:1024px) and (orientation:landscape), (min-width:1280px){
+@media (min-width:900px) and (min-height:600px) and (orientation:landscape), (min-width:1440px){
   :root{--hizli-sidebar:clamp(206px,16vw,260px)}
   #app::before{
     content:"";display:block;
@@ -1626,6 +1626,15 @@ body.view-home .clean-topbar .searchline{display:flex!important}
   }
   .clean-page-head{min-width:0}
   #browseHeading .catalog-breadcrumb-button{max-width:28vw}
+}
+/* Smaller landscape tablets keep the sidebar and 4×3 categories but use
+   a more comfortable 3×2 quick-action grid. */
+@media (min-width:900px) and (max-width:1100px) and (min-height:600px) and (orientation:landscape){
+  .dashboard-actions{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .dashboard-action{min-height:56px}
+  #desktopHomeCategoryGrid .photo-category-tile{padding:6px!important;gap:4px!important}
+  #desktopHomeCategoryGrid .photo-category-image{flex-basis:39%;width:39%!important}
+  #desktopHomeCategoryGrid .desktop-home-chevron{flex-basis:19px;width:19px;height:22px;font-size:20px}
 }
 /* Full-HD desktop: hero and two metrics share the first row like the
    approved 1920×1080 mockup, then compact actions and four-by-three cards. */
