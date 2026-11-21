@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {execFileSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
 import {normalizeReceiptSettings,readReceiptSettings,saveReceiptSettings} from '../public/receipt-settings.js';
 import {receiptAsText} from '../public/receipt-share.js';
 import {onRequestGet,onRequestPost} from '../functions/api/customers.js';
@@ -84,4 +86,12 @@ test('customer account routes protect data without credentials',async()=>{
 test('phone and website normalizer strips control chars and markup',()=>{
   assert.deepEqual(normalizeReceiptSettings({width:'200',title:'',website:'<script>foo</script>'}),{
     width:'80',title:'CEP HIZLI SATIŞ',phone:'',website:'scriptfoo/script'});
+});
+
+test('every changed client and API module parses as valid JavaScript',()=>{
+  for(const path of ['app.js','product-management.js','customer-api.js','customer-ui.js',
+    'receipt-share.js','receipt-pdf.js','receipt-settings.js']){
+    execFileSync(process.execPath,['--check',fileURLToPath(new URL('../public/'+path,import.meta.url))]);
+  }
+  execFileSync(process.execPath,['--check',fileURLToPath(new URL('../functions/api/customers.js',import.meta.url))]);
 });
