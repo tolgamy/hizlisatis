@@ -173,13 +173,49 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
       return true;
     });
     $('manageResultCount').textContent=matching.length.toLocaleString('tr-TR')+' ürün';
+    // Only the selected passive subcategory becomes the approved four-across
+    // photo grid. Management overview, category tiles and other statuses stay as-is.
+    const photoGrid=isPassiveList()&&Boolean(manageCategorySub)&&!q;
+    results.classList.toggle('manage-photo-grid',photoGrid);
     for(const product of matching.slice(0,manageVisibleLimit)) {
       const button=document.createElement('button');button.type='button';
-      const body=document.createElement('span'),name=document.createElement('strong'),sub=document.createElement('small');
-      name.textContent=product.baslik;
-      sub.textContent=[product.barkod,format(product.satisFiyati)].filter(Boolean).join(' · ');
-      body.append(name,sub);button.append(body);
-      const mark=document.createElement('span');mark.textContent='›';button.append(mark);
+      if(photoGrid) {
+        button.className='manage-product-card';
+        button.setAttribute('aria-label',product.baslik+', '+(product.barkod||'barkodsuz')+', '+format(product.satisFiyati));
+        const media=document.createElement('span');media.className='manage-product-photo';
+        const placeholder=document.createElement('span');
+        placeholder.className='manage-product-photo-empty';
+        placeholder.textContent='▧';placeholder.setAttribute('aria-hidden','true');
+        media.append(placeholder);
+        const src=product.gorsel;
+        if(src&&(/^data:image\\/(webp|png|jpeg);base64,/.test(src)||safeImageUrl(src))) {
+          const picture=document.createElement('img');picture.alt='';
+          picture.loading='lazy';picture.decoding='async';
+          picture.referrerPolicy='no-referrer';
+          picture.src=src;
+          picture.onerror=()=>picture.remove();
+          media.append(picture);
+        }
+        const status=document.createElement('span');
+        status.className='manage-product-badge';
+        status.textContent='Pasif';
+        media.append(status);
+        const name=document.createElement('strong');
+        name.className='manage-product-name';name.textContent=product.baslik;
+        const barcode=document.createElement('small');
+        barcode.className='manage-product-barcode';
+        barcode.textContent=product.barkod||'Barkod yok';
+        const price=document.createElement('b');
+        price.className='manage-product-price';
+        price.textContent=format(product.satisFiyati);
+        button.append(media,name,barcode,price);
+      } else {
+        const body=document.createElement('span'),name=document.createElement('strong'),sub=document.createElement('small');
+        name.textContent=product.baslik;
+        sub.textContent=[product.barkod,format(product.satisFiyati)].filter(Boolean).join(' · ');
+        body.append(name,sub);button.append(body);
+        const mark=document.createElement('span');mark.textContent='›';button.append(mark);
+      }
       button.addEventListener('click',()=>{
         if(productStatus(product)==='initial-inactive'||productStatus(product)==='later-inactive')
           offerManualActivation(product);
