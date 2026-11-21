@@ -29,6 +29,10 @@
     </header>
 
     <main class="content clean-content" id="mainContent">
+      <div id="catalogNotice" class="catalog-notice" role="status" hidden>
+        <span>Merkezi ürünlere şu anda ulaşılamıyor. Yerleşik ürünler yalnızca görüntüleniyor; satış ve ürün düzenleme için merkezi bağlantı gerekli.</span>
+        <button id="catalogRetry" type="button">Yeniden Dene</button>
+      </div>
       <section id="homeView" class="home-view clean-home dashboard-home" aria-label="Ana sayfa">
         <div class="dashboard-hero">
           <div class="dashboard-hero-copy">
@@ -119,7 +123,7 @@
     </main>
 
     <div class="bottom-shell">
-      <button id="openCart" class="cart-summary" type="button" aria-label="Satış ekranını ve sepeti aç">
+      <button id="openCart" class="cart-summary" type="button" hidden aria-label="Satış ekranını ve sepeti aç">
         <span class="cart-icon" aria-hidden="true">▣ <b id="cartCount">0</b></span>
         <span class="cart-label"><strong>Satışa Devam Et</strong><small id="cartItemLabel">0 adet ürün</small></span>
         <span class="cart-total" id="cartTotal">₺0,00</span><span class="chevron" aria-hidden="true">›</span>
