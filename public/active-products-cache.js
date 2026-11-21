@@ -19,29 +19,32 @@ export function activeProductsForLocalStorage(products=[]) {
     });
 }
 
-export function writeActiveProductsLocalStorage(products,storage=globalThis.localStorage) {
+export function writeActiveProductsLocalStorage(products,storage=null) {
   const active=activeProductsForLocalStorage(products);
   const payload=JSON.stringify({schema:1,savedAt:new Date().toISOString(),products:active});
-  // Device storage commonly has a 5 MB quota. A failed mirror must NEVER
-  // interfere with authoritative D1 data, sales or a completed activation.
-  if(payload.length>3_500_000)
-    return {saved:false,count:active.length,reason:'Yerel aktif ürün kotası doldu.'};
+  let store;
   try {
-    storage.setItem(ACTIVE_PRODUCTS_KEY,payload);
-    return {saved:true,count:active.length};
+    store=storage||globalThis.localStorage;
+    // Never leave a stale active entry (now passive) behind on quota failure.
+    if(payload.length>3_500_000) {
+      store?.removeItem(ACTIVE_PRODUCTS_KEY);
+      return {saved:false,count:active.length,reason:'Yerel aktif ürün kotası doldu.'};
+    }
+    store?.setItem(ACTIVE_PRODUCTS_KEY,payload);
+    return {saved:Boolean(store),count:active.length};
   } catch {
+    try{store?.removeItem(ACTIVE_PRODUCTS_KEY);}catch{}
     return {saved:false,count:active.length,reason:'Tarayıcı yerel kayda izin vermedi.'};
   }
 }
 
-export function readActiveProductsLocalStorage(storage=globalThis.localStorage) {
+export function readActiveProductsLocalStorage(storage=null) {
   try {
-    const raw=storage.getItem(ACTIVE_PRODUCTS_KEY);
+    const store=storage||globalThis.localStorage;
+    const raw=store?.getItem(ACTIVE_PRODUCTS_KEY);
     if(!raw)return [];
     const data=JSON.parse(raw);
     if(data?.schema!==1 || !Array.isArray(data.products))return [];
-    // Reject non-active records even if a browser extension or older script
-    // has written invalid data under our key.
     return activeProductsForLocalStorage(data.products);
   } catch { return []; }
 }
