@@ -1,5 +1,6 @@
 const fold = value => String(value || '')
   .toLocaleLowerCase('tr-TR')
+  .replace(/ı/g, 'i')
   .normalize('NFD')
   .replace(/[\u0300-\u036f]/g, '')
   .trim();
