@@ -1,0 +1,43 @@
+name: Verify category card v3.5.1 on live site (read-only)
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/verify-live-categories-v351.yml'
+jobs:
+  verify-live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Confirm deployed category names, iPhone art and protected catalog
+        run: |
+          node <<'NODE'
+          const origin='https://hizlisatis.pages.dev';
+          let passed=false;
+          for(let attempt=1;attempt<=30;attempt++){
+            try{
+              const [html,css,art,app,health]=await Promise.all([
+                fetch(origin+'/',{signal:AbortSignal.timeout(12000)}).then(r=>r.text()),
+                fetch(origin+'/styles.css',{signal:AbortSignal.timeout(12000)}).then(r=>r.text()),
+                fetch(origin+'/category-art.js',{signal:AbortSignal.timeout(12000)}).then(r=>r.text()),
+                fetch(origin+'/app.js',{signal:AbortSignal.timeout(12000)}).then(r=>r.text()),
+                fetch(origin+'/api/product-state?health=1',{signal:AbortSignal.timeout(12000)}).then(r=>r.json())
+              ]);
+              const facts={
+                v351:html.includes('Mobil POS · v3.5.1'),
+                homeNames:css.includes('#homeCategoryShortcuts .photo-category-name{'),
+                cols3:css.includes('grid-template-columns:repeat(3,minmax(0,1fr))!important'),
+                symbols:art.includes('export function categorySymbols(path)'),
+                iphoneEmoji:app.includes('photo-category-symbols'),
+                d1Healthy:health.ready===true&&health.count>=19096,
+                productCount:health.count||0
+              };
+              console.log(JSON.stringify({attempt,...facts}));
+              if(Object.entries(facts).filter(([k])=>k!=='productCount').every(([,v])=>v===true)){
+                passed=true;break;
+              }
+            }catch(error){console.log('Attempt '+attempt+' failed: '+String(error.message||error));}
+            await new Promise(resolve=>setTimeout(resolve,5000));
+          }
+          if(!passed)process.exit(1);
+          console.log('Live v3.5.1 categories verified; product data unchanged.');
+          NODE
