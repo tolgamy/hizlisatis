@@ -608,21 +608,32 @@ async function completeSale() {
   const payment = document.querySelector('input[name="payment"]:checked').value;
   const cash = payment === 'Nakit' ? round2(parseLocaleNumber(dom.cash.value, NaN)) : null;
   if (payment === 'Nakit' && (!Number.isFinite(cash) || cash + 0.009 < sum.total)) {
-    announce('Nakit tutarı ödenecek tutardan az olamaz.', 'error'); return;
+    openCashPayment();return;
   }
-  const creditName = dom.credit.value.trim();
-  if (payment === 'Veresiye' && !creditName) { announce('Veresiye için müşteri adı girin.', 'error'); return; }
+  const creditCustomer=payment==='Veresiye'?customerManager?.getSelected():null;
+  if(payment==='Veresiye'&&!creditCustomer) {
+    announce('Veresiye satış için kayıtlı bir müşteri seçmelisiniz.','error');return;
+  }
+  const creditName=creditCustomer?.name||'';
   for (const line of state.cart.values()) {
     const current = state.byId.get(line.id) || line.product;
     if (line.quantity > remaining(current)) {
       announce(`${line.product.baslik} için yeterli stok yok.`, 'error'); return;
     }
   }
+  // Keep the same id if a central credit write succeeded but local storage failed;
+  // the server ledger rejects duplicates and avoids double-charging a customer.
+  const creditFingerprint=payment==='Veresiye'?
+    JSON.stringify([creditCustomer.id,sum.total,[...state.cart.values()].map(x=>[x.id,x.quantity,x.unitPrice,x.discountPct])]):'';
+  if(payment==='Veresiye'&&state.pendingCreditSale?.fingerprint!==creditFingerprint)
+    state.pendingCreditSale={fingerprint:creditFingerprint,id:crypto.randomUUID()};
   const record = {
-    id: typeof crypto.randomUUID === 'function' ? crypto.randomUUID() :
+    id: payment==='Veresiye'?state.pendingCreditSale.id:
+      typeof crypto.randomUUID === 'function' ? crypto.randomUUID() :
       `sale-${Date.now()}-${Math.random().toString(36).slice(2)}`,
     createdAt: new Date().toISOString(), payment,
-    currency: cartCurrency(), creditName: payment === 'Veresiye' ? creditName : '',
+    currency: cartCurrency(),creditName:payment==='Veresiye'?creditName:'',
+    creditCustomerId:creditCustomer?.id||'',receiptSettings:readReceiptSettings(),
     cashReceived: cash, change: payment === 'Nakit' ? round2(cash - sum.total) : 0,
     ...sum,
     items: [...state.cart.values()].map(line => ({
@@ -634,11 +645,13 @@ async function completeSale() {
   };
   state.saving = true; dom.complete.disabled = true;
   try {
+    if(payment==='Veresiye')await recordCustomerCredit(creditCustomer.id,record);
     await serializeMutation(() => saveSale(record));
+    state.pendingCreditSale=null;
     for (const line of record.items) state.sold.set(line.id, (state.sold.get(line.id) || 0) + line.quantity);
     state.lastSale = record; state.cart.clear();
-    dom.cash.value = ''; delete dom.cash.dataset.edited; dom.credit.value = '';
-    $('cashOption').open = false;
+    dom.cash.value='';customerManager?.clearSelection();
+    if($('cashPaymentDialog').open)$('cashPaymentDialog').close();
     dom.cartDialog.close();
     renderProducts(); renderCartBar(); renderHome();
     channel?.postMessage('sale-updated');
@@ -650,18 +663,19 @@ async function completeSale() {
   finally { state.saving = false; renderCart(); }
 }
 function renderReceipt(sale) {
-  const width = $('receiptWidth').value === '58' ? '58mm' : '80mm';
+  const prefs=sale.receiptSettings||readReceiptSettings();
+  const width=prefs.width==='58'?'58mm':'80mm';
   $('receiptPrint').style.setProperty('--receipt-width', width);
   // Set physical paper dimensions instead of only CSS content width. Mobile
   // print sheets still require an 80/58-mm paper preset in the printer driver.
   const mm = width === '58mm' ? 58 : 80;
-  const height = Math.max(120,Math.min(1000,90 + sale.items.length * 17));
+  const height=Math.max(80,Math.min(1000,60+sale.items.length*11));
   $('receiptPaperSize').textContent = `@media print { @page { size: ${mm}mm ${height}mm; margin: 0; } }`;
   const root = $('receiptPrint');
   const vatByRate = new Map();
   for (const item of sale.items) vatByRate.set(item.kdv,
     round2((vatByRate.get(item.kdv) || 0) + item.vat));
-  root.innerHTML = `<div class="receipt-title">CEP HIZLI SATIŞ</div>
+  root.innerHTML = `<div class="receipt-title">${esc(prefs.title)}</div>
     <div class="receipt-center receipt-small">MALİ DEĞERİ YOKTUR<br>Bilgi fişi / Satış kaydı</div>
     <div class="receipt-rule"></div><div>Fiş No: ${esc(sale.id.slice(0, 12))}</div>
     <div>Tarih: ${esc(fmtDate(sale.createdAt))}</div><div>Ödeme: ${esc(sale.payment)}</div>
@@ -682,12 +696,14 @@ function renderReceipt(sale) {
     ${sale.payment === 'Nakit' ? `<div class="receipt-row"><span>Alınan</span><span>${esc(money(sale.cashReceived, sale.currency))}</span></div>
       <div class="receipt-row"><span>Para üstü</span><span>${esc(money(sale.change, sale.currency))}</span></div>` : ''}
     <div class="receipt-rule"></div>
-    <div class="receipt-center receipt-small">Teşekkür ederiz!<br>Bu belge yasal mali fiş yerine geçmez.</div>`;
+    <div class="receipt-center receipt-small">Teşekkür ederiz!<br>Bu belge yasal mali fiş yerine geçmez.</div>
+    ${prefs.phone?`<div class="receipt-center receipt-footer-line">Tel: ${esc(prefs.phone)}</div>`:''}
+    ${prefs.website?`<div class="receipt-center receipt-footer-line">${esc(prefs.website)}</div>`:''}`;
 }
 function printSale(sale) {
   renderReceipt(sale);
   // Isolate roll paper from the POS layout; system printer must still select 80/58-mm media.
-  const mm = $('receiptWidth').value === '58' ? 58 : 80;
+  const mm = (sale.receiptSettings?.width||readReceiptSettings().width)==='58'?58:80;
   const receipt = $('receiptPrint').innerHTML;
   let preview;
   try { preview = window.open('', '_blank'); } catch { /* popup blocked */ }
@@ -697,28 +713,28 @@ function printSale(sale) {
     return;
   }
   try {
-    const initialHeight = Math.min(2500, Math.max(115, 90 + (sale.items?.length || 1) * 20));
-    const padding = mm === 58 ? 2 : 3;
-    const fontSize = mm === 58 ? 8 : 9;
-    const fontTitle = mm === 58 ? 11 : 13;
+    const initialHeight = Math.min(2500, Math.max(85, 65 + (sale.items?.length || 1) * 12));
+    const padding=mm===58?2:3;
+    const fontSize=mm===58?9:10;
+    const fontTitle=mm===58?12:14;
     const style = '<style id="printPaper">@page{size:' + mm + 'mm ' + initialHeight + 'mm;margin:0}</style>' +
       '<style>*{box-sizing:border-box}html,body{margin:0;padding:0}body{background:#eef2f5;color:#111;font-family:system-ui,-apple-system,sans-serif}' +
       '.print-controls{max-width:520px;margin:15px auto;padding:14px;text-align:center;background:#fff;border-radius:12px}' +
       '.print-controls button{background:#127653;color:white;border:0;border-radius:10px;padding:13px 24px;font-size:16px;font-weight:800}' +
       '.print-controls p{font-size:12px;line-height:1.5;color:#475569;margin:10px 0 0}' +
       '#receipt{width:' + mm + 'mm;max-width:100%;margin:12px auto;padding:5mm ' + padding + 'mm;background:#fff;' +
-        'box-shadow:0 4px 20px #14253b22;font: ' + fontSize + 'pt/1.36 monospace;overflow-wrap:anywhere}' +
-      '.receipt-title{text-align:center;font-weight:900;font-size:' + fontTitle + 'pt;margin-bottom:3mm}' +
-      '.receipt-center{text-align:center}.receipt-small{font-size:8pt}' +
-      '.receipt-rule{border-bottom:1px dashed #000;margin:2mm 0}' +
+        'box-shadow:0 4px 20px #14253b22;font:700 ' + fontSize + 'pt/1.15 Arial,sans-serif;overflow-wrap:anywhere}' +
+      '.receipt-title{text-align:center;font-weight:900;font-size:' + fontTitle + 'pt;margin-bottom:1mm}' +
+      '.receipt-center{text-align:center}.receipt-small{font-size:8pt}.receipt-footer-line{font-size:9pt;font-weight:900;margin:0}' +
+      '.receipt-rule{border-bottom:1px dashed #000;margin:1mm 0}' +
       '.receipt-row{display:flex;justify-content:space-between;align-items:baseline;gap:2mm;min-width:0}' +
       '.receipt-row span{min-width:0;overflow-wrap:anywhere}' +
       '.receipt-row span:last-child{white-space:nowrap;text-align:right;flex:none}' +
-      '.receipt-product{margin:2mm 0;break-inside:avoid;page-break-inside:avoid}' +
-      '.receipt-grand{font-size:11pt;font-weight:900}' +
+      '.receipt-product{margin:0;line-height:1.12;break-inside:avoid;page-break-inside:avoid}' +
+      '.receipt-grand{font-size:12pt;font-weight:900}' +
       '@media print{html,body{width:' + mm + 'mm!important;max-width:' + mm + 'mm!important;background:#fff!important}' +
       '.print-controls{display:none!important}#receipt{width:' + mm + 'mm!important;max-width:' + mm + 'mm!important;' +
-      'margin:0!important;padding:2mm ' + padding + 'mm!important;box-shadow:none!important}}</style>';
+      'margin:0!important;padding:1mm ' + padding + 'mm!important;box-shadow:none!important}}</style>';
     const page = '<!doctype html><html lang="tr"><head><meta charset="utf-8">' +
       '<meta name="viewport" content="width=device-width,initial-scale=1">' +
       '<title>Hizlisatis ' + mm + ' mm Fiş</title>' + style + '</head><body>' +
