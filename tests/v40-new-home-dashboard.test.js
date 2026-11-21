@@ -38,13 +38,13 @@ test('the original twelve 3x4 picture tiles are moved to Products, without delet
   assert.match(css,/#homeCategoryShortcuts \u002ephoto-category-image\{/);
 });
 
-test('approved five-tab footer is ordered Home, Categories, Sale, Products, Settings',()=>{
+test('approved four-tab mobile footer has no duplicate Categories button',()=>{
   const nav=section(html,'<nav class="bottom-nav"','</nav>');
-  const names=[...nav.matchAll(/id="(navHome|navCategories|navSale|navProducts|navSettings)"/g)].map(x=>x[1]);
-  assert.deepEqual(names,['navHome','navCategories','navSale','navProducts','navSettings']);
-  assert.match(css,/\.bottom-shell \.bottom-nav\{[\s\S]*?grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
-  assert.match(app,/state\.catalogMode==='category-home' \? 'products' : state\.catalogEntry/);
-  assert.match(app,/\$\('navCategories'\)\.addEventListener\('click',openCategoryBrowser\)/);
+  const names=[...nav.matchAll(/id="(navHome|navSale|navProducts|navSettings)"/g)].map(x=>x[1]);
+  assert.deepEqual(names,['navHome','navSale','navProducts','navSettings']);
+  assert.match(css,/\.bottom-shell \.bottom-nav\{[\s\S]*?grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
+  assert.match(app,/state\.view==='catalog' \? 'products' : state\.view/);
+  assert.doesNotMatch(html,/id="navCategories"/);
   assert.match(app,/\$\('navProducts'\)\.addEventListener\('click',openProductCategoryHome\)/);
   assert.match(app,/\$\('navSale'\)\.addEventListener\('click',openSale\)/);
   assert.match(app,/\$\('navSettings'\)\.addEventListener\('click',\(\)=>setView\('settings'\)\)/);
@@ -52,7 +52,7 @@ test('approved five-tab footer is ordered Home, Categories, Sale, Products, Sett
 
 test('home buttons open existing workflows, not nonfunctional placeholders',()=>{
   const expected=[
-    /\$\('homeQuickCategories'\)\.addEventListener\('click',openCategoryBrowser\)/,
+    /\$\('homeQuickCategories'\)\.addEventListener\('click',openProductCategoryHome\)/,
     /\$\('homeQuickSale'\)\.addEventListener\('click',openSale\)/,
     /\$\('homeQuickProducts'\)\.addEventListener\('click',\(\)=>productManager\.openManage\(\)\)/,
     /\$\('homeQuickBarcode'\)\.addEventListener\('click',\(\)=>productManager\.openNew\(\)\)/,
@@ -117,7 +117,7 @@ test('new grocery illustration is locally available in PWA v34; sale and setting
   const hero=read('icons/home-grocery-basket.svg');
   assert.match(hero,/<svg/);
   assert.match(hero,/id="basket"/);
-  assert.match(sw,/cep-pos-shell-v34-new-home-dashboard/);
+  assert.match(sw,/cep-pos-shell-v35-responsive-all-devices/);
   assert.match(sw,/\/icons\/home-grocery-basket\.svg/);
   assert.match(html,/id="cartDialog"/);
   assert.match(html,/id="settingsView"/);
