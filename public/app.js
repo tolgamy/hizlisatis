@@ -169,9 +169,11 @@ function updateNavigation() {
   $('homeView').hidden = state.view !== 'home';
   $('catalogView').hidden = state.view !== 'catalog';
   $('settingsView').hidden = state.view !== 'settings';
+  // The approved mobile navigation has four destinations only; all category
+  // levels remain inside Products, and desktop uses the same routes.
   const active = dom.cartDialog.open ? 'sale' :
-    state.view==='catalog' ? (state.catalogMode==='category-home' ? 'products' : state.catalogEntry) : state.view;
-  for (const [id,value] of [['navHome','home'],['navCategories','categories'],['navSale','sale'],['navProducts','products'],['navSettings','settings']]) {
+    state.view==='catalog' ? 'products' : state.view;
+  for (const [id,value] of [['navHome','home'],['navSale','sale'],['navProducts','products'],['navSettings','settings']]) {
     const el=$(id); const yes=active===value; el.classList.toggle('active',yes);
     if(yes) el.setAttribute('aria-current','page'); else el.removeAttribute('aria-current');
   }
@@ -182,7 +184,7 @@ function applyRoute() {
   if(fragment==='product-categories'){
     state.view='catalog';state.catalogMode='category-home';state.catalogEntry='products';state.categoryPage='';
   } else if (fragment.startsWith('categories')) {
-    state.view='catalog';state.catalogMode='categories';
+    state.view='catalog';state.catalogMode='categories';state.catalogEntry='products';
     state.categoryPage=fragment.startsWith('categories/') ? fragment.slice('categories/'.length) : '';
     renderCategoryTree();
   } else if (fragment.startsWith('products')) {
@@ -320,9 +322,23 @@ function categoryTile(node, hasChildren = false) {
   return button;
 }
 function renderHome() {
-  // Preserve the original approved 12-tile home unchanged on Products.
-  const target=$('homeCategoryShortcuts');target.replaceChildren();
-  for(const node of sortCategoryNodes(state.categoryTreeData)) target.append(categoryTile(node,Boolean(node.children.length)));
+  // Both devices display the SAME twelve categories from the one D1-backed
+  // category tree. CSS switches from mobile Products to desktop Home; no
+  // duplicate catalog or second product set is created.
+  const target=$('homeCategoryShortcuts');
+  const desktop=$('desktopHomeCategoryGrid');
+  target.replaceChildren();desktop.replaceChildren();
+  for(const node of sortCategoryNodes(state.categoryTreeData)) {
+    const hasChildren=Boolean(node.children.length);
+    target.append(categoryTile(node,hasChildren));
+    const card=categoryTile(node,hasChildren);
+    const arrow=document.createElement('span');
+    arrow.className='desktop-home-chevron';
+    arrow.textContent='›';
+    arrow.setAttribute('aria-hidden','true');
+    card.append(arrow);
+    desktop.append(card);
+  }
   // A deleted record should not inflate the central catalogue count.
   $('homeTotalProducts').textContent=state.products.length?
     state.products.filter(product=>productStatus(product)!=='deleted').length.toLocaleString('tr-TR'):'—';
@@ -392,7 +408,9 @@ function openProductCategoryHome() {
   navigate('#product-categories');
 }
 function openCategoryBrowser() {
-  state.catalogEntry='categories';
+  // Category search is available in the nested Products browser; it is no
+  // longer a duplicated fifth bottom-navigation destination.
+  state.catalogEntry='products';
   openCategoryMenu();
 }
 function selectCategory(path) {
@@ -1380,7 +1398,6 @@ async function setup() {
     else renderProducts();
   });
   $('navHome').addEventListener('click',()=>setView('home'));
-  $('navCategories').addEventListener('click',openCategoryBrowser);
   $('brandHome').addEventListener('click',()=>{
     if(dom.cartDialog.open)dom.cartDialog.close();
     setView('home');
@@ -1389,7 +1406,7 @@ async function setup() {
   $('navSale').addEventListener('click',openSale);
   $('navSettings').addEventListener('click',()=>setView('settings'));
   // The six approved home shortcuts all open an existing, working workflow.
-  $('homeQuickCategories').addEventListener('click',openCategoryBrowser);
+  $('homeQuickCategories').addEventListener('click',openProductCategoryHome);
   $('homeQuickSale').addEventListener('click',openSale);
   $('homeQuickProducts').addEventListener('click',()=>productManager.openManage());
   $('homeQuickBarcode').addEventListener('click',()=>productManager.openNew());
@@ -1400,6 +1417,8 @@ async function setup() {
   $('homeQuickReports').addEventListener('click',showHistory);
   $('homeTodaySalesButton').addEventListener('click',showHistory);
   $('homeTotalProductsButton').addEventListener('click',openProductCategoryHome);
+  $('sidebarStock').addEventListener('click',()=>$('homeQuickStock').click());
+  $('sidebarReports').addEventListener('click',()=>$('homeQuickReports').click());
   $('categoryBack').addEventListener('click',()=>{
     const parent=state.categoryPage.split(' > ').slice(0,-1).join(' > ');openCategoryMenu(parent);
   });
