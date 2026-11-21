@@ -1903,3 +1903,41 @@ body.view-home .clean-topbar .searchline{display:flex!important}
   #scanDialog .scan-laser{animation:none;top:50%}
   #scanDialog .scan-confirm{transition:none}
 }
+
+/* v4.5 — five sale payment methods, balanced into 3 + 2 touch-friendly rows.
+   Radio value becomes part of the existing sale / print / PDF / export records. */
+.sale-sheet .payment-types{
+  display:grid;grid-template-columns:repeat(6,minmax(0,1fr));
+  gap:7px;margin:0 0 8px;
+}
+.sale-sheet .payment-types label{
+  grid-column:span 2;min-width:0;
+}
+.sale-sheet .payment-types label:nth-of-type(n+4){
+  grid-column:span 3;
+}
+.sale-sheet .payment-types span{
+  display:flex;align-items:center;justify-content:center;gap:4px;
+  min-height:45px;padding:8px 4px;
+  border-radius:12px;font-size:clamp(11px,3vw,13px);font-weight:850;
+  white-space:nowrap;
+}
+.sale-sheet .payment-types .payment-transfer span{
+  color:#176c89;background:#ecfaff;border-color:#b6e0ef;
+}
+.sale-sheet .payment-types .payment-fast span{
+  color:#7651a5;background:#f6f0ff;border-color:#d9c8f2;
+}
+.sale-sheet .payment-types .payment-transfer input:checked+span{
+  color:#075d7b;background:#d7f2fb;border:2px solid #2093b3;
+  box-shadow:0 0 0 2px #1c9eb91a;
+}
+.sale-sheet .payment-types .payment-fast input:checked+span{
+  color:#6133a2;background:#ebe0ff;border:2px solid #9562d8;
+  box-shadow:0 0 0 2px #9562d81c;
+}
+.sale-sheet .bank-payment-notice{
+  margin:2px 1px 10px;padding:9px 12px;border-radius:11px;
+  background:#fff9e9;color:#77551b;border:1px solid #ecd6a1;
+  font-size:11px;font-weight:700;line-height:1.4;
+}
