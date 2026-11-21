@@ -124,36 +124,55 @@ async function searchImages(query) {
   }
   return [];
 }
+const FALLBACK_SEARCHES=new Map([
+ ['Dondurma > Çoklu Dondurma',['ice cream','ice cream cones','frozen dessert']],
+ ['Ev & Yaşam > Tütün Ürünleri',['tobacco leaves','cigarettes','tobacco smoking']],
+ ['Ev Bakım & Anne Bebek > Temizlik Gereçleri',['cleaning tools','sponges mop brushes','house cleaning']],
+ ['Kişisel Bakım Ürünleri > Duş-Banyo &Sabun',['bath soap','shower products','soap bars']],
+ ['Kişisel Bakım Ürünleri > Genel Sağlık',['first aid','pharmacy medical supplies','hygiene products']],
+ ['Kişisel Bakım Ürünleri > Hijyenik Ped',['cotton pads','feminine hygiene products','sanitary napkin']],
+ ['Kişisel Bakım Ürünleri > Vücut & El Bakım',['hand cream','body lotion','skin moisturizer']],
+ ['PetShop > Kedi Kumları',['cat litter','litter box cat','cat sand']],
+ ['PetShop > Kuş Yemleri',['bird seeds','bird food','bird feeder seeds']],
+ ['Su ve İçecek > Toz & Hazır İçecek',['instant coffee powder','drink mix','powder juice']],
+ ['Süt Ürünleri & Kahvaltılık > Yoğurt - Ayran - Kefir',['plain yogurt','yogurt bowl','fermented milk']],
+ ['Temel Gıda > Sıvı Yağ',['olive oil','sunflower oil','oil bottles']]
+]);
 const seen=new Set();
 const manifest={};
 const credits=[];
 const failed=[];
 await mkdir(base,{recursive:true});
 for(const [category,query] of PHOTO_SEARCHES) {
-  const terms=[query,query.split(' ').slice(-2).join(' '),category.split(' > ').at(-1)];
-  let candidates=[];
-  for(const term of terms){
-    try{candidates=await searchImages(term);}catch(e){console.warn(category,'search retry',e.message);}
-    if(candidates.length)break;
-  }
+  const terms=[query,...(FALLBACK_SEARCHES.get(category)||[]),
+    query.split(' ').slice(-2).join(' '),
+    query.split(' ').slice(0,2).join(' '),
+    category.split(' > ').at(-1)];
   let found=false;
-  for(const item of candidates) {
-    if(seen.has(item.id))continue;
-    try {
-      const image=await fetchTimed(item.thumbnail,15000);
-      const type=(image.headers.get('content-type')||'').split(';')[0].toLowerCase();
-      if(!image.ok||!['image/jpeg','image/png','image/webp'].includes(type))continue;
-      const bytes=new Uint8Array(await image.arrayBuffer());
-      if(bytes.length<3000||bytes.length>950000)continue;
-      const extension={'image/jpeg':'.jpg','image/png':'.png','image/webp':'.webp'}[type];
-      const name=slug(category)+extension;
-      await writeFile(join(base,name),bytes);
-      const file='/subcategory-photos/'+name;
-      manifest[category]=file;
-      credits.push({category,file,photoId:item.id,query,source:item.foreign_landing_url,
-        author:item.creator,license:item.license,licenseUrl:item.license_url});
-      seen.add(item.id);found=true;break;
-    }catch(error){console.warn('image failed',category,error.message);}
+  // Exhaust all subject-specific queries instead of stopping on results that
+  // are duplicates or whose thumbnails are unavailable.
+  for(const term of [...new Set(terms)]) {
+    let candidates=[];
+    try{candidates=await searchImages(term);}catch(e){console.warn(category,'search retry',e.message);}
+    for(const item of candidates) {
+      if(seen.has(item.id))continue;
+      try {
+        const image=await fetchTimed(item.thumbnail,15000);
+        const type=(image.headers.get('content-type')||'').split(';')[0].toLowerCase();
+        if(!image.ok||!['image/jpeg','image/png','image/webp'].includes(type))continue;
+        const bytes=new Uint8Array(await image.arrayBuffer());
+        if(bytes.length<3000||bytes.length>950000)continue;
+        const extension={'image/jpeg':'.jpg','image/png':'.png','image/webp':'.webp'}[type];
+        const name=slug(category)+extension;
+        await writeFile(join(base,name),bytes);
+        const file='/subcategory-photos/'+name;
+        manifest[category]=file;
+        credits.push({category,file,photoId:item.id,query:term,source:item.foreign_landing_url,
+          author:item.creator,license:item.license,licenseUrl:item.license_url});
+        seen.add(item.id);found=true;break;
+      }catch(error){console.warn('image failed',category,error.message);}
+    }
+    if(found)break;
   }
   if(!found)failed.push(category);
   console.log('Category photo',Object.keys(manifest).length+'/'+PHOTO_SEARCHES.size,category,found?'OK':'MISSING');
