@@ -3,22 +3,22 @@ import assert from 'node:assert/strict';
 import { getBarcodeLibrary, supportedBarcodeFormats, acceptsBarcodeResult } from '../public/barcode-scanner.js';
 import { mergeProductLifecycle } from '../public/idb.js';
 
-test('bundled scanner UMD namespaces are supported without enabling QR', () => {
+test('bundled scanner resolves UMD namespaces and requested 1D/QR/PDF417',()=>{
   class Reader {}
-  for (const root of [
+  for(const root of [
     { Html5Qrcode: Reader },
     { html5qrcode: { Html5Qrcode: Reader } },
     { __Html5QrcodeLibrary__: { Html5Qrcode: Reader } }
-  ]) {
-    assert.equal(getBarcodeLibrary(root).Reader, Reader);
-    const formats = supportedBarcodeFormats(root);
-    assert.ok(formats.includes(9) && formats.includes(5));
-    assert.ok(!formats.includes(6), 'Data Matrix must not masquerade as Code 128');
-    assert.ok(!formats.includes(0), 'QR must not be enabled');
+  ]){
+    assert.equal(getBarcodeLibrary(root).Reader,Reader);
+    const formats=supportedBarcodeFormats(root);
+    for(const format of [0,3,5,9,10,11,14])assert.ok(formats.includes(format));
+    assert.ok(!formats.includes(6),'Data Matrix not requested');
   }
-  assert.equal(acceptsBarcodeResult({result:{format:{format:0, formatName:'QR_CODE'}}}),false);
-  assert.equal(acceptsBarcodeResult({result:{format:{format:9, formatName:'EAN_13'}}}),true);
-  assert.equal(acceptsBarcodeResult({result:{format:{format:7, formatName:'DATA_MATRIX'}}}),false);
+  assert.equal(acceptsBarcodeResult({result:{format:{format:0,formatName:'QR_CODE'}}}),true);
+  assert.equal(acceptsBarcodeResult({result:{format:{format:11,formatName:'PDF_417'}}}),true);
+  assert.equal(acceptsBarcodeResult({result:{format:{format:9,formatName:'EAN_13'}}}),true);
+  assert.equal(acceptsBarcodeResult({result:{format:{format:7,formatName:'DATA_MATRIX'}}}),false);
 });
 
 test('the separate product state ledger overrides catalog refresh data', () => {
