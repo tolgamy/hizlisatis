@@ -10,9 +10,10 @@ import {onRequestGet,onRequestPost} from '../functions/api/customers.js';
 const read=path=>readFileSync(new URL('../public/'+path,import.meta.url),'utf8');
 const html=read('index.html'),app=read('app.js'),styles=read('styles.css');
 
-test('twelve image-only home categories in three columns and custom artwork for child categories',()=>{
+test('twelve named main categories in three columns and custom artwork for child categories',()=>{
   assert.match(styles,/\.home-category-shortcuts\{display:grid!important;grid-template-columns:repeat\(3/);
-  assert.match(styles,/\.home-category-shortcuts \.photo-category-name\{display:none!important\}/);
+  assert.match(styles,/#homeCategoryShortcuts \.photo-category-name\{/);
+  assert.match(styles,/display:-webkit-box!important/);
   assert.match(app,/function categoryCover\(path\) \{[\s\S]*?return categoryArtwork\(path\);/);
   assert.match(app,/sortCategoryNodes\(state\.categoryTreeData\)/);
 });

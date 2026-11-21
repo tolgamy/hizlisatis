@@ -3,7 +3,7 @@ import { readXlsxRows } from './xlsx-reader.js';
 import { parseExcelProducts } from './excel-products.js';
 import { parseLocaleNumber, safeImageUrl } from './normalize.js';
 import { buildCategoryTree, categoryMatches, showCategoryInBrowse } from './category-menu.js';
-import { categoryArtwork, sortCategoryNodes } from './category-art.js';
+import { categoryArtwork, categorySymbols, sortCategoryNodes } from './category-art.js';
 import { categorizeProduct, productPictureEmoji } from './catalog-taxonomy.js';
 import { receiptAsText, escPosReceipt } from './receipt-share.js';
 import { receiptPdfBlob } from './receipt-pdf.js';
@@ -245,6 +245,21 @@ function categoryTile(node, hasChildren = false) {
     img.alt = '';
     applyProductImage(img,url,320,'high');
     photo.append(img);
+  }
+  if (node.path.includes(' > ')) {
+    // Native emoji remain vivid on iPhone; SVG-contained emoji vanished
+    // on some Safari builds, leaving only faint decorative circles.
+    photo.classList.add('photo-subcategory-image');
+    const symbols = document.createElement('span');
+    symbols.className = 'photo-category-symbols';
+    symbols.setAttribute('aria-hidden', 'true');
+    for (const symbol of categorySymbols(node.path)) {
+      const mark=document.createElement('span');
+      mark.className='photo-category-symbol';
+      mark.textContent=symbol;
+      symbols.append(mark);
+    }
+    photo.append(symbols);
   }
   if (hasChildren) {
     const badge = document.createElement('span');

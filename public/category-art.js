@@ -1,5 +1,6 @@
 const fold = value => String(value || '')
   .toLocaleLowerCase('tr-TR')
+  .replace(/ı/g, 'i')
   .normalize('NFD')
   .replace(/[\u0300-\u036f]/g, '')
   .trim();
@@ -129,7 +130,9 @@ function paletteFor(text) {
 }
 
 function emojiForPath(path) {
-  const normalized = fold(path);
+  // Match the leaf, not its parent. Otherwise all Ev Bakım & Anne Bebek
+  // children inherit baby icons instead of their own cleaning icons.
+  const normalized = fold(String(path).split(' > ').at(-1));
   for (const [pattern, icons] of SUBCATEGORY_RULES) {
     if (pattern.test(normalized)) return icons;
   }
@@ -155,29 +158,38 @@ function iconNodes(icons) {
 }
 
 function makeArtwork(path, icons, palette) {
-  const [bg, accent, accentStrong] = palette;
-  const ringOpacity = 0.65;
+  const [bg, accent, strong] = palette;
+  // Decorative vector backdrop. Actual subcategory symbols are DOM text
+  // emojis placed over it. iOS Safari does not reliably paint color emoji
+  // fonts when emoji are embedded inside an <img src="data:image/svg+xml">.
   return encodeSvg(`
-    <svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320" fill="none">
+    <svg xmlns="http://www.w3.org/2000/svg" width="320" height="240" viewBox="0 0 320 240" fill="none">
       <defs>
-        <linearGradient id="g" x1="40" y1="30" x2="280" y2="290" gradientUnits="userSpaceOnUse">
+        <linearGradient id="bg" x1="0" y1="0" x2="320" y2="240" gradientUnits="userSpaceOnUse">
           <stop stop-color="#ffffff"/>
-          <stop offset="1" stop-color="${bg}"/>
+          <stop offset=".58" stop-color="${bg}"/>
+          <stop offset="1" stop-color="${accent}"/>
         </linearGradient>
-        <filter id="shadow" x="-20" y="-20" width="360" height="360" color-interpolation-filters="sRGB">
-          <feDropShadow dx="0" dy="8" stdDeviation="14" flood-color="#0f2230" flood-opacity="0.08"/>
-        </filter>
+        <linearGradient id="blob" x1="50" y1="65" x2="270" y2="210">
+          <stop stop-color="${accent}"/>
+          <stop offset="1" stop-color="${strong}"/>
+        </linearGradient>
       </defs>
-      <rect x="16" y="16" width="288" height="288" rx="28" fill="url(#g)" filter="url(#shadow)"/>
-      <circle cx="84" cy="74" r="42" fill="${accent}" fill-opacity="${ringOpacity}"/>
-      <circle cx="250" cy="72" r="26" fill="${accent}" fill-opacity="0.42"/>
-      <circle cx="242" cy="250" r="46" fill="${accent}" fill-opacity="0.55"/>
-      <circle cx="87" cy="246" r="20" fill="${accentStrong}" fill-opacity="0.14"/>
-      <path d="M70 54c23-14 52-18 81-11" stroke="${accentStrong}" stroke-opacity="0.18" stroke-width="7" stroke-linecap="round"/>
-      <path d="M198 264c21 3 41-2 56-14" stroke="${accentStrong}" stroke-opacity="0.18" stroke-width="7" stroke-linecap="round"/>
-      ${iconNodes(icons)}
+      <rect width="320" height="240" rx="30" fill="url(#bg)"/>
+      <path d="M14 170c45-44 92-22 135-26 61-7 97-64 157-25v121H14z" fill="url(#blob)" opacity=".23"/>
+      <ellipse cx="75" cy="55" rx="69" ry="58" fill="${accent}" opacity=".45"/>
+      <ellipse cx="267" cy="174" rx="74" ry="68" fill="${strong}" opacity=".16"/>
+      <path d="M37 91c24-19 51-22 71-15M217 191c19 0 38-8 56-23"
+        stroke="${strong}" stroke-width="5" stroke-linecap="round" opacity=".25"/>
+      <circle cx="274" cy="54" r="12" fill="${strong}" opacity=".17"/>
     </svg>
   `.replace(/\n\s+/g, ' ').trim());
+}
+
+/** Symbols are painted as real DOM text, so Apple/Android render colorful
+ * native emoji rather than invisible image-embedded emoji placeholders. */
+export function categorySymbols(path) {
+  return [...emojiForPath(path)].slice(0,3);
 }
 
 export function categoryArtwork(path) {
