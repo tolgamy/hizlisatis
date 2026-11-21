@@ -25,7 +25,7 @@ import { writeActiveProductsLocalStorage } from './active-products-cache.js';
 const $ = id => document.getElementById(id);
 const state = {
   products: [], byId: new Map(), byBarcode: new Map(), categoryProductPhotos: new Map(), lifecycleMeta: null, legacyPending: false,
-  catalogLoading:true,catalogProgress:0,catalogError:'',
+  catalogLoading:true,catalogProgress:0,catalogError:'',centralReadOnly:false,
   sold: new Map(), cart: new Map(), category: '', brand: '',
   search: '', meta: null, sales: [], lastSale: null, pendingCreditSale:null,
   saving: false, scanner: null, scanPurpose: 'sale',
@@ -130,10 +130,16 @@ function setConnection() {
   el.className = `connection ${navigator.onLine ? 'online' : 'offline'}`;
 }
 function setSyncStatus() {
-  $('syncLabel').textContent = state.bundleLoading ? 'Ürünler yükleniyor…' : `${state.products.length.toLocaleString('tr-TR')} ürün`;
-  $('catalogSource').textContent = `${state.products.length.toLocaleString('tr-TR')} ürün · Excel kataloğu${state.excelCount ? ` · ${state.excelCount} cihaz içi düzenleme` : ''}`;
+  const count=state.products.length.toLocaleString('tr-TR');
+  $('syncLabel').textContent = state.centralReadOnly ? count+' ürün · Salt okunur' :
+    (state.bundleLoading ? 'Ürünler yükleniyor…' : count+' ürün');
+  $('catalogSource').textContent = state.centralReadOnly
+    ? count+' yerleşik ürün · Merkezi bağlantı yok, sadece görüntüleme'
+    : `${count} ürün · Excel kataloğu${state.excelCount ? ` · ${state.excelCount} cihaz içi düzenleme` : ''}`;
 }
-function setCatalog(products, adjustments, meta, excelCount = 0, bundleCount = 0, lifecycleMeta = null) {
+function setCatalog(products, adjustments, meta, excelCount = 0, bundleCount = 0, lifecycleMeta = null, verified = true) {
+  state.centralReadOnly = !verified;
+  $('catalogNotice').hidden = verified;
   state.lifecycleMeta = lifecycleMeta;
   state.excelCount = excelCount;
   state.bundleCount = bundleCount;
@@ -159,7 +165,7 @@ function setCatalog(products, adjustments, meta, excelCount = 0, bundleCount = 0
   state.categoryProductPhotos = picturePaths;
   // Mirror only verified ACTIVE product records after every successful D1 refresh.
   // A localStorage write failure must not change the authoritative catalog.
-  writeActiveProductsLocalStorage(products);
+  if (verified) writeActiveProductsLocalStorage(products);
   renderAll();
 }
 
@@ -374,7 +380,7 @@ function openProductDetail(product) {
   $('detailBarcode').textContent = `Barkod: ${product.barkod || '—'}  ·  SKU: ${product.urunKodu || '—'}`;
   $('detailMeta').textContent = stockLabel(product);
   $('detailPrice').textContent = priceLabel(product);
-  $('detailAdd').disabled = !isActive(product) || remaining(product) < 1 || product.fiyatBelirsiz;
+  $('detailAdd').disabled = state.centralReadOnly || !isActive(product) || remaining(product) < 1 || product.fiyatBelirsiz;
   $('productDetailDialog').showModal();
 }
 
@@ -467,7 +473,7 @@ function renderProducts() {
   dom.productList.className=`products ${state.productLayout==='grid'?'grid-view':'list-view'}`;
   const frag=document.createDocumentFragment();
   for(const p of items.slice(0,state.visibleLimit)) {
-    const available=remaining(p)>0&&!p.fiyatBelirsiz;
+    const available=!state.centralReadOnly&&remaining(p)>0&&!p.fiyatBelirsiz;
     const row=document.createElement('article');row.className='product-card';
     row.innerHTML=`<div class="product-photo"><span class="product-emoji" aria-hidden="true">${productPictureEmoji(p)}</span></div>
       <div class="product-info"><div class="product-title">${esc(p.baslik)}</div></div>
@@ -489,6 +495,7 @@ function renderProducts() {
 }
 function renderCartBar() {
   const count = cartQty();
+  $('openCart').hidden = count === 0;
   $('openCart').classList.toggle('is-empty', count === 0);
   dom.cartCount.textContent = String(count);
   dom.cartItemLabel.textContent = `${count} adet ürün`;
@@ -497,6 +504,7 @@ function renderCartBar() {
   $('saleLineCount').textContent = String(count);
 }
 function addToCart(product, quantity=1) {
+  if(state.centralReadOnly) { announce('Merkezi ürün bağlantısı yok. Satış için yeniden bağlanın.','error'); return false; }
   const weighted=['kg','g','litre'].includes(product.birim);
   if(!Number.isFinite(quantity)||quantity<=0||(!weighted&&!Number.isInteger(quantity))) {
     announce('Geçerli bir miktar girin.','error');return false;
@@ -716,6 +724,7 @@ async function confirmExcelImport() {
 
 async function completeSale() {
   if (state.saving || !state.cart.size) return;
+  if (state.centralReadOnly) { announce('Merkezi ürün bağlantısı yok. Satış kaydedilemez.','error'); return; }
   const sum = totals();
   const payment = document.querySelector('input[name="payment"]:checked').value;
   const cash = payment === 'Nakit' ? round2(parseLocaleNumber(dom.cash.value, NaN)) : null;
@@ -1389,7 +1398,7 @@ async function setup() {
   categoryImageManager.reload(true).catch(()=>{});
   setConnection();
   detectImageResizing().then(enabled=>{ if(enabled) { renderHome();renderCategoryTree();renderProducts(); } });
-  window.addEventListener('online',()=>{setConnection();categoryImageManager.reload(true).catch(()=>{});refreshManagedData().catch(error=>announce('Merkezden yenileme başarısız: '+error.message,'error'));});
+  window.addEventListener('online',()=>{setConnection();categoryImageManager.reload(true).catch(()=>{});refreshManagedData().catch(error=>console.warn('Merkezden yenileme başarısız:',error));});
   window.addEventListener('offline',setConnection);
   window.addEventListener('hashchange',applyRoute);
   dom.search.addEventListener('input',()=>{
@@ -1455,6 +1464,13 @@ async function setup() {
     if(found){barcodeAdd(dom.search.value,dom.search);state.search='';renderProducts();}
   });
   $('openCart').addEventListener('click',openSale);
+  $('catalogRetry').addEventListener('click',async()=>{
+    const button=$('catalogRetry');
+    button.disabled=true;
+    try { await refreshManagedData(); }
+    catch(error) { console.warn('Merkezi katalog hâlâ kullanılamıyor:',error); }
+    finally { button.disabled=false; }
+  });
   document.querySelectorAll('[data-close]').forEach(button=>button.addEventListener('click',()=>$(button.dataset.close).close()));
   dom.scanDialog.addEventListener('close',()=>stopScanner());
   dom.cartDialog.addEventListener('close',updateNavigation);
@@ -1511,8 +1527,18 @@ async function setup() {
     if(snapshot.legacyPending)announce('Eski cihazdaki ürün düzenlemelerini kontrol edin. Yedek için Ayarlar > Ürün Yönetimi bölümünü kullanın.','error');
   }catch(error){
     state.catalogError=error.message;
-    announce('Merkezi ürünler yüklenemedi: '+error.message,'error');
-    dom.complete.disabled=true;
+    // Never treat a bundled baseline as authoritative for passive/deleted
+    // product states. It is a browse-only fallback until D1 recovers.
+    try {
+      const {products}=await fetchBundledCatalog();
+      if(!products.length)throw Error('Yerleşik ürün kataloğu boş.');
+      setCatalog(products,[],null,0,products.length,null,false);
+      dom.complete.disabled=true;
+    }catch(fallbackError) {
+      console.warn('Yerleşik katalog açılamadı:',fallbackError);
+      announce('Ürün kataloğu açılamadı. Merkezi D1 bağlantısını kontrol edin.','error');
+      dom.complete.disabled=true;
+    }
   }
   applyRoute();
   channel?.addEventListener('message',async()=>{
