@@ -1,0 +1,44 @@
+name: Verify final v3.5.3 passive category paging live (read-only)
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/verify-passive-paging-v353.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Check actual v3.5.3 POS and full inactive product paging on Cloudflare
+        run: |
+          node <<'NODE'
+          const base='https://hizlisatis.pages.dev';
+          let passed=false;
+          for(let attempt=1;attempt<=34;attempt++){
+            try {
+              const get=path=>fetch(base+path,{cache:'no-store',signal:AbortSignal.timeout(12000)})
+                .then(async r=>r.ok?await r.text():Promise.reject(Error(path+' status '+r.status)));
+              const [html,manager,style,sw,health]=await Promise.all([
+                get('/'),get('/product-management.js'),get('/styles.css'),get('/sw.js'),
+                fetch(base+'/api/product-state?health=1',{cache:'no-store',
+                  signal:AbortSignal.timeout(12000)}).then(r=>r.json())
+              ]);
+              const facts={
+                v353:html.includes('Mobil POS · v3.5.3'),
+                browse:manager.includes('function drawCategoryNavigation(products)'),
+                loadAll:manager.includes('manageVisibleLimit+=60'),
+                save:html.includes('id="settingsReceiptSave"'),
+                threeColumns:style.includes('#categoryTree.category-grid-page{'),
+                sw:sw.includes('v27-passive-category-paging'),
+                count:health.count,
+                d1:health.ready===true&&health.count>=19096
+              };
+              console.log(JSON.stringify({attempt,...facts}));
+              if(facts.v353&&facts.browse&&facts.loadAll&&facts.save&&facts.threeColumns&&facts.sw&&facts.d1){
+                passed=true;break;
+              }
+            }catch(e){console.log('Attempt '+attempt+': '+String(e?.message||e));}
+            await new Promise(resolve=>setTimeout(resolve,5500));
+          }
+          if(!passed)process.exit(1);
+          console.log('Final v3.5.3 live verified without any D1 writes.');
+          NODE
