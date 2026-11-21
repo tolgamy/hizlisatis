@@ -57,7 +57,7 @@ test('premium reader is a functioning full-screen dialog connected to existing s
   assert.match(app,/function torchFeature\(session\)/);
   assert.match(app,/function showScanHistory\(/);
   assert.match(app,/function scanned\(/);
-  assert.match(app,/state\.scanPurpose==='manage'/);
+  assert.match(app,/if\(purpose==='manage'\)/);
   assert.match(app,/active=>selectScannedQuantity/);
   assert.match(app,/document\.addEventListener\('visibilitychange'/);
   assert.match(app,/window\.addEventListener\('pagehide'/);
