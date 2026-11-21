@@ -1277,3 +1277,387 @@ body.view-home .clean-topbar .searchline{display:flex!important}
 @media(prefers-reduced-motion:reduce){
   .dashboard-action{transition:none}
 }
+
+
+/* v4.1 adaptive shell — phone, portrait tablet, landscape tablet and Full HD.
+   Width/orientation media queries, not browser or device-brand sniffing.
+   Mobile's approved 3×4 Products gallery remains untouched below 600px.
+   Stock, receipt and D1 controls do not change. */
+.desktop-home-categories{display:none}
+.desktop-only-nav{display:none!important}
+.bottom-shell .bottom-nav{
+  grid-template-columns:repeat(4,minmax(0,1fr));
+}
+/* Portrait tablet: same familiar footer and 3×4 product categories, enlarged
+   touch targets. Avoid the desktop sidebar in portrait even at 1024px. */
+@media (min-width:600px) and (orientation:portrait){
+  #homeView.dashboard-home{
+    max-width:840px!important;
+    padding-inline:clamp(10px,2.4vw,26px)!important;
+  }
+  #productCategoryHome{max-width:920px;margin-inline:auto}
+  #homeCategoryShortcuts{
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    max-width:860px!important;
+    gap:clamp(10px,2vw,20px)!important;
+  }
+  #homeCategoryShortcuts .photo-category-image{
+    height:clamp(110px,15vw,185px)!important;
+  }
+  #homeCategoryShortcuts .photo-category-name{
+    font-size:clamp(13px,1.8vw,17px)!important;
+  }
+  #categoryTree.category-grid-page{
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  }
+  .bottom-shell .bottom-nav .nav-item{min-height:58px}
+}
+/* Tablet landscape (>=900px wide and >=600px high) or wide desktop (>=1440px):
+   left navigation, top search, real live metrics and 4×3 categories.
+   All content uses the same DOM and shared D1 data as mobile. */
+@media (min-width:900px) and (min-height:600px) and (orientation:landscape), (min-width:1440px){
+  :root{--hizli-sidebar:clamp(206px,16vw,260px)}
+  #app::before{
+    content:"";display:block;
+    position:fixed;inset:0 auto 0 0;
+    width:var(--hizli-sidebar);
+    background:linear-gradient(160deg,#0c2442,#112c4b 65%,#0b233e);
+    z-index:10;
+    pointer-events:none;
+  }
+  .clean-topbar{
+    width:calc(100% - var(--hizli-sidebar));
+    min-height:82px;
+    margin:0 0 0 var(--hizli-sidebar)!important;
+    padding:12px clamp(16px,2vw,34px)!important;
+    display:flex;align-items:center;
+    background:#0b2443!important;
+    position:sticky;top:0;z-index:13;
+  }
+  .clean-topbar .brandline{
+    width:0;height:0;min-height:0!important;
+    margin:0!important;padding:0!important;
+    overflow:visible;
+  }
+  .clean-topbar .brand-home{
+    position:fixed;
+    z-index:18;
+    top:18px;left:15px;
+    width:calc(var(--hizli-sidebar) - 30px);
+    padding:4px 0;
+    color:#fff;
+    min-height:54px;
+  }
+  .clean-topbar .brandmark{
+    width:47px;height:47px;border-radius:13px;flex:none;
+  }
+  .clean-topbar .brandline strong{font-size:clamp(17px,1.32vw,21px)}
+  .clean-topbar .brandline small{font-size:clamp(8px,.7vw,11px)}
+  .clean-topbar #connectionStatus{
+    position:fixed;
+    bottom:22px;left:15px;z-index:18;
+    margin:0;
+    width:calc(var(--hizli-sidebar) - 30px);
+    text-align:center;
+    border:1px solid #3b5a75;
+    padding:12px 9px;
+    background:#1f3c58;
+    border-radius:12px;
+    color:#dffcef;
+  }
+  .clean-topbar .searchline{
+    width:min(920px,100%);
+    margin:0!important;gap:14px;
+  }
+  .clean-topbar .searchbox input{
+    height:54px;min-height:54px;
+    font-size:clamp(15px,1.4vw,20px);
+  }
+  .clean-topbar .scanbutton{
+    width:57px;min-width:57px;height:54px;
+    border-radius:12px;
+  }
+  .clean-topbar .cart-confirm-toast{
+    left:50%;max-width:min(560px,calc(100vw - var(--hizli-sidebar) - 48px));
+  }
+  .clean-content{
+    width:calc(100% - var(--hizli-sidebar));
+    max-width:none!important;
+    margin:0 0 0 var(--hizli-sidebar)!important;
+    padding:clamp(16px,1.7vw,32px) clamp(16px,1.65vw,32px) 104px!important;
+    min-width:0;
+  }
+  #homeView.dashboard-home{
+    display:grid;
+    width:100%;
+    max-width:none!important;
+    margin:0!important;
+    padding:0 0 20px!important;
+    grid-template-columns:minmax(0,1fr);
+    grid-template-areas:"hero" "metrics" "actions" "categories";
+    gap:clamp(12px,1.1vw,22px);
+  }
+  .dashboard-hero{
+    grid-area:hero;
+    width:100%;
+    margin:0!important;
+    min-height:178px;
+    border-radius:19px;
+  }
+  .dashboard-hero-copy{padding:18px 0 18px 25px}
+  .dashboard-hero h1{font-size:clamp(25px,2.7vw,39px)}
+  .dashboard-hero p{font-size:clamp(13px,1.3vw,18px)}
+  .dashboard-metrics{
+    grid-area:metrics;
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    margin:0;padding:0;border:0;
+    gap:clamp(10px,1vw,18px);
+  }
+  .dashboard-metric{
+    min-height:105px;
+    padding:14px;
+    border-radius:16px;
+  }
+  .dashboard-metric-icon{
+    width:clamp(37px,4vw,62px);
+    height:clamp(37px,4vw,62px);
+    font-size:clamp(25px,3vw,38px);
+  }
+  .dashboard-metric-body>span{font-size:clamp(12px,1.1vw,16px)}
+  .dashboard-metric-body>strong{font-size:clamp(18px,1.8vw,29px)}
+  .dashboard-actions{
+    grid-area:actions;
+    grid-template-columns:repeat(6,minmax(0,1fr));
+    gap:clamp(7px,.9vw,14px);
+    margin:0!important;
+  }
+  .dashboard-action{
+    min-height:70px;
+    flex-direction:row;
+    justify-content:center;
+    text-align:left;
+    gap:clamp(5px,.6vw,12px);
+    padding:8px 7px;
+    border-radius:14px;
+  }
+  .dashboard-action-icon{
+    flex:none;width:clamp(25px,2.7vw,40px);
+    height:clamp(25px,2.7vw,40px);margin:0;
+  }
+  .dashboard-action strong{
+    font-size:clamp(11px,1.1vw,16px);
+    letter-spacing:-.02em;
+  }
+  .dashboard-action small{display:none}
+  #desktopHomeCategories{
+    grid-area:categories;display:block;
+    min-width:0;
+  }
+  #desktopHomeCategories h2{
+    font-size:clamp(21px,1.65vw,30px);
+    font-weight:900;
+    color:#132b46;
+    margin:0 0 16px;
+  }
+  #desktopHomeCategoryGrid{
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:clamp(9px,1vw,17px);
+    align-items:stretch;
+  }
+  #desktopHomeCategoryGrid .photo-category-tile{
+    position:relative;
+    width:100%;min-width:0;
+    height:clamp(95px,9.4vw,135px);
+    min-height:0;
+    display:flex!important;
+    flex-direction:row!important;
+    align-items:center!important;
+    justify-content:flex-start!important;
+    gap:8px!important;
+    border-radius:16px!important;
+    background:#fff!important;
+    padding:10px!important;
+    box-shadow:0 3px 14px #182c4915;
+    text-align:left!important;
+  }
+  #desktopHomeCategoryGrid .photo-category-image{
+    position:relative;
+    width:43%!important;
+    height:100%!important;
+    aspect-ratio:auto!important;
+    flex:0 0 43%;
+    overflow:hidden;
+    background:transparent!important;
+    border-radius:10px!important;
+  }
+  #desktopHomeCategoryGrid .photo-category-image img{
+    width:100%;height:100%;
+    object-fit:contain!important;
+    transform:none!important;
+    padding:0!important;
+  }
+  #desktopHomeCategoryGrid .photo-category-badge{display:none!important}
+  #desktopHomeCategoryGrid .photo-category-name{
+    display:block!important;
+    flex:1;
+    min-width:0;min-height:0;
+    padding:0!important;
+    line-height:1.2;
+    font-size:clamp(11px,1.11vw,17px)!important;
+    font-weight:850;
+    color:#142744;
+    overflow-wrap:anywhere;
+  }
+  #desktopHomeCategoryGrid .desktop-home-chevron{
+    display:grid;place-items:center;
+    flex:0 0 25px;
+    height:27px;width:25px;
+    border:1px solid #deebf6;
+    border-radius:50%;
+    color:#17456d;
+    background:#f5faff;
+    font-size:25px;
+    line-height:1;
+  }
+  /* The existing 12-card Products view, and its nested category browser,
+     also switch to 4 columns while retaining original images and behavior. */
+  #homeCategoryShortcuts{
+    grid-template-columns:repeat(4,minmax(0,1fr))!important;
+    max-width:none!important;
+    width:100%!important;
+    gap:clamp(9px,1vw,17px)!important;
+    padding:5px 0 20px!important;
+  }
+  #homeCategoryShortcuts .photo-category-image{
+    height:clamp(90px,10vw,160px)!important;
+  }
+  #homeCategoryShortcuts .photo-category-name{
+    font-size:clamp(12px,1.1vw,16px)!important;
+  }
+  #categoryTree.category-grid-page{
+    grid-template-columns:repeat(4,minmax(0,1fr))!important;
+    gap:clamp(9px,1vw,16px)!important;
+  }
+  /* Keep cart accessible, but make the existing mobile bottom menu into a
+     fixed dark sidebar. No duplicate navigation or second listeners. */
+  .bottom-shell{
+    position:fixed!important;
+    top:auto!important;
+    left:calc(var(--hizli-sidebar) + 12px)!important;
+    right:clamp(12px,2vw,34px)!important;
+    bottom:16px!important;
+    width:auto!important;
+    padding:0!important;
+    border:0!important;
+    background:transparent!important;
+    box-shadow:none!important;
+    z-index:16!important;
+    pointer-events:none;
+  }
+  .bottom-shell .cart-summary{
+    max-width:410px;
+    width:min(410px,100%);
+    margin:0 0 0 auto!important;
+    border-radius:14px;
+    pointer-events:auto;
+  }
+  .bottom-shell .bottom-nav{
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:stretch;
+    justify-content:flex-start;
+    position:fixed!important;
+    top:110px;bottom:110px;
+    left:11px;
+    width:calc(var(--hizli-sidebar) - 22px);
+    height:auto;
+    max-width:none!important;
+    margin:0!important;
+    padding:0!important;
+    gap:8px;
+    overflow-y:auto;
+    background:transparent;
+    z-index:17;
+    pointer-events:auto;
+  }
+  .bottom-shell .bottom-nav .nav-item{
+    display:flex!important;
+    min-width:0;
+    min-height:50px;
+    flex:0 0 auto;
+    flex-direction:row;
+    align-items:center;
+    justify-content:flex-start;
+    gap:14px;
+    padding:9px 15px;
+    border-radius:11px;
+    background:transparent;
+    color:#e7f0fb;
+  }
+  .bottom-shell .bottom-nav .nav-item.active{
+    background:linear-gradient(105deg,#0568d7,#0551ac);
+    color:#fff;
+  }
+  .bottom-shell .bottom-nav .nav-item span{
+    min-width:28px;
+    font-size:27px;
+    text-align:center;
+  }
+  .bottom-shell .bottom-nav .nav-item small{
+    font-size:clamp(12px,1vw,16px);
+    font-weight:800;
+    white-space:nowrap;
+    color:inherit;
+  }
+  .bottom-shell .bottom-nav .desktop-only-nav{
+    display:flex!important;
+  }
+  #navHome{order:1}
+  #navProducts{order:2}
+  #navSale{order:3}
+  #sidebarStock{order:4}
+  #sidebarReports{order:5}
+  #navSettings{order:6;margin-top:14px}
+  /* Desktop forms and stock search must fit the available main column. */
+  .settings-view,.clean-categories,#productResults{
+    width:100%;max-width:1100px;margin-inline:auto;
+  }
+  .clean-page-head{min-width:0}
+  #browseHeading .catalog-breadcrumb-button{max-width:28vw}
+}
+/* Smaller landscape tablets keep the sidebar and 4×3 categories but use
+   a more comfortable 3×2 quick-action grid. */
+@media (min-width:900px) and (max-width:1100px) and (min-height:600px) and (orientation:landscape){
+  .dashboard-actions{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .dashboard-action{min-height:56px}
+  #desktopHomeCategoryGrid .photo-category-tile{padding:6px!important;gap:4px!important}
+  #desktopHomeCategoryGrid .photo-category-image{flex-basis:39%;width:39%!important}
+  #desktopHomeCategoryGrid .desktop-home-chevron{flex-basis:19px;width:19px;height:22px;font-size:20px}
+}
+/* Full-HD desktop: hero and two metrics share the first row like the
+   approved 1920×1080 mockup, then compact actions and four-by-three cards. */
+@media (min-width:1440px){
+  #homeView.dashboard-home{
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+    grid-template-areas:"hero metrics" "actions actions" "categories categories";
+    align-items:stretch;
+  }
+  .dashboard-hero{min-height:166px}
+  .dashboard-metrics{align-items:stretch}
+  .dashboard-metric{
+    padding:clamp(10px,1.1vw,18px);
+    min-height:0;
+    gap:clamp(5px,.7vw,13px);
+  }
+  .dashboard-metric-icon{
+    width:clamp(36px,3.5vw,58px);height:clamp(36px,3.5vw,58px);
+  }
+  .dashboard-metric-body>strong{font-size:clamp(17px,1.55vw,27px)}
+  #desktopHomeCategoryGrid .photo-category-tile{
+    height:clamp(100px,8.3vw,136px);
+  }
+}
+/* When users shrink a desktop browser, the media queries drop the sidebar
+   automatically and restore the mobile/tablet bottom bar. */
