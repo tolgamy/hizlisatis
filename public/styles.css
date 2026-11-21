@@ -1277,3 +1277,401 @@ body.view-home .clean-topbar .searchline{display:flex!important}
 @media(prefers-reduced-motion:reduce){
   .dashboard-action{transition:none}
 }
+
+
+/* v4.1 — viewport-driven adaptive layout; no device/OS sniffing.
+   Portrait tablets: three columns + bottom navigation. Landscape tablets
+   and desktops: four columns + fixed navy left navigation.
+   Main / D1 / sales / receipts / customer interfaces remain unchanged. */
+.desktop-sidebar,
+.dashboard-desktop-categories{
+  display:none;
+}
+.product-category-heading{
+  margin:5px 0 18px;
+  color:#152d48;
+  font-size:clamp(22px,4vw,30px);
+  font-weight:900;
+  letter-spacing:-.025em;
+}
+.bottom-shell .bottom-nav{
+  grid-template-columns:repeat(4,minmax(0,1fr));
+}
+/* Tablet portrait must NOT inherit the old tablet 4-column media rule. */
+@media (min-width:680px) and (max-width:1279px) and (orientation:portrait){
+  .clean-content{
+    max-width:1080px!important;
+    padding:18px 22px calc(125px + env(safe-area-inset-bottom))!important;
+  }
+  #homeCategoryShortcuts{
+    width:100%!important;
+    max-width:920px!important;
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:clamp(10px,2vw,18px)!important;
+    margin:0 auto!important;
+  }
+  #homeCategoryShortcuts .photo-category-tile{
+    padding:clamp(9px,1.6vw,15px)!important;
+  }
+  #homeCategoryShortcuts .photo-category-image{
+    height:clamp(112px,17vw,182px)!important;
+  }
+  #homeCategoryShortcuts .photo-category-name{
+    min-height:44px!important;
+    font-size:clamp(13px,2vw,19px)!important;
+  }
+  #categoryTree.category-grid-page{
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:clamp(10px,1.6vw,16px)!important;
+  }
+  .dashboard-hero{min-height:clamp(225px,29vw,320px)}
+  .dashboard-action{min-height:clamp(145px,19vw,200px)}
+  .dashboard-action strong{font-size:clamp(18px,2.5vw,26px)}
+  .dashboard-action small{font-size:clamp(12px,1.7vw,17px)}
+  .dashboard-metric{min-height:clamp(110px,15vw,145px)}
+  .bottom-shell .bottom-nav{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+/* Match actual available space and orientation, not the device brand.
+   The min-height guard keeps wide phones rotated to landscape on their
+   compact touch layout instead of forcing a cramped desktop sidebar. */
+@media (min-width:800px) and (min-height:550px) and (orientation:landscape),
+       (min-width:1280px){
+  :root{
+    --desktop-sidebar-width:clamp(196px,16vw,270px);
+    --desktop-header-height:88px;
+  }
+  html,body{min-width:0;overflow-x:clip}
+  #app{min-height:100dvh}
+  .clean-topbar{
+    position:sticky!important;
+    top:0;
+    z-index:30;
+    display:grid!important;
+    grid-template-columns:var(--desktop-sidebar-width) minmax(0,1fr);
+    align-items:center;
+    width:100%;
+    height:var(--desktop-header-height);
+    min-height:var(--desktop-header-height);
+    padding:10px 18px 10px 0!important;
+    background:#0d2443;
+    box-shadow:0 4px 18px #081b2e25;
+  }
+  .clean-topbar .brandline{
+    grid-column:1;grid-row:1;
+    width:100%;
+    min-width:0;
+    display:flex;
+    margin:0!important;
+    padding:0 12px!important;
+    justify-content:flex-start;
+  }
+  .clean-topbar .brand-home{max-width:100%;min-width:0;gap:8px}
+  .clean-topbar .brand-home .brandmark{flex:none}
+  .clean-topbar .brandline strong{font-size:clamp(17px,1.45vw,24px)}
+  .clean-topbar .brandline small{font-size:clamp(8px,.72vw,11px)}
+  .clean-topbar .searchline{
+    grid-column:2;grid-row:1;
+    width:calc(100% - 142px);
+    max-width:1000px;
+    min-width:0;
+    display:flex!important;
+    margin:0!important;
+    padding-left:clamp(11px,2vw,28px);
+  }
+  .clean-topbar .searchbox{
+    min-width:0;
+    height:54px;
+    border-radius:13px;
+    box-shadow:0 3px 10px #08182d20;
+  }
+  .clean-topbar .searchbox input{height:50px;min-height:50px;font-size:clamp(15px,1.15vw,19px)}
+  .clean-topbar .scanbutton{
+    flex:none;
+    height:54px;width:62px;min-width:62px;border-radius:13px;
+  }
+  .clean-topbar .connection{
+    position:absolute;
+    top:50%;
+    right:19px;
+    transform:translateY(-50%);
+    margin:0;
+    font-size:12px;
+    padding:10px 12px;
+  }
+  .clean-topbar .cart-confirm-toast{
+    left:calc(var(--desktop-sidebar-width) + (100% - var(--desktop-sidebar-width)) / 2);
+    max-width:min(550px,calc(100vw - var(--desktop-sidebar-width) - 30px));
+  }
+  .desktop-sidebar{
+    display:flex;
+    position:fixed;
+    z-index:11;
+    top:var(--desktop-header-height);
+    bottom:0;
+    left:0;
+    width:var(--desktop-sidebar-width);
+    flex-direction:column;
+    justify-content:space-between;
+    gap:14px;
+    padding:26px 13px 18px;
+    background:linear-gradient(165deg,#0e2748,#0a213c 80%);
+    border-right:1px solid #30435b;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+  }
+  .desktop-sidebar-links{
+    display:flex;
+    flex-direction:column;
+    gap:7px;
+  }
+  .desktop-nav-link{
+    width:100%;
+    min-height:52px;
+    display:flex;
+    align-items:center;
+    justify-content:flex-start;
+    gap:13px;
+    padding:11px 15px;
+    border:0;
+    border-radius:13px;
+    background:transparent;
+    color:#e8eff8;
+    font-size:clamp(13px,1.06vw,16px);
+    line-height:1.15;
+    font-weight:800;
+    white-space:nowrap;
+    text-align:left;
+  }
+  .desktop-nav-link svg{
+    flex:none;
+    width:23px;
+    height:23px;
+    stroke:currentColor;
+    stroke-width:1.9;
+    fill:none;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+  }
+  .desktop-nav-link:hover{background:#26496e}
+  .desktop-nav-link.active,.desktop-nav-link[aria-current="page"]{
+    color:#fff;
+    background:linear-gradient(110deg,#1779ee,#0956b7);
+    box-shadow:0 4px 12px #051c4266;
+  }
+  .desktop-nav-link:focus-visible{
+    outline:3px solid #a6d7ff;outline-offset:2px;
+  }
+  .desktop-nav-divider{height:1px;background:#36516f;margin:12px 8px}
+  .desktop-sidebar-status{
+    display:grid;
+    grid-template-columns:14px 1fr;
+    align-items:center;
+    gap:4px 8px;
+    border:1px solid #3e5676;
+    border-radius:14px;
+    padding:15px 13px;
+    background:#ffffff12;
+    color:#eff7ff;
+    font-weight:800;
+    font-size:13px;
+  }
+  .desktop-sidebar-status small{grid-column:2;color:#bdcde0;font-size:10px;font-weight:500}
+  .desktop-connection-dot{
+    display:block;width:13px;height:13px;border-radius:50%;background:#00b866;
+    box-shadow:0 0 0 3px #00b86624;
+  }
+  .desktop-sidebar-status.offline .desktop-connection-dot{background:#e6a24c;box-shadow:0 0 0 3px #e6a24c25}
+  .clean-content{
+    display:block;
+    box-sizing:border-box;
+    max-width:none!important;
+    width:calc(100% - var(--desktop-sidebar-width))!important;
+    min-height:calc(100dvh - var(--desktop-header-height));
+    margin:0 0 0 var(--desktop-sidebar-width)!important;
+    padding:clamp(18px,1.5vw,30px) clamp(17px,1.8vw,38px) 46px!important;
+  }
+  .bottom-shell{display:none!important}
+  /* Desktop home: hero + real metrics, shortcuts and category grid. */
+  #homeView.dashboard-home{
+    width:100%;
+    max-width:none!important;
+    margin:0!important;
+    padding:0 0 30px!important;
+    display:grid;
+    grid-template-columns:1fr;
+    grid-template-areas:"hero" "metrics" "actions" "categories";
+    gap:clamp(14px,1.4vw,23px);
+  }
+  .dashboard-hero{grid-area:hero;min-height:175px;margin:0}
+  .dashboard-metrics{grid-area:metrics;padding:0;border:0;margin:0}
+  .dashboard-actions{
+    grid-area:actions;
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:10px!important;
+    margin:0!important;
+  }
+  .dashboard-action{
+    flex-direction:row;
+    align-items:center;
+    justify-content:center;
+    text-align:left;
+    gap:11px;
+    min-width:0;
+    min-height:70px;
+    padding:9px 12px;
+    border-radius:16px;
+  }
+  .dashboard-action-icon{flex:none;width:40px;height:40px;margin:0}
+  .dashboard-action strong{font-size:clamp(12px,1.2vw,19px);letter-spacing:-.02em}
+  .dashboard-action small{display:none}
+  /* The extra Categories card duplicates Products at desktop sizes.
+     Preserve that quick-action tile only on mobile/portrait tablets. */
+  #homeQuickCategories{display:none}
+  .dashboard-metric{min-height:95px;padding:13px 11px;gap:8px}
+  .dashboard-metric-icon{width:clamp(38px,4vw,57px);height:clamp(38px,4vw,57px);font-size:27px}
+  .dashboard-metric-body>span{font-size:clamp(12px,1.05vw,17px)}
+  .dashboard-metric-body>strong{font-size:clamp(17px,1.65vw,29px)}
+  .dashboard-metric-body>small{font-size:clamp(9px,.75vw,12px)}
+  .dashboard-desktop-categories{
+    grid-area:categories;
+    display:block;
+    margin:0;
+    padding:0;
+  }
+  .dashboard-desktop-categories h2{
+    margin:1px 0 13px;
+    color:#0c2443;
+    font-size:clamp(20px,1.6vw,28px);
+    font-weight:900;
+    letter-spacing:-.025em;
+  }
+  .dashboard-desktop-grid{
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:clamp(9px,1vw,15px);
+    align-items:stretch;
+  }
+  .dashboard-desktop-grid .photo-category-tile{
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:center!important;
+    justify-content:center!important;
+    width:100%;
+    min-width:0;
+    min-height:135px;
+    border:1px solid #e0e7f0;
+    border-radius:18px;
+    padding:10px!important;
+    background:#fff;
+    box-shadow:0 4px 12px #19314514;
+    gap:7px!important;
+    text-align:center;
+  }
+  .dashboard-desktop-grid .photo-category-image{
+    flex:none!important;
+    display:block!important;
+    width:100%!important;
+    height:85px!important;
+    aspect-ratio:auto!important;
+    overflow:hidden!important;
+    background:transparent!important;
+  }
+  .dashboard-desktop-grid .photo-category-image img{
+    width:100%;height:100%;
+    object-fit:contain!important;
+    padding:0!important;
+    transform:none!important;
+  }
+  .dashboard-desktop-grid .photo-category-name{
+    display:block!important;
+    flex:1;
+    min-width:0;
+    align-self:center;
+    color:#122744!important;
+    font-size:clamp(11px,1.08vw,17px)!important;
+    line-height:1.17;
+    font-weight:850!important;
+    text-align:center;
+    overflow-wrap:anywhere;
+  }
+  .dashboard-desktop-grid .photo-category-badge{
+    display:none!important;
+  }
+  /* Old mobile home gallery was moved to Products. Its full-width desktop
+     grid and subcategory grid both follow the same 4-column rule. */
+  #homeCategoryShortcuts{
+    width:100%!important;
+    max-width:none!important;
+    display:grid!important;
+    grid-template-columns:repeat(4,minmax(0,1fr))!important;
+    gap:clamp(10px,1vw,17px)!important;
+    margin:0!important;
+    padding:0!important;
+  }
+  #homeCategoryShortcuts .photo-category-tile{
+    min-height:155px;
+    padding:11px!important;
+    border-radius:17px!important;
+  }
+  #homeCategoryShortcuts .photo-category-image{
+    height:clamp(90px,10vw,145px)!important;
+    aspect-ratio:1.4!important;
+  }
+  #homeCategoryShortcuts .photo-category-name{
+    min-height:34px!important;
+    font-size:clamp(12px,1vw,17px)!important;
+    font-weight:850!important;
+  }
+  #categoryTree.category-grid-page{
+    display:grid!important;
+    grid-template-columns:repeat(4,minmax(0,1fr))!important;
+    gap:clamp(10px,1vw,17px)!important;
+  }
+  #categoryTree .photo-category-image{aspect-ratio:1.3!important}
+  #browseHeading .catalog-breadcrumb-button{max-width:clamp(180px,33vw,490px)}
+  #productResults .products.grid-view{
+    grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  }
+  #productResults .products.grid-view .product-photo{
+    height:clamp(125px,13vw,200px)!important;
+  }
+  #productResults .products.grid-view .product-title{font-size:clamp(12px,.9vw,16px)}
+  #productResults .products.grid-view .product-right{gap:9px!important}
+  .settings-view{max-width:1100px;margin:0 auto}
+}
+/* At Full HD, match the approved horizontal category cards and top overview. */
+@media (min-width:1200px) and (min-height:550px) and (orientation:landscape),
+       (min-width:1280px){
+  #homeView.dashboard-home{
+    grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);
+    grid-template-areas:"hero metrics" "actions actions" "categories categories";
+  }
+  .dashboard-hero{min-height:185px}
+  .dashboard-hero-copy{padding-left:clamp(23px,2vw,40px)}
+  .dashboard-hero h1{font-size:clamp(25px,2.55vw,42px)}
+  .dashboard-hero p{font-size:clamp(13px,1.12vw,18px)}
+  .dashboard-metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .dashboard-actions{grid-template-columns:repeat(5,minmax(0,1fr))!important}
+  .dashboard-desktop-grid .photo-category-tile{
+    flex-direction:row!important;
+    min-height:121px;
+    padding:12px 11px!important;
+    gap:10px!important;
+    text-align:left;
+  }
+  .dashboard-desktop-grid .photo-category-image{
+    width:47%!important;
+    height:97px!important;
+  }
+  .dashboard-desktop-grid .photo-category-name{
+    flex:1;
+    align-self:center;
+    text-align:left;
+    font-size:clamp(12px,1.06vw,17px)!important;
+  }
+  .dashboard-desktop-grid .photo-category-badge{display:grid!important;flex:none}
+}
+/* Printed receipts must never contain the desktop navigation. */
+@media print{
+  .desktop-sidebar,.dashboard-desktop-categories{display:none!important}
+}
