@@ -1,4 +1,4 @@
-const VERSION = 'cep-pos-shell-v26-passive-category-firma-save';
+const VERSION = 'cep-pos-shell-v27-passive-category-paging';
 const SHELL = [
   '/', '/index.html', '/styles.css', '/app.js', '/idb.js',
   '/normalize.js', '/remote-products.js', '/product-lifecycle.js', '/product-management.js', '/lifecycle-backup.js', '/passive-auth.js', '/receipt-pdf.js', '/barcode-scanner.js', '/category-art.js', '/subcategory-icons.js', '/customer-api.js', '/customer-ui.js', '/receipt-settings.js', '/image-delivery.js', '/receipt-share.js', '/catalog-taxonomy.js', '/category-menu.js', '/barcode-lookup.js', '/bundled-catalog.js', '/xlsx-reader.js', '/excel-products.js', '/urun-yukleme-sablonu.xlsx', '/manifest.json',
