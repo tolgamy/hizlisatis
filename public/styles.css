@@ -489,3 +489,6 @@ body.view-home .clean-topbar .searchline{display:flex!important}
   #receiptPrint .receipt-product{margin:0!important;padding:0!important;line-height:1.14!important}
   #receiptPrint .receipt-rule{margin:1mm 0!important}
 }
+
+.category-grid-page .photo-category-tile.is-return-target{border-color:#158e70!important;
+  box-shadow:0 0 0 2px #40b99a55!important}
