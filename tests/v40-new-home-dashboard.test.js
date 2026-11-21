@@ -119,7 +119,7 @@ test('new grocery illustration is locally available in PWA v34; sale and setting
   const hero=read('icons/home-grocery-basket.svg');
   assert.match(hero,/<svg/);
   assert.match(hero,/id="basket"/);
-  assert.match(sw,/cep-pos-shell-v38-equal-colorful-tabs/);
+  assert.match(sw,/cep-pos-shell-v39-bank-payments/);
   assert.match(sw,/\/icons\/home-grocery-basket\.svg/);
   assert.match(html,/id="cartDialog"/);
   assert.match(html,/id="settingsView"/);
