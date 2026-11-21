@@ -44,7 +44,7 @@ const dom = {
   scanDialog: $('scanDialog'), scanMessage: $('scanMessage')
 };
 const channel = 'BroadcastChannel' in window ? new BroadcastChannel('cep-pos-changes') : null;
-let toastTimer;
+let toastTimer,cartToastTimer;
 let productManager,customerManager,pendingScanProduct=null;
 let mutationQueue = Promise.resolve();
 function serializeMutation(operation) {
@@ -64,6 +64,40 @@ function announce(message, type = '') {
   const toast = $('toast'); toast.textContent = message; toast.className = `toast ${type}`;
   toast.hidden = false; clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { toast.hidden = true; }, 3800);
+}
+/** Approved design #1: confirmation stays directly below the sticky search bar. */
+function showCartConfirmation(product) {
+  const banner=$('cartToast');
+  $('cartToastText').textContent=product.baslik+' sepete eklendi.';
+  banner.hidden=false;
+  clearTimeout(cartToastTimer);
+  cartToastTimer=setTimeout(()=>{banner.hidden=true;},2700);
+}
+/** Same category route can be tapped again to reload the product grid. */
+function renderProductBreadcrumb(path, fallback) {
+  const heading=$('browseHeading');
+  heading.replaceChildren();
+  if(!path) { heading.textContent=fallback;return; }
+  const parts=String(path).split(' > ').filter(Boolean);
+  const labels=parts.map((name,index)=>({name,path:parts.slice(0,index+1).join(' > ')}));
+  labels.forEach((part,index)=>{
+    if(index){
+      const separator=document.createElement('span');
+      separator.className='catalog-breadcrumb-separator';
+      separator.textContent='›';
+      separator.setAttribute('aria-hidden','true');
+      heading.append(separator);
+    }
+    const button=document.createElement('button');
+    button.type='button';button.className='catalog-breadcrumb-button';
+    button.textContent=part.name;
+    button.title=part.name;
+    if(index===labels.length-1)button.setAttribute('aria-current','page');
+    // Main breadcrumb -> its children; current subcategory -> its products.
+    button.addEventListener('click',()=>index===labels.length-1?
+      selectCategory(part.path):openCategoryMenu(part.path));
+    heading.append(button);
+  });
 }
 function fold(text) {
   return String(text ?? '').toLocaleLowerCase('tr-TR').normalize('NFD')
@@ -367,7 +401,7 @@ function renderProducts() {
     if(state.sort==='stock')return (b.stokBelirsiz?-1:remaining(b))-(a.stokBelirsiz?-1:remaining(a));
     return av||a.baslik.localeCompare(b.baslik,'tr');
   });
-  $('browseHeading').textContent=state.category||(query?'Arama Sonuçları':'Ürünler');
+  renderProductBreadcrumb(state.category,query?'Arama Sonuçları':'Ürünler');
   dom.count.textContent=items.length.toLocaleString('tr-TR');
   for(const [id,mode] of [['viewGrid','grid'],['viewList','list']]) {
     $(id).setAttribute('aria-pressed',String(state.productLayout===mode));$(id).classList.toggle('active',state.productLayout===mode);
@@ -424,7 +458,8 @@ function addToCart(product, quantity=1) {
     quantity, unitPrice: product.satisFiyati, discountPct: 0 });
   renderCartBar();
   if (dom.cartDialog.open) renderCart();
-  announce(`${product.baslik} sepete eklendi.`, 'success');
+  playCartSound(current?'increase':'add');
+  showCartConfirmation(product);
   return true;
 }
 function updateCart(id, field, value) {
@@ -436,12 +471,12 @@ function updateCart(id, field, value) {
     if (!Number.isFinite(num) || num < 0 || (!weighted && !Number.isInteger(num)) || (weighted && Math.round(num*1000)!==num*1000)) { announce('Miktar geçersiz.', 'error'); renderCart(); return; }
     if (num === 0) {
       if(!confirm(line.product.baslik+' sepetten silinsin mi?')){renderCart();return;}
-      state.cart.delete(id);renderCartBar();renderCart();return;
+      state.cart.delete(id);playCartSound('decrease');renderCartBar();renderCart();return;
     }
     if (num > remaining(state.byId.get(id) || line.product)) {
       announce('İstenen adet kullanılabilir stoğu aşıyor.', 'error'); renderCart(); return;
     }
-    if(num>line.quantity)chirp();
+    if(num!==line.quantity)playCartSound(num>line.quantity?'increase':'decrease');
     line.quantity = num;
   } else if (field === 'price') {
     const num = parseLocaleNumber(value, NaN);
@@ -488,7 +523,7 @@ function renderCart() {
     </div>`;
     el.querySelector('[data-remove]').addEventListener('click', () => {
       if(!confirm(line.product.baslik+' sepetten silinsin mi?'))return;
-      state.cart.delete(line.id); renderCart(); renderCartBar();
+      state.cart.delete(line.id); playCartSound('decrease'); renderCart(); renderCartBar();
     });
     for (const step of el.querySelectorAll('[data-step]')) step.addEventListener('click', () => {
       const delta=['kg','g','litre'].includes(line.product.birim)?0.1:1;
@@ -904,6 +939,28 @@ function unlockScanAudio() {
     if (scanSoundContext.state === 'suspended') scanSoundContext.resume().catch(() => {});
   } catch { /* some devices silence page audio */ }
 }
+function playCartSound(action='add') {
+  try {
+    // Only user-triggered successful cart mutations call this sound.
+    // Reuse the barcode scanner's AudioContext; no network or music assets.
+    unlockScanAudio();
+    const audio=scanSoundContext;
+    if(!audio)return;
+    const now=audio.currentTime;
+    const tones=action==='decrease'?[670,490]:action==='increase'?[920,1190]:[870,1100];
+    tones.forEach((frequency,index)=>{
+      const start=now+index*0.078;
+      const tone=audio.createOscillator(),gain=audio.createGain();
+      tone.type='sine';tone.frequency.setValueAtTime(frequency,start);
+      gain.gain.setValueAtTime(0.001,start);
+      gain.gain.exponentialRampToValueAtTime(0.19,start+0.012);
+      gain.gain.exponentialRampToValueAtTime(0.001,start+0.115);
+      tone.connect(gain);gain.connect(audio.destination);
+      tone.start(start);tone.stop(start+0.12);
+      tone.onended=()=>{tone.disconnect();gain.disconnect();};
+    });
+  } catch { /* Device or browser does not permit audio. Sale still succeeds. */ }
+}
 function chirp() {
   try {
     unlockScanAudio();
@@ -1294,6 +1351,9 @@ async function setup() {
     const parent=state.categoryPage.split(' > ').slice(0,-1).join(' > ');openCategoryMenu(parent);
   });
   $('catalogBack').addEventListener('click',()=>openCategoryMenu(state.category.split(' > ').slice(0,-1).join(' > ')));
+  $('cartToastClose').addEventListener('click',()=>{
+    clearTimeout(cartToastTimer);$('cartToast').hidden=true;
+  });
   $('categorySearch').addEventListener('input',()=>renderCategoryTree($('categorySearch').value));
   $('categoryAllProducts').addEventListener('click',()=>state.categoryPage?selectCategory(state.categoryPage):showAllProducts());
   $('viewGrid').addEventListener('click',()=>{state.productLayout='grid';renderProducts();});

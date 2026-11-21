@@ -25,8 +25,8 @@ test('barcode scan prompts for one quantity; no repeated scanning for quantities
   assert.match(app,/addToCart\(product,qty\)/);
   assert.match(app,/active=>selectScannedQuantity/);
 });
-test('cart adjustments beep on increments, confirm deletion, leave discount blank',()=>{
-  assert.match(app,/if\(num>line.quantity\)chirp\(\)/);
+test('cart adjustments play sound on increase and decrease, confirm deletion, leave discount blank',()=>{
+  assert.match(app,/if\(num!==line.quantity\)playCartSound\(num>line.quantity\?'increase':'decrease'\)/);
   assert.match(app,/if\(!confirm\(line.product.baslik\+' sepetten silinsin mi\?'\)\)/);
   assert.match(app,/line.discountPct\|\|''/);
 });
