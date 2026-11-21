@@ -28,6 +28,37 @@
       <input id="excelFile" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
     </header>
 
+    <!-- Desktop / landscape-tablet navigation. CSS automatically hides it on
+         phones and portrait tablets; the same handlers power both menus. -->
+    <aside class="desktop-sidebar" aria-label="Masaüstü menüsü">
+      <nav class="desktop-sidebar-links" aria-label="Ana gezinme">
+        <button id="desktopNavHome" type="button" class="desktop-nav-link active" aria-current="page">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 9-8 9 8v9a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg><span>Ana Sayfa</span>
+        </button>
+        <button id="desktopNavProducts" type="button" class="desktop-nav-link">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16l-1.4 13H5.4zM8 7l1.3-4h5.4L16 7M9 11v6m6-6v6"/></svg><span>Ürünler</span>
+        </button>
+        <button id="desktopNavSale" type="button" class="desktop-nav-link">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l3 12h11l2-9H6m4 13h.01M18 20h.01"/></svg><span>Satış</span>
+        </button>
+        <button id="desktopNavStock" type="button" class="desktop-nav-link">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 9 5-9 5-9-5 9-5ZM3 7v10l9 5V12M21 7v10l-9 5M7.5 4.5l9 5"/></svg><span>Stok Durumu</span>
+        </button>
+        <button id="desktopNavReports" type="button" class="desktop-nav-link">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V12h4v8M10 20V7h4v13M16 20V3h4v17M2 21h20"/></svg><span>Raporlar</span>
+        </button>
+        <div class="desktop-nav-divider" aria-hidden="true"></div>
+        <button id="desktopNavSettings" type="button" class="desktop-nav-link">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="m10 2-.5 2.1a8 8 0 0 0-2.1.9L5.5 4 3 6.5l1 1.9a8 8 0 0 0-.9 2.1L1 11v3l2.1.5a8 8 0 0 0 .9 2.1l-1 1.9L5.5 21l1.9-1a8 8 0 0 0 2.1.9l.5 2.1h4l.5-2.1a8 8 0 0 0 2.1-.9l1.9 1 2.5-2.5-1-1.9a8 8 0 0 0 .9-2.1L23 14v-3l-2.1-.5a8 8 0 0 0-.9-2.1l1-1.9L18.5 4l-1.9 1a8 8 0 0 0-2.1-.9L14 2z"/></svg><span>Ayarlar</span>
+        </button>
+      </nav>
+      <div class="desktop-sidebar-status" aria-live="polite">
+        <span class="desktop-connection-dot" aria-hidden="true"></span>
+        <span id="desktopConnectionText">Bağlantı kontrol ediliyor</span>
+        <small>HızlıSatış · POS</small>
+      </div>
+    </aside>
+
     <main class="content clean-content" id="mainContent">
       <section id="homeView" class="home-view clean-home dashboard-home" aria-label="Ana sayfa">
         <div class="dashboard-hero">
@@ -69,6 +100,12 @@
             <span class="dashboard-metric-arrow" aria-hidden="true">›</span>
           </button>
         </div>
+        <!-- Only wide landscape tablets and desktops display this second
+             category grid; the original twelve tiles stay in Products. -->
+        <section id="desktopHomeCategories" class="dashboard-desktop-categories" aria-label="Ana kategoriler">
+          <h2>Ana Kategoriler</h2>
+          <div id="desktopHomeCategoryGrid" class="dashboard-desktop-grid" aria-label="12 ana kategori"></div>
+        </section>
       </section>
       <section id="catalogView" class="catalog-view clean-catalog" aria-label="Ürünler" hidden>
         <section id="categoryBrowser" class="clean-categories">
@@ -79,6 +116,7 @@
           <button id="categoryAllProducts" type="button" class="clean-see-all">Tüm Ürünleri Göster</button>
           </div>
           <section id="productCategoryHome" hidden aria-label="12 ana kategori">
+            <h1 class="product-category-heading">Ürünler</h1>
             <div id="homeCategoryShortcuts" class="home-category-shortcuts category-photo-grid" aria-label="12 ana kategori"></div>
           </section>
         </section>
@@ -122,7 +160,6 @@
       </button>
       <nav class="bottom-nav" aria-label="Ana gezinme">
         <button id="navHome" type="button" class="nav-item active" aria-current="page"><span aria-hidden="true">⌂</span><small>Ana Sayfa</small></button>
-        <button id="navCategories" type="button" class="nav-item"><span aria-hidden="true">▦</span><small>Kategoriler</small></button>
         <button id="navSale" type="button" class="nav-item nav-sale"><span aria-hidden="true">⊕</span><small>Satış</small></button>
         <button id="navProducts" type="button" class="nav-item"><span aria-hidden="true">⬡</span><small>Ürünler</small></button>
         <button id="navSettings" type="button" class="nav-item"><span aria-hidden="true">⚙</span><small>Ayarlar</small></button>
