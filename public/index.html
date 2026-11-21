@@ -129,12 +129,12 @@
         <span class="cart-total" id="cartTotal">₺0,00</span><span class="chevron" aria-hidden="true">›</span>
       </button>
       <nav class="bottom-nav" aria-label="Ana gezinme">
-        <button id="navHome" type="button" class="nav-item active" aria-current="page"><span aria-hidden="true">⌂</span><small>Ana Sayfa</small></button>
-        <button id="navSale" type="button" class="nav-item nav-sale"><span aria-hidden="true">⊕</span><small>Satış</small></button>
-        <button id="navProducts" type="button" class="nav-item"><span aria-hidden="true">⬡</span><small>Ürünler</small></button>
+        <button id="navHome" type="button" class="nav-item active" aria-current="page"><span class="nav-glyph" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"/></svg></span><small>Ana Sayfa</small></button>
+        <button id="navSale" type="button" class="nav-item nav-sale"><span class="nav-glyph" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="9" cy="20" r="1"/><circle cx="19" cy="20" r="1"/><path d="M2 3h2l2.2 11.2a2 2 0 0 0 2 1.6h10a2 2 0 0 0 2-1.6L22 7H5"/></svg></span><small>Satış</small></button>
+        <button id="navProducts" type="button" class="nav-item"><span class="nav-glyph" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m12 2 9 5v10l-9 5-9-5V7Z"/><path d="m3 7 9 5 9-5M12 12v10"/></svg></span><small>Ürünler</small></button>
         <button id="sidebarStock" type="button" class="nav-item desktop-only-nav"><span aria-hidden="true">⬡</span><small>Stok Durumu</small></button>
         <button id="sidebarReports" type="button" class="nav-item desktop-only-nav"><span aria-hidden="true">▥</span><small>Raporlar</small></button>
-        <button id="navSettings" type="button" class="nav-item"><span aria-hidden="true">⚙</span><small>Ayarlar</small></button>
+        <button id="navSettings" type="button" class="nav-item"><span class="nav-glyph" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M10.5 2h3l.6 2.3 2 .8 2-.9 2.1 2.1-.9 2 .8 2 2.3.6v3l-2.3.6-.8 2 .9 2-2.1 2.1-2-.9-2 .8-.6 2.3h-3l-.6-2.3-2-.8-2 .9-2.1-2.1.9-2-.8-2L2 13.5v-3l2.3-.6.8-2-.9-2 2.1-2.1 2 .9 2-.8Z"/></svg></span><small>Ayarlar</small></button>
       </nav>
     </div>
   </div>
@@ -367,15 +367,36 @@
       <button id="passiveCancel" type="button">Vazgeç</button>
     </div>
   </dialog>
-  <dialog id="scanDialog" class="modal" aria-labelledby="scanTitle">
-    <div class="sheet-header"><h2 id="scanTitle">Barkod Tara</h2><div class="scan-header-actions"><button id="scanTorch" type="button" class="scan-torch" aria-label="Flaşı aç" aria-pressed="false" title="Flaş, cihaz destekliyorsa kullanılabilir" disabled>⚡ Flaş</button><button type="button" class="closebutton" data-close="scanDialog" aria-label="Kapat">×</button></div></div>
-    <p id="scanMessage" class="scan-message" role="status">Barkodu kadraja tutun</p>
-    <div id="scannerView" class="scanner-view"><video id="scanVideo" playsinline muted autoplay></video><div id="html5-reader"></div><div class="target-frame" aria-hidden="true"></div></div>
+  <dialog id="scanDialog" class="modal premium-scanner" aria-labelledby="scanTitle">
+    <div class="scanner-topbar">
+      <div class="scanner-heading"><span class="scanner-heading-icon" aria-hidden="true">▥</span><div><span class="scanner-eyebrow">HIZLISATIŞ · KAMERA</span><h2 id="scanTitle">Barkod Okuyucu</h2></div></div>
+      <div class="scan-header-actions"><button id="scanTorch" type="button" class="scan-torch" aria-label="Flaşı aç" aria-pressed="false" title="Cihaz destekliyorsa flaş" disabled>⚡ <span>Flaş</span></button><button type="button" class="scanner-close" data-close="scanDialog" aria-label="Barkod okuyucuyu kapat">×</button></div>
+    </div>
+    <p class="scan-instruction">Barkodu dikdörtgen çerçeve içine getirin.</p>
+    <div id="scannerView" class="scanner-view">
+      <video id="scanVideo" playsinline muted autoplay></video>
+      <div id="html5-reader"></div>
+      <div class="target-frame" aria-hidden="true">
+        <i class="scan-corner scan-corner-tl"></i><i class="scan-corner scan-corner-tr"></i>
+        <i class="scan-corner scan-corner-bl"></i><i class="scan-corner scan-corner-br"></i>
+        <span class="scan-laser"></span>
+        <span class="scan-confirm">✓</span>
+      </div>
+    </div>
+    <section id="scanHistoryPanel" class="scan-history-panel" aria-label="Son okunan barkodlar" hidden>
+      <div class="scan-history-title"><strong>Son Okunanlar</strong><button id="scanHistoryClose" type="button">Kameraya Dön</button></div>
+      <div id="scanHistoryList" class="scan-history-list"></div>
+    </section>
+    <p id="scanMessage" class="scan-message" role="status" aria-live="polite">Barkod aranıyor…</p>
+    <div class="scan-tools">
+      <label class="scan-photo-button"><span aria-hidden="true">▧</span> Galeriden Oku<input id="scanPhotoFile" type="file" accept="image/*" hidden></label>
+      <button id="scanHistoryButton" type="button"><span aria-hidden="true">◷</span> Geçmiş</button>
+    </div>
     <form id="scanManualForm" class="scan-manual" autocomplete="off">
-      <label for="scanManualBarcode">Barkod okunmuyorsa numarayı elle girin</label>
-      <div class="scan-manual-row"><input id="scanManualBarcode" type="text" inputmode="numeric" autocomplete="off" enterkeyhint="done" placeholder="Ör. 8690123456789"><button type="submit">Sepete Ekle</button></div>
+      <label for="scanManualBarcode">Barkod numarasını elle girin</label>
+      <div class="scan-manual-row"><input id="scanManualBarcode" type="text" inputmode="text" autocomplete="off" enterkeyhint="done" placeholder="Barkod / QR içeriği"><button type="submit">Kullan</button></div>
     </form>
-    <div class="scan-tools"><button id="scanRetry" type="button">↻ Kamerayı Yeniden Dene</button><label class="scan-photo-button">▣ Fotoğraftan Oku<input id="scanPhotoFile" type="file" accept="image/*" capture="environment" hidden></label></div>
+    <div class="scan-footer"><button id="scanRetry" type="button">↻ Kamerayı Yeniden Başlat</button><small>EAN · UPC · Code 128/39 · QR · PDF417</small></div>
   </dialog>
 
   <dialog id="pickProductDialog" class="sheet product-picker" aria-labelledby="pickProductTitle">
