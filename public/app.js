@@ -4,6 +4,7 @@ import { parseExcelProducts } from './excel-products.js';
 import { parseLocaleNumber, safeImageUrl } from './normalize.js';
 import { buildCategoryTree, categoryMatches, showCategoryInBrowse } from './category-menu.js';
 import { categoryArtwork, sortCategoryNodes } from './category-art.js';
+import { subcategoryPhoto } from './subcategory-photos.js';
 import { categorizeProduct, productPictureEmoji } from './catalog-taxonomy.js';
 import { receiptAsText, escPosReceipt } from './receipt-share.js';
 import { receiptPdfBlob } from './receipt-pdf.js';
@@ -236,9 +237,11 @@ function categoryEmoji(path) {
   return '🛍️';
 }
 function categoryCover(path) {
-  // Prefer a real photo already present in this category's products.
-  // Keep the existing artwork as a safe fallback when a category has no photo.
-  return state.categoryProductPhotos.get(path) || categoryArtwork(path);
+  // Home's 12 approved category images remain unchanged.
+  // Subcategory photos are dedicated CC0 editorial images, never random SKU
+  // thumbnails. The source artwork remains only if assets are unavailable.
+  if(path.includes(' > ')) return subcategoryPhoto(path)||categoryArtwork(path);
+  return categoryArtwork(path);
 }
 function categoryTile(node, hasChildren = false) {
   const button = document.createElement('button');
