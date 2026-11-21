@@ -188,7 +188,9 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
         placeholder.textContent='▧';placeholder.setAttribute('aria-hidden','true');
         media.append(placeholder);
         const src=product.gorsel;
-        if(src&&(/^data:image\\/(webp|png|jpeg);base64,/.test(src)||safeImageUrl(src))) {
+        if(src&&(src.startsWith('data:image/webp;base64,')||
+          src.startsWith('data:image/png;base64,')||
+          src.startsWith('data:image/jpeg;base64,')||safeImageUrl(src))) {
           const picture=document.createElement('img');picture.alt='';
           picture.loading='lazy';picture.decoding='async';
           picture.referrerPolicy='no-referrer';
