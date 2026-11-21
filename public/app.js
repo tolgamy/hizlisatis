@@ -228,8 +228,9 @@ function categoryEmoji(path) {
   return '🛍️';
 }
 function categoryCover(path) {
-  // Never show a product photo as a category tile: illustrated category navigation only.
-  return categoryArtwork(path);
+  // Prefer a real photo already present in this category's products.
+  // Keep the existing artwork as a safe fallback when a category has no photo.
+  return state.categoryProductPhotos.get(path) || categoryArtwork(path);
 }
 function categoryTile(node, hasChildren = false) {
   const button = document.createElement('button');
