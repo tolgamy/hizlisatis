@@ -30,7 +30,7 @@ const state = {
   search: '', meta: null, sales: [], lastSale: null, pendingCreditSale:null,
   saving: false, scanner: null, scanPurpose: 'sale',
   excelCount: 0, bundleCount: 0, bundleLoading: false, categoryPage: '', excelPreview: null, excelUploading: false, browseAll: false,
-  view: 'home', catalogMode: 'categories', categoryTreeData: [],
+  view: 'home', catalogMode: 'categories', catalogEntry: 'categories', categoryTreeData: [],
   productLayout: 'grid', stockOnly: false, sort: 'name', visibleLimit: 48, detailProduct: null, manageSelection: null
 };
 const dom = {
@@ -169,8 +169,9 @@ function updateNavigation() {
   $('homeView').hidden = state.view !== 'home';
   $('catalogView').hidden = state.view !== 'catalog';
   $('settingsView').hidden = state.view !== 'settings';
-  const active = dom.cartDialog.open ? 'sale' : state.view;
-  for (const [id,value] of [['navHome','home'],['navProducts','catalog'],['navSale','sale'],['navSettings','settings']]) {
+  const active = dom.cartDialog.open ? 'sale' :
+    state.view==='catalog' ? (state.catalogMode==='category-home' ? 'products' : state.catalogEntry) : state.view;
+  for (const [id,value] of [['navHome','home'],['navCategories','categories'],['navSale','sale'],['navProducts','products'],['navSettings','settings']]) {
     const el=$(id); const yes=active===value; el.classList.toggle('active',yes);
     if(yes) el.setAttribute('aria-current','page'); else el.removeAttribute('aria-current');
   }
@@ -178,7 +179,9 @@ function updateNavigation() {
 function navigate(hash) { if(location.hash!==hash) location.hash=hash; else applyRoute(); }
 function applyRoute() {
   const fragment=decodeURIComponent(location.hash.slice(1));
-  if (fragment.startsWith('categories')) {
+  if(fragment==='product-categories'){
+    state.view='catalog';state.catalogMode='category-home';state.catalogEntry='products';state.categoryPage='';
+  } else if (fragment.startsWith('categories')) {
     state.view='catalog';state.catalogMode='categories';
     state.categoryPage=fragment.startsWith('categories/') ? fragment.slice('categories/'.length) : '';
     renderCategoryTree();
@@ -188,13 +191,14 @@ function applyRoute() {
   } else if (fragment==='settings') state.view='settings';
   else state.view='home';
   updateNavigation();renderProducts();
+  if(state.view==='home') refreshHomeSales().catch(()=>{});
   window.scrollTo({top:0,behavior:'auto'});
 }
 function setView(view,showAll=false) {
   if(view==='home') navigate('#home');
   else if(view==='settings') navigate('#settings');
   else if(view==='catalog' && (showAll||state.search.trim())) navigate('#products');
-  else if(view==='catalog') navigate('#categories');
+  else if(view==='catalog') openProductCategoryHome();
 }
 function openSale() {
   renderCart();
@@ -316,8 +320,33 @@ function categoryTile(node, hasChildren = false) {
   return button;
 }
 function renderHome() {
+  // Preserve the original approved 12-tile home unchanged on Products.
   const target=$('homeCategoryShortcuts');target.replaceChildren();
   for(const node of sortCategoryNodes(state.categoryTreeData)) target.append(categoryTile(node,Boolean(node.children.length)));
+  // A deleted record should not inflate the central catalogue count.
+  $('homeTotalProducts').textContent=state.products.length?
+    state.products.filter(product=>productStatus(product)!=='deleted').length.toLocaleString('tr-TR'):'—';
+}
+let homeSalesReadId=0;
+async function refreshHomeSales() {
+  // Sales are stored in this device's IndexedDB, not in a central sales table.
+  // Never fabricate mockup values or count another device's transactions.
+  const requestId=++homeSalesReadId;
+  $('homeTodaySales').textContent='…';
+  try {
+    const sales=await getSales();
+    if(requestId!==homeSalesReadId)return;
+    const today=new Date().toDateString();
+    const amount=sales.reduce((sum,sale)=>{
+      const date=new Date(sale.createdAt);
+      return Number.isFinite(date.getTime()) && date.toDateString()===today &&
+        (!sale.currency||sale.currency==='TRY')&&Number.isFinite(Number(sale.total))
+        ? sum+Number(sale.total):sum;
+    },0);
+    $('homeTodaySales').textContent=money(round2(amount),'TRY');
+  } catch {
+    if(requestId===homeSalesReadId)$('homeTodaySales').textContent='—';
+  }
 }
 function openProductDetail(product) {
   state.detailProduct = product;
@@ -358,6 +387,14 @@ async function installBuiltInCatalog() {
 function openCategoryMenu(path = '') {
   navigate('#categories'+(typeof path==='string'&&path ? '/'+encodeURIComponent(path) : ''));
 }
+function openProductCategoryHome() {
+  state.catalogEntry='products';
+  navigate('#product-categories');
+}
+function openCategoryBrowser() {
+  state.catalogEntry='categories';
+  openCategoryMenu();
+}
 function selectCategory(path) {
   state.category=path; state.brand='';state.browseAll=true;state.visibleLimit=48;
   state.search='';dom.search.value='';
@@ -384,7 +421,9 @@ function renderCategoryTree(search = '') {
 }
 function renderFilters() { /* Category tiles provide the primary filter; no oversized brand drawer. */ }
 function renderProducts() {
-  $('categoryBrowser').hidden=state.catalogMode!=='categories';
+  $('categoryBrowser').hidden=state.catalogMode==='products';
+  $('catalogCategoryNavigator').hidden=state.catalogMode!=='categories';
+  $('productCategoryHome').hidden=state.catalogMode!=='category-home';
   $('productResults').hidden=state.catalogMode!=='products';
   if(state.view!=='catalog'||state.catalogMode!=='products') return;
   const query=fold(state.search);
@@ -709,6 +748,7 @@ async function completeSale() {
     if($('cashPaymentDialog').open)$('cashPaymentDialog').close();
     dom.cartDialog.close();
     renderProducts(); renderCartBar(); renderHome();
+    refreshHomeSales().catch(()=>{});
     channel?.postMessage('sale-updated');
     announce(`Satış kaydedildi: ${money(record.total, record.currency)}`, 'success');
     $('receiptActionsTotal').textContent = money(record.total, record.currency);
@@ -1340,13 +1380,26 @@ async function setup() {
     else renderProducts();
   });
   $('navHome').addEventListener('click',()=>setView('home'));
+  $('navCategories').addEventListener('click',openCategoryBrowser);
   $('brandHome').addEventListener('click',()=>{
     if(dom.cartDialog.open)dom.cartDialog.close();
     setView('home');
   });
-  $('navProducts').addEventListener('click',()=>openCategoryMenu());
+  $('navProducts').addEventListener('click',openProductCategoryHome);
   $('navSale').addEventListener('click',openSale);
   $('navSettings').addEventListener('click',()=>setView('settings'));
+  // The six approved home shortcuts all open an existing, working workflow.
+  $('homeQuickCategories').addEventListener('click',openCategoryBrowser);
+  $('homeQuickSale').addEventListener('click',openSale);
+  $('homeQuickProducts').addEventListener('click',()=>productManager.openManage());
+  $('homeQuickBarcode').addEventListener('click',()=>productManager.openNew());
+  $('homeQuickStock').addEventListener('click',()=>{
+    state.stockOnly=false;state.sort='stock';$('sortProducts').value='stock';
+    state.catalogEntry='products';showAllProducts();
+  });
+  $('homeQuickReports').addEventListener('click',showHistory);
+  $('homeTodaySalesButton').addEventListener('click',showHistory);
+  $('homeTotalProductsButton').addEventListener('click',openProductCategoryHome);
   $('categoryBack').addEventListener('click',()=>{
     const parent=state.categoryPage.split(' > ').slice(0,-1).join(' > ');openCategoryMenu(parent);
   });

@@ -1043,3 +1043,237 @@ body.view-home .clean-topbar .searchline{display:flex!important}
   border:0;border-radius:6px;background:transparent;color:#fff;
   font-size:20px;line-height:1;padding:0;cursor:pointer;
 }
+
+
+/* v4.0 — approved dedicated home dashboard. The original 12 main-category
+   cards retain their existing layout, now inside the Products tab. No CSS
+   changes to product-management, checkout, customer or settings dialogs. */
+#homeView.dashboard-home{
+  padding:4px 0 24px!important;
+  max-width:840px;
+  margin-inline:auto!important;
+}
+.dashboard-hero{
+  display:flex;
+  align-items:center;
+  position:relative;
+  overflow:hidden;
+  width:100%;
+  min-height:clamp(155px,35vw,242px);
+  margin:0 0 clamp(14px,3vw,21px);
+  border:1px solid #f8e5d4;
+  border-radius:clamp(21px,4.5vw,29px);
+  background:
+    radial-gradient(circle at 93% 100%,#ffc8a5cc 0%,transparent 39%),
+    radial-gradient(circle at 0% 100%,#d6e6ff 0%,transparent 45%),
+    linear-gradient(110deg,#f2f6ff 0%,#fff9ee 64%,#ffeddf 100%);
+  box-shadow:0 6px 20px #132a4012;
+}
+.dashboard-hero-copy{
+  position:relative;
+  z-index:2;
+  width:59%;
+  flex:none;
+  padding:clamp(16px,4vw,30px) 0 clamp(16px,4vw,30px) clamp(17px,4.4vw,34px);
+}
+.dashboard-hero h1{
+  color:#11243e;
+  font-size:clamp(22px,5.5vw,41px);
+  line-height:1.08;
+  letter-spacing:-.03em;
+  font-weight:950;
+  margin:0 0 clamp(8px,2vw,14px);
+}
+.dashboard-hero h1 span{
+  display:inline-block;
+  font-size:.72em;
+  vertical-align:middle;
+}
+.dashboard-hero p{
+  color:#425b76;
+  font-size:clamp(12px,2.9vw,18px);
+  line-height:1.35;
+  font-weight:500;
+  margin:0;
+  max-width:330px;
+}
+.dashboard-hero-art{
+  position:absolute;
+  right:-1.5%;
+  bottom:-5%;
+  width:55%;
+  height:106%;
+  object-fit:contain;
+  object-position:right bottom;
+  pointer-events:none;
+}
+.dashboard-actions{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:clamp(8px,2vw,16px);
+  margin-bottom:clamp(20px,4vw,35px);
+}
+.dashboard-action{
+  border:0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  width:100%;
+  min-width:0;
+  min-height:clamp(117px,27vw,185px);
+  padding:clamp(9px,2.6vw,18px) 5px;
+  border-radius:clamp(17px,4vw,25px);
+  text-align:center;
+  gap:2px;
+  box-shadow:0 3px 13px #1529420e;
+  color:#132842;
+  transition:transform .12s ease,box-shadow .12s ease;
+}
+.dashboard-action:active{transform:scale(.965)}
+.dashboard-action:focus-visible,.dashboard-metric:focus-visible{
+  outline:3px solid #267ad6;outline-offset:2px;
+}
+.dashboard-action-icon{
+  display:block;
+  width:clamp(43px,11vw,75px);
+  height:clamp(43px,11vw,75px);
+  stroke:none;
+  fill:none;
+  margin-bottom:clamp(3px,1vw,9px);
+  filter:drop-shadow(0 3px 2px #16294913);
+}
+.dashboard-action strong{
+  display:block;
+  max-width:100%;
+  font-size:clamp(13px,3.7vw,22px);
+  line-height:1.12;
+  letter-spacing:-.025em;
+  font-weight:900;
+}
+.dashboard-action small{
+  display:block;
+  font-size:clamp(9px,2.5vw,15px);
+  line-height:1.2;
+  color:#405b74;
+  font-weight:500;
+}
+.dashboard-action-categories{background:linear-gradient(132deg,#e3f5ff,#bfe9fd)}
+.dashboard-action-categories .dashboard-action-icon{color:#0479d9}
+.dashboard-action-sale{background:linear-gradient(130deg,#e3ffe9,#cbffd1)}
+.dashboard-action-sale .dashboard-action-icon{color:#09aa23}
+.dashboard-action-products{background:linear-gradient(132deg,#fff3d9,#ffe6b4)}
+.dashboard-action-products .dashboard-action-icon{color:#efa018}
+.dashboard-action-barcode{background:linear-gradient(132deg,#ffedf3,#ffcee4)}
+.dashboard-action-barcode .dashboard-action-icon{color:#c41469}
+.dashboard-action-stock{background:linear-gradient(130deg,#f2e7ff,#e1ccff)}
+.dashboard-action-stock .dashboard-action-icon{color:#9c3bcf}
+.dashboard-action-reports{background:linear-gradient(130deg,#e4faff,#b5f0fa)}
+.dashboard-action-reports .dashboard-action-icon{color:#02a8c7}
+.dashboard-metrics{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:clamp(8px,2vw,16px);
+  padding-top:clamp(12px,3vw,20px);
+  border-top:1px solid #e5eaf0;
+}
+.dashboard-metric{
+  width:100%;min-width:0;
+  min-height:clamp(88px,20vw,119px);
+  padding:clamp(11px,3vw,20px);
+  display:flex;align-items:center;
+  gap:clamp(8px,2vw,16px);
+  border:1px solid #e7e9ed;
+  border-radius:clamp(17px,4vw,24px);
+  background:#fff;color:#16304d;
+  text-align:left;
+  box-shadow:0 3px 14px #12294310;
+}
+.dashboard-metric-sales{
+  color:#fff;
+  border-color:#176edf;
+  background:linear-gradient(125deg,#2c9bf4,#0753cf);
+}
+.dashboard-metric-icon{
+  flex:none;
+  display:grid;place-items:center;
+  width:clamp(37px,10vw,66px);
+  height:clamp(37px,10vw,66px);
+  background:#eaf2fc;color:#1b66b7;
+  border-radius:50%;font-size:clamp(27px,7vw,42px);font-weight:900;
+}
+.dashboard-metric-sales .dashboard-metric-icon{
+  background:#22b0f1;color:#fff;
+}
+.dashboard-metric-body{
+  flex:1;min-width:0;
+  display:flex;flex-direction:column;
+  gap:2px;
+}
+.dashboard-metric-body>span{
+  font-size:clamp(11px,3.1vw,17px);
+  font-weight:700;
+  white-space:nowrap;
+}
+.dashboard-metric-body>strong{
+  font-size:clamp(16px,5vw,30px);
+  font-weight:950;line-height:1.22;
+  letter-spacing:-.025em;
+  font-variant-numeric:tabular-nums;
+  overflow-wrap:anywhere;
+}
+.dashboard-metric-body>small{
+  font-size:clamp(8px,2.1vw,12px);
+  opacity:.78;
+  line-height:1.18;
+}
+.dashboard-metric-arrow{
+  flex:none;
+  font-size:clamp(21px,5vw,34px);
+  font-weight:600;
+}
+#productCategoryHome{
+  padding:0 0 12px;
+}
+#productCategoryHome[hidden],#catalogCategoryNavigator[hidden]{
+  display:none!important;
+}
+/* Match the approved five-item footer without changing its position,
+   fixed behavior, cart bar, or sale-dialog controls. */
+.bottom-shell .bottom-nav{
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:clamp(2px,.8vw,5px);
+}
+.bottom-shell .bottom-nav .nav-item{
+  padding:6px 1px 3px;
+  min-width:0;
+  min-height:49px;
+}
+.bottom-shell .bottom-nav .nav-item small{
+  font-size:clamp(9px,2.45vw,12px);
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.bottom-shell .bottom-nav .nav-item span{
+  font-size:clamp(23px,6vw,28px);
+}
+@media(max-width:360px){
+  .dashboard-hero{min-height:148px}
+  .dashboard-hero-copy{width:62%}
+  .dashboard-hero h1{font-size:21px}
+  .dashboard-actions{gap:7px}
+  .dashboard-action{min-height:106px}
+  .dashboard-action small{font-size:9px}
+  .dashboard-metric{gap:6px;padding:10px 8px}
+  .dashboard-metric-icon{width:34px;height:34px;font-size:25px}
+  .dashboard-metric-arrow{font-size:20px}
+}
+@media(min-width:700px){
+  #homeView.dashboard-home{padding-top:14px!important}
+  .dashboard-actions{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(prefers-reduced-motion:reduce){
+  .dashboard-action{transition:none}
+}
