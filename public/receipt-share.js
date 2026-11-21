@@ -24,7 +24,11 @@ export function escPosReceipt(sale) {
  .replace(/Ç/g,'C').replace(/ç/g,'c').replace(/Ö/g,'O').replace(/ö/g,'o')
  .replace(/Ü/g,'U').replace(/ü/g,'u').normalize('NFKD')
  .replace(/[\u0300-\u036f]/g,'').replace(/[^\x0A\x20-\x7E]/g,'?');
- const a=[0x1b,0x40],body=new TextEncoder().encode(plain+'\n\n\n'),tail=[0x1d,0x56,0x00];
+ // ESC @ reset, ESC E 1 bold on, ESC 3 24 compact dot line spacing.
+ // Bluetooth ESC/POS receipts should match the bold, compact 80/58 mm print.
+ const a=[0x1b,0x40,0x1b,0x45,0x01,0x1b,0x33,0x18];
+ const body=new TextEncoder().encode(plain+'\n\n');
+ const tail=[0x1b,0x45,0x00,0x1d,0x56,0x00];
  const bytes=new Uint8Array(a.length+body.length+tail.length);
  bytes.set(a);bytes.set(body,a.length);bytes.set(tail,a.length+body.length);return bytes;
 }
