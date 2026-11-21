@@ -48,7 +48,7 @@ function compressImage(file) {
 }
 export function createProductManager({state,serializeMutation,refresh,announce,channel,openManageScanner}) {
   let filter='active',selection=null,created=false,uploadImage='',pendingSale=null,pendingManualActivation=null;
-  let manageCategoryRoot='',manageCategorySub='';
+  let manageCategoryRoot='',manageCategorySub='',manageVisibleLimit=40;
   const managementDialog=$('manageDialog'), activationDialog=$('passiveProductDialog');
   const search=$('manageSearch'), form=$('manageEditForm'), results=$('manageResults');
 
@@ -71,7 +71,7 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
       const caption=document.createElement('small');caption.textContent=statusLabels[key];
       button.append(number,caption);
       button.addEventListener('click',()=>{
-        filter=key;manageCategoryRoot='';manageCategorySub='';search.value='';countsView();
+        filter=key;manageCategoryRoot='';manageCategorySub='';manageVisibleLimit=40;search.value='';countsView();
       });
       $('manageStatusCounts').append(button);
     }
@@ -97,6 +97,7 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
     back.onclick=()=>{
       if(manageCategorySub)manageCategorySub='';
       else manageCategoryRoot='';
+      manageVisibleLimit=40;
       renderResults();
     };
     const heading=$('manageCategoryTitle');
@@ -136,6 +137,7 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
       item.addEventListener('click',()=>{
         if(manageCategoryRoot)manageCategorySub=choice.name;
         else manageCategoryRoot=choice.name;
+        manageVisibleLimit=40;
         renderResults();
       });
       grid.append(item);
@@ -171,7 +173,7 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
       return true;
     });
     $('manageResultCount').textContent=matching.length.toLocaleString('tr-TR')+' ürün';
-    for(const product of matching.slice(0,40)) {
+    for(const product of matching.slice(0,manageVisibleLimit)) {
       const button=document.createElement('button');button.type='button';
       const body=document.createElement('span'),name=document.createElement('strong'),sub=document.createElement('small');
       name.textContent=product.baslik;
@@ -186,10 +188,16 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
       results.append(button);
     }
     if(!matching.length)results.textContent='Bu bölümde ürün bulunamadı.';
-    if(matching.length>40){
-      const note=document.createElement('p');
-      note.textContent='İlk 40 ürün gösteriliyor. İstediğiniz ürünü adı veya barkoduyla arayabilirsiniz.';
-      results.append(note);
+    if(matching.length>manageVisibleLimit){
+      const more=document.createElement('button');
+      more.type='button';more.className='manage-more-button';
+      more.textContent='Daha Fazla Ürün Göster ('+
+        Math.min(60,matching.length-manageVisibleLimit).toLocaleString('tr-TR')+' ürün)';
+      more.addEventListener('click',()=>{
+        manageVisibleLimit+=60;
+        renderResults();
+      });
+      results.append(more);
     }
   }
   function syncCategories(selectedMain='',selectedSub='') {
@@ -252,7 +260,7 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
   }
   function openManage(product=null,barcode='') {
     search.value='';filter=product?productStatus(product):'active';
-    manageCategoryRoot='';manageCategorySub='';
+    manageCategoryRoot='';manageCategorySub='';manageVisibleLimit=40;
     if(!managementDialog.open)managementDialog.showModal();
     if(state.legacyPending)
       announce('Bu cihazdaki bazı eski ürün değişiklikleri henüz merkezde değil. Önce Eski Cihaz Yedeğini İndir, sonra Kayıtları Taşı.','error');
@@ -484,7 +492,7 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
     $('manageNew').addEventListener('click',()=>editProduct());
     $('manageBulkDeactivate').addEventListener('click',bulkDeactivate);
     $('manageExportBackup').addEventListener('click',exportBackup);
-    search.addEventListener('input',renderResults);
+    search.addEventListener('input',()=>{manageVisibleLimit=40;renderResults();});
     $('manageCancel').addEventListener('click',showOverview);
     form.addEventListener('submit',event=>saveForm(event,false));
     $('manageSaveActivate').addEventListener('click',event=>saveForm(event,true));

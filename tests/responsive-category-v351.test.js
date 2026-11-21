@@ -20,7 +20,7 @@ test('home displays 3x4 slightly larger visual tiles with legible text',()=>{
   assert.match(css,/transform:scale\(1\.19\)/);
   assert.match(css,/#homeCategoryShortcuts \.photo-category-name\{/);
   assert.match(css,/grid-template-columns:repeat\(3,minmax\(0,1fr\)\)!important/);
-  assert.match(html,/Mobil POS · v3\.5\.2/);
+  assert.match(html,/Mobil POS · v3\.5\.3/);
 });
 test('subcategory cards are three columns with original native vector category art, no emoji collages',()=>{
   assert.match(css,/#categoryTree\.category-grid-page\{/);
@@ -62,6 +62,14 @@ test('receipt title phone website and printer width require visible Save confirm
 });
 test('new PWA shell includes category icons and revokes old version cache',()=>{
   const sw=read('sw.js');
-  assert.match(sw,/v26-passive-category-firma-save/);
+  assert.match(sw,/v27-passive-category-paging/);
   assert.match(sw,/\/subcategory-icons\.js/);
+});
+
+test('category browser can reveal every inactive product beyond the first 40, without resets on activation',()=>{
+  assert.match(manager,/manageVisibleLimit=40/);
+  assert.match(manager,/matching\.slice\(0,manageVisibleLimit\)/);
+  assert.match(manager,/manageVisibleLimit\+=60/);
+  assert.match(manager,/Daha Fazla Ürün Göster/);
+  assert.match(css,/\.manage-results \.manage-more-button/);
 });
