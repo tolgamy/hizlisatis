@@ -15,6 +15,13 @@ const webp=Buffer.from('RIFF'+String.fromCharCode(16,0,0,0)+'WEBP'+String.fromCh
 function mockD1() {
   const rows=new Map([['catalog_seed_count','19096'],['bulk_at','2026-11-20']]);
   const prepare=sql=>({
+    async all(){
+      if(sql.includes('category-image-version:%'))return {
+        results:[...rows].filter(([key])=>key.startsWith('category-image-version:'))
+          .map(([key,value])=>({key,value}))
+      };
+      throw Error('Unexpected all query: '+sql);
+    },
     bind(...params){
       return {
         async first(){
