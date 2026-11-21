@@ -1,0 +1,44 @@
+name: Verify v3.5.2 category and passive navigation live (read-only)
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/verify-v352-category-live.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Check deployed v3.5.2, SVG art, passive category browsing, save UI and D1 health
+        run: |
+          node <<'NODE'
+          const base='https://hizlisatis.pages.dev';
+          let passed=false;
+          for(let attempt=1;attempt<=34;attempt++){
+            try {
+              const fetchText=path=>fetch(base+path,{signal:AbortSignal.timeout(13000),cache:'no-store'}).then(async r=>r.ok?await r.text():Promise.reject(Error(path+' HTTP '+r.status)));
+              const [html,css,app,manager,icons,sw,health]=await Promise.all([
+                fetchText('/'),fetchText('/styles.css'),fetchText('/app.js'),
+                fetchText('/product-management.js'),fetchText('/subcategory-icons.js'),
+                fetchText('/sw.js'),
+                fetch(base+'/api/product-state?health=1',{signal:AbortSignal.timeout(13000),cache:'no-store'}).then(r=>r.json())
+              ]);
+              const facts={
+                v352:html.includes('Mobil POS · v3.5.2'),
+                threeColumns:css.includes('#categoryTree.category-grid-page{')&&css.includes('grid-template-columns:repeat(3,minmax(0,1fr))!important'),
+                receiptSave:html.includes('id="settingsReceiptSave"')&&app.includes('settingsSaveButton.addEventListener'),
+                passiveNavigation:html.includes('id="manageCategoryGrid"')&&manager.includes('function drawCategoryNavigation(products)'),
+                newVectors:icons.includes('export function subcategoryArtwork'),
+                shellUpdated:sw.includes('v26-passive-category-firma-save'),
+                healthyProducts:health.ready===true&&health.count>=19096,
+                count:health.count
+              };
+              console.log(JSON.stringify({attempt,...facts}));
+              if(Object.entries(facts).filter(([key])=>key!=='count').every(([,val])=>val===true)){
+                passed=true;break;
+              }
+            }catch(error){console.log('Attempt '+attempt+': '+String(error?.message||error));}
+            await new Promise(resolve=>setTimeout(resolve,5500));
+          }
+          if(!passed)process.exit(1);
+          console.log('Public v3.5.2 verified. No products, customers, or sales changed.');
+          NODE
