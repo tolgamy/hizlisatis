@@ -1,7 +1,7 @@
-const VERSION = 'cep-pos-shell-v23-fast-activation-scan-session';
+const VERSION = 'cep-pos-shell-v24-all-approved-pos-update';
 const SHELL = [
   '/', '/index.html', '/styles.css', '/app.js', '/idb.js',
-  '/normalize.js', '/remote-products.js', '/product-lifecycle.js', '/product-management.js', '/lifecycle-backup.js', '/passive-auth.js', '/receipt-pdf.js', '/barcode-scanner.js', '/category-art.js', '/image-delivery.js', '/receipt-share.js', '/catalog-taxonomy.js', '/category-menu.js', '/barcode-lookup.js', '/bundled-catalog.js', '/xlsx-reader.js', '/excel-products.js', '/urun-yukleme-sablonu.xlsx', '/manifest.json',
+  '/normalize.js', '/remote-products.js', '/product-lifecycle.js', '/product-management.js', '/lifecycle-backup.js', '/passive-auth.js', '/receipt-pdf.js', '/barcode-scanner.js', '/category-art.js', '/customer-api.js', '/customer-ui.js', '/receipt-settings.js', '/image-delivery.js', '/receipt-share.js', '/catalog-taxonomy.js', '/category-menu.js', '/barcode-lookup.js', '/bundled-catalog.js', '/xlsx-reader.js', '/excel-products.js', '/urun-yukleme-sablonu.xlsx', '/manifest.json',
   '/icons/icon-192.png', '/icons/icon-512.png', '/icons/placeholder.svg',
   '/category-images/kasap.webp', '/category-images/manav.webp', '/category-images/firindan-yiyecek.webp',
   '/category-images/sut-kahvaltilik.webp', '/category-images/atistirmalik.webp', '/category-images/su-icecek.webp',
