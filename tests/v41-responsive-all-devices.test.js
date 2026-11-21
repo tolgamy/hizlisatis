@@ -78,5 +78,5 @@ test('sidebar buttons route to existing stock and reports workflows',()=>{
   assert.match(app,/state\.catalogMode='categories';state\.catalogEntry='products'/);
   assert.match(html,/id="settingsView"/);
   assert.match(html,/id="cartDialog"/);
-  assert.match(sw,/cep-pos-shell-v37-premium-scanner/);
+  assert.match(sw,/cep-pos-shell-v38-equal-colorful-tabs/);
 });

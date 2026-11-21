@@ -61,7 +61,7 @@ test('premium reader is a functioning full-screen dialog connected to existing s
   assert.match(app,/active=>selectScannedQuantity/);
   assert.match(app,/document\.addEventListener\('visibilitychange'/);
   assert.match(app,/window\.addEventListener\('pagehide'/);
-  assert.match(sw,/cep-pos-shell-v37-premium-scanner/);
+  assert.match(sw,/cep-pos-shell-v38-equal-colorful-tabs/);
 });
 
 test('bottom nav retains four routes with vivid real sales cart icon, desktop remains sidebar',()=>{
@@ -70,6 +70,11 @@ test('bottom nav retains four routes with vivid real sales cart icon, desktop re
     assert.match(nav,new RegExp('id="'+id+'"'));
   assert.match(nav,/class="nav-item nav-sale"/);
   assert.match(nav,/class="nav-glyph"/);
-  assert.match(css,/linear-gradient\(150deg,#ffb300 0%,#ff6926 50%,#ef1774 100%\)/);
+  // Every tab must have identical geometry; individual colors are restrained pastels.
+  assert.match(css,/height:68px;min-height:68px;max-height:68px/);
+  assert.match(css,/transform:none/);
+  for(const id of ['navHome','navSale','navProducts','navSettings'])
+    assert.match(css,new RegExp('#'+id+'\\{[\\s\\S]*?--tab-bg:'));
+  assert.match(css,/background:var\(--tab-active\)/);
   assert.match(css,/#navHome\{order:1\}/);
 });
