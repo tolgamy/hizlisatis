@@ -631,3 +631,142 @@ body.view-home .clean-topbar .searchline{display:flex!important}
   #homeCategoryShortcuts .photo-category-name{font-size:clamp(11px,1.6vw,14px)!important}
   #categoryTree .photo-category-symbol{font-size:clamp(48px,6.5vw,70px)!important}
 }
+
+/* v3.5.2: slightly larger category visuals without changing the 3x4 home order. */
+#homeCategoryShortcuts .photo-category-image{
+  height:clamp(75px,calc((100dvh - 435px)/4),108px)!important;
+}
+#homeCategoryShortcuts .photo-category-image img{
+  transform:scale(1.19);
+  transform-origin:center;
+}
+#homeCategoryShortcuts .photo-category-tile{
+  padding:3px!important;
+}
+#homeCategoryShortcuts .photo-category-name{
+  min-height:36px!important;
+  padding-top:4px!important;
+  font-size:clamp(10px,2.8vw,13.5px)!important;
+}
+
+/* 3-column clean vector icon category browser on phones and tablets. */
+#categoryTree.category-grid-page{
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:9px!important;
+  padding:9px 0 16px!important;
+  align-items:stretch;
+}
+#categoryTree .photo-category-tile{
+  border-radius:13px!important;
+  padding:5px!important;
+  box-shadow:0 2px 7px #13283c12!important;
+  border:1px solid #dce5eb!important;
+  background:#fff!important;
+}
+#categoryTree .photo-category-image{
+  aspect-ratio:1.18!important;
+  background:#f7f9fb!important;
+  border-radius:9px!important;
+}
+#categoryTree .photo-subcategory-image>img{
+  display:block!important;
+  object-fit:cover!important;
+  width:100%!important;
+  height:100%!important;
+  visibility:visible!important;
+  padding:0!important;
+}
+#categoryTree .photo-category-symbols{display:none!important}
+#categoryTree .photo-category-name{
+  display:-webkit-box!important;
+  -webkit-box-orient:vertical!important;
+  -webkit-line-clamp:3!important;
+  margin:0!important;
+  padding:6px 2px 4px!important;
+  min-height:34px!important;
+  font-size:clamp(10px,2.8vw,13px)!important;
+  line-height:1.16!important;
+  font-weight:800!important;
+}
+@media(min-width:680px){
+  #homeCategoryShortcuts .photo-category-image{height:clamp(90px,12dvh,128px)!important}
+  #homeCategoryShortcuts .photo-category-name{font-size:clamp(12px,1.7vw,15px)!important}
+  #categoryTree.category-grid-page{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+  #categoryTree .photo-category-name{font-size:14px!important}
+}
+@media(max-width:350px){
+  #homeCategoryShortcuts .photo-category-image{height:clamp(67px,calc((100dvh - 450px)/4),95px)!important}
+  #homeCategoryShortcuts .photo-category-name{font-size:9.8px!important}
+  #categoryTree.category-grid-page{gap:6px!important}
+  #categoryTree .photo-category-name{font-size:9.5px!important}
+}
+
+/* Product management: same visual language as the home screen, but filtered
+   by lifecycle state so only the selected inactive product can be reactivated. */
+.manage-category-browser{
+  margin:10px 0 12px;
+  padding:8px 0;
+  border-top:1px solid #dce5ed;
+}
+.manage-category-heading{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin:3px 0 10px;
+  font-size:16px;
+  color:#1b3b50;
+}
+.manage-category-heading strong{font-weight:900}
+.manage-category-heading .clean-back{min-width:40px;height:40px;font-size:26px}
+.manage-category-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:8px;
+  align-items:stretch;
+}
+.manage-category-tile{
+  border:1px solid #dce6ee;
+  border-radius:12px;
+  background:#fff;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  padding:5px 4px 8px;
+  gap:4px;
+  min-width:0;
+  box-shadow:0 2px 7px #11284012;
+  text-align:center;
+}
+.manage-category-tile img{
+  display:block;
+  width:100%;
+  aspect-ratio:1.28;
+  object-fit:contain;
+  border-radius:8px;
+}
+.manage-category-tile strong{
+  font-size:clamp(10px,2.8vw,13px);
+  font-weight:850;
+  color:#122f42;
+  line-height:1.17;
+  overflow-wrap:anywhere;
+}
+.manage-category-tile small{font-size:9px;color:#617789}
+.manage-category-tile:disabled{opacity:.42}
+.manage-category-help{margin:8px 0;color:#516a7d;font-size:11px}
+.manage-category-tile:focus-visible{outline:3px solid #26a185;outline-offset:2px}
+
+/* Explicit durable save feedback on printer and business details. */
+#settingsReceiptSave{margin-top:13px}
+.receipt-save-status{
+  min-height:34px;
+  margin:10px 0 0!important;
+  padding:9px 10px;
+  font-size:12px;
+  color:#476279;
+  border-radius:9px;
+  background:#f4f8fb;
+}
+.receipt-save-status.pending{color:#80550b;background:#fff6e3;font-weight:800}
+.receipt-save-status.saved{color:#0d644b;background:#e5f8ec;font-weight:850}
+.receipt-save-status.error{color:#a62c33;background:#fff0ef;font-weight:800}

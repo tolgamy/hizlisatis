@@ -1,3 +1,4 @@
+import { subcategoryArtwork } from './subcategory-icons.js';
 const fold = value => String(value || '')
   .toLocaleLowerCase('tr-TR')
   .replace(/ı/g, 'i')
@@ -200,7 +201,7 @@ export function categoryArtwork(path) {
     const meta = MAIN_META[root];
     return meta.image;
   }
-  return makeArtwork(cleanPath, emojiForPath(cleanPath), paletteFor(cleanPath));
+  return subcategoryArtwork(cleanPath,paletteFor(cleanPath));
 }
 
 export function sortCategoryNodes(nodes, parentPath = '') {

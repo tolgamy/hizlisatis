@@ -3,7 +3,7 @@ import { readXlsxRows } from './xlsx-reader.js';
 import { parseExcelProducts } from './excel-products.js';
 import { parseLocaleNumber, safeImageUrl } from './normalize.js';
 import { buildCategoryTree, categoryMatches, showCategoryInBrowse } from './category-menu.js';
-import { categoryArtwork, categorySymbols, sortCategoryNodes } from './category-art.js';
+import { categoryArtwork, sortCategoryNodes } from './category-art.js';
 import { categorizeProduct, productPictureEmoji } from './catalog-taxonomy.js';
 import { receiptAsText, escPosReceipt } from './receipt-share.js';
 import { receiptPdfBlob } from './receipt-pdf.js';
@@ -246,21 +246,7 @@ function categoryTile(node, hasChildren = false) {
     applyProductImage(img,url,320,'high');
     photo.append(img);
   }
-  if (node.path.includes(' > ')) {
-    // Native emoji remain vivid on iPhone; SVG-contained emoji vanished
-    // on some Safari builds, leaving only faint decorative circles.
-    photo.classList.add('photo-subcategory-image');
-    const symbols = document.createElement('span');
-    symbols.className = 'photo-category-symbols';
-    symbols.setAttribute('aria-hidden', 'true');
-    for (const symbol of categorySymbols(node.path)) {
-      const mark=document.createElement('span');
-      mark.className='photo-category-symbol';
-      mark.textContent=symbol;
-      symbols.append(mark);
-    }
-    photo.append(symbols);
-  }
+  if (node.path.includes(' > '))photo.classList.add('photo-subcategory-image');
   if (hasChildren) {
     const badge = document.createElement('span');
     badge.className = 'photo-category-badge';
@@ -1223,16 +1209,38 @@ async function setup() {
   $('settingsReceiptTitle').value=settings.title;
   $('settingsReceiptPhone').value=settings.phone;
   $('settingsReceiptWebsite').value=settings.website;
-  const persistPrintSettings=()=>{
-    try {
-      saveReceiptSettings({
-        width:$('settingsPrintWidth').value,title:$('settingsReceiptTitle').value,
-        phone:$('settingsReceiptPhone').value,website:$('settingsReceiptWebsite').value
-      });
-    }catch(error){announce('Fiş ayarı saklanamadı: '+error.message,'error');}
+  const settingsSaveButton=$('settingsReceiptSave'),saveStatus=$('settingsReceiptStatus');
+  const receiptFields=['settingsPrintWidth','settingsReceiptTitle','settingsReceiptPhone','settingsReceiptWebsite'];
+  const changedReceiptSettings=()=>{
+    saveStatus.textContent='Kaydedilmemiş değişiklikler var.';
+    saveStatus.className='receipt-save-status pending';
+    settingsSaveButton.textContent='Fiş / Firma Bilgilerini Kaydet';
+    settingsSaveButton.disabled=false;
   };
-  for(const id of ['settingsPrintWidth','settingsReceiptTitle','settingsReceiptPhone','settingsReceiptWebsite'])
-    $(id).addEventListener(id==='settingsPrintWidth'?'change':'input',persistPrintSettings);
+  for(const id of receiptFields)
+    $(id).addEventListener(id==='settingsPrintWidth'?'change':'input',changedReceiptSettings);
+  settingsSaveButton.addEventListener('click',()=>{
+    const data={
+      width:$('settingsPrintWidth').value,title:$('settingsReceiptTitle').value,
+      phone:$('settingsReceiptPhone').value,website:$('settingsReceiptWebsite').value
+    };
+    try{
+      const saved=saveReceiptSettings(data);
+      const verified=readReceiptSettings();
+      if(JSON.stringify(saved)!==JSON.stringify(verified))
+        throw Error('Kaydedilen ayarlar doğrulanamadı.');
+      $('settingsReceiptTitle').value=saved.title;
+      saveStatus.textContent='✓ Fiş ve firma bilgileri kaydedildi. Sonraki fişlerde kullanılacak.';
+      saveStatus.className='receipt-save-status saved';
+      settingsSaveButton.textContent='✓ Kaydedildi';
+      settingsSaveButton.disabled=true;
+      announce('Fiş / firma bilgileri başarıyla kaydedildi.','success');
+    }catch(error){
+      saveStatus.textContent='Kaydetme başarısız: '+error.message;
+      saveStatus.className='receipt-save-status error';
+      announce('Fiş bilgileri kaydedilemedi: '+error.message,'error');
+    }
+  });
   productManager=createProductManager({
     state, serializeMutation, refresh:refreshManagedData, announce, channel,
     openManageScanner:()=>{

@@ -39,7 +39,8 @@ test('sale navigation and cash payment are separate and remove receipt option cl
   assert.match(html,/id="cashPaymentDialog"/);
   assert.match(app,/function openCashPayment\(/);
   assert.match(app,/cashConfirm'\)\.addEventListener\('click',completeSale\)/);
-  assert.match(app,/id===.settingsPrintWidth./);
+  assert.match(app,/settingsReceiptSave/);
+  assert.match(html,/id="settingsReceiptSave"/);
 });
 test('customer name and required phone saved centrally; sales attach central credit customer id',()=>{
   assert.match(html,/id="settingsCustomers"/);

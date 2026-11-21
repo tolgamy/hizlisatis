@@ -17,7 +17,7 @@
 <body>
   <div id="app">
     <header class="topbar clean-topbar">
-      <div class="brandline"><button id="brandHome" type="button" class="brand-home" aria-label="Hızlı Satış ana sayfasına dön"><span class="brandmark" aria-hidden="true">₺</span><span><strong>Hizlisatis</strong><small>Mobil POS · v3.5.1</small></span></button><span id="connectionStatus" class="connection" role="status"></span></div>
+      <div class="brandline"><button id="brandHome" type="button" class="brand-home" aria-label="Hızlı Satış ana sayfasına dön"><span class="brandmark" aria-hidden="true">₺</span><span><strong>Hizlisatis</strong><small>Mobil POS · v3.5.2</small></span></button><span id="connectionStatus" class="connection" role="status"></span></div>
       <div class="searchline"><label for="search" class="sr-only">Ürün veya barkod ara</label><div class="searchbox"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><input id="search" type="search" placeholder="Ürün veya barkod ara" autocomplete="off" enterkeyhint="search"></div><button id="scanButton" class="iconbutton scanbutton" type="button" aria-label="Barkod okut">⌗</button></div>
       <span id="syncLabel" class="sr-only" role="status"></span>
       <input id="excelFile" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
@@ -59,7 +59,8 @@
           <label>Fiş Başlığı <input id="settingsReceiptTitle" type="text" maxlength="80" placeholder="CEP HIZLI SATIŞ"></label>
           <label>Fiş Altı Telefon <input id="settingsReceiptPhone" type="tel" maxlength="35" placeholder="İsteğe bağlı"></label>
           <label>Fiş Altı Web Sitesi <input id="settingsReceiptWebsite" type="text" maxlength="110" placeholder="İsteğe bağlı"></label>
-          <small>Seçimler otomatik kaydedilir; sonraki fişlerde kullanılır.</small>
+          <button id="settingsReceiptSave" class="primary-button" type="button">Fiş / Firma Bilgilerini Kaydet</button>
+          <p id="settingsReceiptStatus" class="receipt-save-status" role="status" aria-live="polite">Kayıtlı fiş ayarları yüklendi.</p>
         </section>
         <p id="catalogSource" class="settings-catalog-count">Katalog yükleniyor...</p>
       </section>
@@ -206,6 +207,14 @@
         </div>
         <label for="manageSearch">Ürün adı veya barkod ara</label>
         <input id="manageSearch" type="search" placeholder="Barkod veya ürün adı" autocomplete="off">
+        <section id="manageCategoryBrowser" class="manage-category-browser" hidden aria-label="Pasif ürünleri kategorilere göre seç">
+          <div class="manage-category-heading">
+            <button id="manageCategoryBack" type="button" class="clean-back" aria-label="Bir önceki kategoriye dön" hidden>‹</button>
+            <strong id="manageCategoryTitle">Ana Kategoriler</strong>
+          </div>
+          <div id="manageCategoryGrid" class="manage-category-grid" aria-label="12 ana ve alt kategoriler"></div>
+          <p class="manage-category-help">Kategoriyi seçin, pasif ürüne dokunun ve satışa açın.</p>
+        </section>
         <div id="manageResultCount" class="manage-result-count"></div>
         <div id="manageResults" class="manage-results"></div>
         <div class="manage-danger-zone">

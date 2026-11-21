@@ -1,4 +1,4 @@
-import { MAIN_CATEGORY_ORDER } from './category-art.js';
+import { MAIN_CATEGORY_ORDER,categoryArtwork } from './category-art.js';
 import { productCategoryPath } from './category-menu.js';
 import { parseLocaleNumber, safeImageUrl } from './normalize.js';
 import { getLocalSnapshot, getManagedProductHistory, saveManagedProduct, initiallyDeactivateAll } from './idb.js';
@@ -48,6 +48,7 @@ function compressImage(file) {
 }
 export function createProductManager({state,serializeMutation,refresh,announce,channel,openManageScanner}) {
   let filter='active',selection=null,created=false,uploadImage='',pendingSale=null,pendingManualActivation=null;
+  let manageCategoryRoot='',manageCategorySub='';
   const managementDialog=$('manageDialog'), activationDialog=$('passiveProductDialog');
   const search=$('manageSearch'), form=$('manageEditForm'), results=$('manageResults');
 
@@ -69,7 +70,9 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
       button.disabled=unavailable;
       const caption=document.createElement('small');caption.textContent=statusLabels[key];
       button.append(number,caption);
-      button.addEventListener('click',()=>{filter=key;countsView();});
+      button.addEventListener('click',()=>{
+        filter=key;manageCategoryRoot='';manageCategorySub='';search.value='';countsView();
+      });
       $('manageStatusCounts').append(button);
     }
     $('manageBulkDeactivate').disabled=unavailable;
@@ -80,13 +83,71 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
       ? 'İlk toplu pasife alma '+new Date(state.lifecycleMeta.at).toLocaleString('tr-TR')+' tarihinde yapıldı.'
       : 'İlk toplu pasife alma henüz yapılmadı. Ürünler silinmez.';
   }
+  const isPassiveList=()=>filter==='initial-inactive'||filter==='later-inactive';
   function countsView() { counts();renderResults(); }
+  function drawCategoryNavigation(products) {
+    const browser=$('manageCategoryBrowser'),grid=$('manageCategoryGrid');
+    const active=isPassiveList()&&!search.value.trim()&&
+      !state.catalogLoading&&!state.catalogError&&state.products.length>0;
+    browser.hidden=!active;
+    if(!active)return false;
+    const entries=products.map(product=>({product,path:productCategoryPath(product)}));
+    const back=$('manageCategoryBack');
+    back.hidden=!manageCategoryRoot;
+    back.onclick=()=>{
+      if(manageCategorySub)manageCategorySub='';
+      else manageCategoryRoot='';
+      renderResults();
+    };
+    const heading=$('manageCategoryTitle');
+    heading.textContent=manageCategorySub||manageCategoryRoot||'12 Ana Kategori';
+    grid.replaceChildren();
+    const listing=Boolean(manageCategorySub);
+    if(listing){
+      // A selected subcategory opens the regular product list below.
+      browser.hidden=false;grid.hidden=true;
+      return false;
+    }
+    grid.hidden=false;
+    const counts=new Map(),subCounts=new Map();
+    for(const entry of entries) {
+      const [main,sub]=entry.path;
+      if(!main)continue;
+      counts.set(main,(counts.get(main)||0)+1);
+      if(sub){
+        const key=main+' > '+sub;
+        subCounts.set(key,(subCounts.get(key)||0)+1);
+      }
+    }
+    const choices=manageCategoryRoot?
+      [...subCounts].filter(([path])=>path.startsWith(manageCategoryRoot+' > ')).map(([path,count])=>({path,count,name:path.split(' > ').at(-1)}))
+      : MAIN_CATEGORY_ORDER.map(name=>({name,path:name,count:counts.get(name)||0}));
+    for(const choice of choices) {
+      const item=document.createElement('button');item.type='button';
+      item.className='manage-category-tile';
+      const illustration=document.createElement('img');
+      illustration.alt='';illustration.decoding='async';illustration.loading='lazy';
+      illustration.src=categoryArtwork(choice.path);
+      const name=document.createElement('strong');name.textContent=choice.name;
+      const count=document.createElement('small');
+      count.textContent=choice.count.toLocaleString('tr-TR')+' pasif ürün';
+      item.append(illustration,name,count);
+      item.disabled=!choice.count;
+      item.addEventListener('click',()=>{
+        if(manageCategoryRoot)manageCategorySub=choice.name;
+        else manageCategoryRoot=choice.name;
+        renderResults();
+      });
+      grid.append(item);
+    }
+    if(!choices.length)grid.textContent='Bu kategoride pasif alt kategori bulunamadı.';
+    return true;
+  }
   function renderResults() {
     const q=search.value.trim().toLocaleLowerCase('tr-TR');
     results.replaceChildren();
-    const matching=state.products.filter(p=>productStatus(p)===filter &&
-      (!q || [p.baslik,p.barkod,p.urunKodu,p.marka].some(v=>text(v).toLocaleLowerCase('tr-TR').includes(q))));
     if(state.catalogLoading||state.catalogError||!state.products.length) {
+      $('manageCategoryBrowser').hidden=true;
       $('manageResultCount').textContent=state.catalogLoading
         ? 'Merkezi ürünler yükleniyor: '+Number(state.catalogProgress||0).toLocaleString('tr-TR')+' / 19.096'
         : 'Merkezi ürünler yüklenemedi';
@@ -95,6 +156,20 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
         : (state.catalogError||'Ürünler henüz yüklenmedi. Merkezi Veritabanından Yenile düğmesini kullanın.');
       return;
     }
+    const inStatus=state.products.filter(p=>productStatus(p)===filter);
+    const browsing=drawCategoryNavigation(inStatus);
+    if(browsing){
+      $('manageResultCount').textContent=inStatus.length.toLocaleString('tr-TR')+' pasif ürün · Kategori seçiniz';
+      return;
+    }
+    const matching=inStatus.filter(p=>{
+      if(q)return [p.baslik,p.barkod,p.urunKodu,p.marka].some(v=>text(v).toLocaleLowerCase('tr-TR').includes(q));
+      if(isPassiveList()&&manageCategoryRoot){
+        const [main,sub]=productCategoryPath(p);
+        return main===manageCategoryRoot&&sub===manageCategorySub;
+      }
+      return true;
+    });
     $('manageResultCount').textContent=matching.length.toLocaleString('tr-TR')+' ürün';
     for(const product of matching.slice(0,40)) {
       const button=document.createElement('button');button.type='button';
@@ -110,9 +185,10 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
       });
       results.append(button);
     }
-    if(!matching.length) results.textContent='Bu bölümde ürün bulunamadı.';
-    if(matching.length>40) {
-      const note=document.createElement('p');note.textContent='İlk 40 ürün gösteriliyor. Daha fazlası için arama yapın.';
+    if(!matching.length)results.textContent='Bu bölümde ürün bulunamadı.';
+    if(matching.length>40){
+      const note=document.createElement('p');
+      note.textContent='İlk 40 ürün gösteriliyor. İstediğiniz ürünü adı veya barkoduyla arayabilirsiniz.';
       results.append(note);
     }
   }
@@ -176,6 +252,7 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
   }
   function openManage(product=null,barcode='') {
     search.value='';filter=product?productStatus(product):'active';
+    manageCategoryRoot='';manageCategorySub='';
     if(!managementDialog.open)managementDialog.showModal();
     if(state.legacyPending)
       announce('Bu cihazdaki bazı eski ürün değişiklikleri henüz merkezde değil. Önce Eski Cihaz Yedeğini İndir, sonra Kayıtları Taşı.','error');
@@ -220,8 +297,10 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
       if(!verified || productStatus(verified)!==productStatus(product))
         throw Error('Kaydedilen ürün durumu yeniden okunamadı. Ürün değiştirilmedi.');
       channel?.postMessage('product-managed');
-      if(product.lifecycleStatus==='active')filter='active';
-      else filter=product.lifecycleStatus;
+      // When activating from a passive subcategory, stay in that folder for
+      // the next product instead of sending the operator to Active Products.
+      if(!(product.lifecycleStatus==='active'&&isPassiveList()))
+        filter=product.lifecycleStatus||'active';
       showOverview();
       announce('Ürün kaydedildi: '+statusLabels[product.lifecycleStatus||'active'],'success');
     } catch(error) { announce('İşlem başarısız: '+error.message,'error'); }
