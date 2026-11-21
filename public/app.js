@@ -507,7 +507,7 @@ function adjustScanQuantity(delta) {
   const input=$('scanQuantityInput'),weighted=pendingScanProduct&&
     ['kg','g','litre'].includes(pendingScanProduct.product.birim);
   const step=weighted?0.1:1,current=Number(input.value)||0;
-  input.value=String(Math.max(weighted?.001:1,Math.round((current+delta*step)*1000)/1000));
+  input.value=String(Math.max(weighted?0.001:1,Math.round((current+delta*step)*1000)/1000));
 }
 function confirmScannedQuantity() {
   const pending=pendingScanProduct;
@@ -1202,6 +1202,22 @@ async function refreshManagedData(productId=null) {
   }
 }
 async function setup() {
+  customerManager=createCustomerManager({announce});
+  const settings=readReceiptSettings();
+  $('settingsPrintWidth').value=settings.width;
+  $('settingsReceiptTitle').value=settings.title;
+  $('settingsReceiptPhone').value=settings.phone;
+  $('settingsReceiptWebsite').value=settings.website;
+  const persistPrintSettings=()=>{
+    try {
+      saveReceiptSettings({
+        width:$('settingsPrintWidth').value,title:$('settingsReceiptTitle').value,
+        phone:$('settingsReceiptPhone').value,website:$('settingsReceiptWebsite').value
+      });
+    }catch(error){announce('Fiş ayarı saklanamadı: '+error.message,'error');}
+  };
+  for(const id of ['settingsPrintWidth','settingsReceiptTitle','settingsReceiptPhone','settingsReceiptWebsite'])
+    $(id).addEventListener(id==='settingsPrintWidth'?'change':'input',persistPrintSettings);
   productManager=createProductManager({
     state, serializeMutation, refresh:refreshManagedData, announce, channel,
     openManageScanner:()=>{
@@ -1220,6 +1236,10 @@ async function setup() {
     else renderProducts();
   });
   $('navHome').addEventListener('click',()=>setView('home'));
+  $('brandHome').addEventListener('click',()=>{
+    if(dom.cartDialog.open)dom.cartDialog.close();
+    setView('home');
+  });
   $('navProducts').addEventListener('click',()=>openCategoryMenu());
   $('navSale').addEventListener('click',openSale);
   $('navSettings').addEventListener('click',()=>setView('settings'));
@@ -1239,7 +1259,7 @@ async function setup() {
   $('settingsAdd').addEventListener('click',()=>productManager.openNew());
   $('settingsHistory').addEventListener('click',showHistory);
   $('settingsExport').addEventListener('click',exportHistory);
-  $('settingsPrintWidth').addEventListener('change',()=>{$('receiptWidth').value=$('settingsPrintWidth').value;});
+  // Receipt width/title/contact info are persisted in settings above, not in checkout.
   $('saleBarcodeForm').addEventListener('submit',event=>{
     event.preventDefault();const value=$('saleBarcode').value.trim();if(!value)openProductPicker();else barcodeAdd(value,$('saleBarcode'));
   });
@@ -1262,9 +1282,35 @@ async function setup() {
   $('scanButton').addEventListener('click',openCamera);
   $('excelFile').addEventListener('change',()=>selectExcelFile($('excelFile').files[0]));
   $('confirmExcelImport').addEventListener('click',confirmExcelImport);
-  document.querySelectorAll('input[name="payment"]').forEach(el=>el.addEventListener('change',updatePayment));
-  dom.cash.addEventListener('input',()=>{dom.cash.dataset.edited = 'true'; updatePayment();});
+  document.querySelectorAll('input[name="payment"]').forEach(el=>{
+    el.addEventListener('change',()=>{
+      updatePayment();
+      if(el.checked&&el.value==='Veresiye')customerManager.load().catch(()=>{});
+      if(el.checked&&el.value==='Nakit')openCashPayment();
+    });
+    if(el.value==='Nakit')el.addEventListener('click',()=>{
+      if(el.checked)openCashPayment();
+    });
+    if(el.value==='Veresiye')el.addEventListener('click',()=>{
+      if(el.checked)customerManager.load().catch(()=>{});
+    });
+  });
+  dom.cash.addEventListener('input',updatePayment);
+  $('cashConfirm').addEventListener('click',completeSale);
+  $('cashCancel').addEventListener('click',()=>$('cashPaymentDialog').close());
   dom.complete.addEventListener('click',completeSale);
+  for(const [id,view] of [['saleQuickHome','home'],['saleQuickProducts','catalog'],['saleQuickSettings','settings']]) {
+    $(id).addEventListener('click',()=>{
+      dom.cartDialog.close();
+      setView(view);
+    });
+  }
+  $('scanQuantityMinus').addEventListener('click',()=>adjustScanQuantity(-1));
+  $('scanQuantityPlus').addEventListener('click',()=>adjustScanQuantity(1));
+  $('scanQuantityConfirm').addEventListener('click',confirmScannedQuantity);
+  $('scanQuantityCancel').addEventListener('click',()=>{
+    pendingScanProduct=null;$('scanQuantityDialog').close();
+  });
   $('receiptNetworkPrint').addEventListener('click',()=>{if(state.lastSale)printSale(state.lastSale);});
   $('receiptBluetoothPrint').addEventListener('click',async()=>{
     if(!state.lastSale)return;const button=$('receiptBluetoothPrint');button.disabled=true;
@@ -1277,7 +1323,7 @@ async function setup() {
   $('receiptPdfShare').addEventListener('click',()=>{if(state.lastSale)shareReceiptPdf(state.lastSale);});
   $('receiptClose').addEventListener('click',()=>{$('receiptActionsDialog').close();openSale();});
   $('exportSales').addEventListener('click',exportHistory);
-  for(const dialog of [dom.cartDialog,dom.scanDialog,dom.historyDialog,$('excelDialog'),$('manageDialog'),$('passiveProductDialog'),$('productDetailDialog'),$('pickProductDialog'),$('receiptActionsDialog')]){
+  for(const dialog of [dom.cartDialog,dom.scanDialog,dom.historyDialog,$('excelDialog'),$('manageDialog'),$('passiveProductDialog'),$('productDetailDialog'),$('pickProductDialog'),$('receiptActionsDialog'),$('cashPaymentDialog'),$('scanQuantityDialog'),$('manageActivationDialog'),$('customerDialog')]){
     dialog.addEventListener('click',event=>{if(event.target===dialog)dialog.close();});
   }
   if('serviceWorker'in navigator&&window.isSecureContext)navigator.serviceWorker.register('/sw.js').catch(()=>{});
