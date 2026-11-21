@@ -62,6 +62,6 @@ test('receipt title phone website and printer width require visible Save confirm
 });
 test('new PWA shell includes category icons and revokes old version cache',()=>{
   const sw=read('sw.js');
-  assert.match(sw,/v26-passive-category-firma-save/);
+  assert.match(sw,/v27-passive-category-paging/);
   assert.match(sw,/\/subcategory-icons\.js/);
 });
