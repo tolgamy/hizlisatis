@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {normalizeReceiptSettings,readReceiptSettings,saveReceiptSettings} from '../public/receipt-settings.js';
-import {receiptAsText} from '../public/receipt-share.js';
+import {receiptAsText,escPosReceipt} from '../public/receipt-share.js';
 import {onRequestGet,onRequestPost} from '../functions/api/customers.js';
 
 const read=path=>readFileSync(new URL('../public/'+path,import.meta.url),'utf8');
@@ -94,4 +94,12 @@ test('every changed client and API module parses as valid JavaScript',()=>{
     execFileSync(process.execPath,['--check',fileURLToPath(new URL('../public/'+path,import.meta.url))]);
   }
   execFileSync(process.execPath,['--check',fileURLToPath(new URL('../functions/api/customers.js',import.meta.url))]);
+});
+
+test('Bluetooth ESC/POS prints dense bold slips and still cuts paper',()=>{
+  const bytes=escPosReceipt({items:[{baslik:'Pirinç',quantity:1,unitPrice:10,total:10}],
+    id:'bluetooth-receipt',createdAt:'2026-11-21T00:00:00Z',payment:'Nakit',
+    total:10,change:0,currency:'TRY',receiptSettings:{title:'TOLGA MARKET',phone:'0555 123',width:'80'}});
+  assert.deepEqual(Array.from(bytes.slice(0,8)),[0x1b,0x40,0x1b,0x45,0x01,0x1b,0x33,0x18]);
+  assert.deepEqual(Array.from(bytes.slice(-6)),[0x1b,0x45,0,0x1d,0x56,0]);
 });
