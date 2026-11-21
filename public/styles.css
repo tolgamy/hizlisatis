@@ -809,3 +809,113 @@ body.view-home .clean-topbar .searchline{display:flex!important}
   #categoryTree.category-grid-page{gap:13px!important}
   #categoryTree .photo-category-image{aspect-ratio:1.2!important}
 }
+
+
+/* v3.7 — approved 4-across photographic product cards, ONLY in an opened
+   passive product subcategory. Existing management category screens are untouched. */
+#manageResults.manage-photo-grid{
+  display:grid!important;
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  align-items:start;
+  gap:7px!important;
+  overflow-y:auto;
+  max-height:56dvh;
+  padding:5px 0 8px;
+}
+#manageResults.manage-photo-grid>button.manage-product-card{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:stretch!important;
+  justify-content:flex-start!important;
+  width:100%!important;
+  min-width:0!important;
+  min-height:0!important;
+  height:auto!important;
+  padding:3px 3px 7px!important;
+  gap:4px!important;
+  border:1px solid #e3e7ed!important;
+  border-radius:10px!important;
+  box-shadow:0 2px 5px #18263c0b!important;
+  color:#26313e!important;
+  background:#fff!important;
+  text-align:center!important;
+}
+#manageResults .manage-product-photo{
+  display:block!important;
+  width:100%!important;
+  flex:none!important;
+  position:relative;
+  aspect-ratio:1/1;
+  min-height:0;
+  overflow:hidden;
+  border-radius:8px;
+  background:#f7f8fa;
+}
+#manageResults .manage-product-photo img{
+  position:absolute;inset:0;
+  width:100%;height:100%;
+  object-fit:contain;
+  background:#fff;
+}
+#manageResults .manage-product-photo-empty{
+  display:grid;place-items:center;
+  width:100%;height:100%;
+  font-size:24px;color:#c7cdd4;
+}
+#manageResults .manage-product-badge{
+  position:absolute;
+  left:2px;top:2px;
+  z-index:1;
+  flex:none!important;
+  min-width:0!important;
+  border-radius:5px;
+  background:#f9dfd6;color:#a33e23;
+  padding:2px 3px;
+  font-size:clamp(7px,1.75vw,9px);
+  font-weight:900;
+  line-height:1.15;
+}
+#manageResults .manage-product-name{
+  display:-webkit-box;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:3;
+  min-height:32px;
+  max-height:38px;
+  overflow:hidden;
+  font-size:clamp(8px,2.05vw,10px);
+  font-weight:800;
+  line-height:1.22;
+  color:#182636;
+  overflow-wrap:anywhere;
+}
+#manageResults .manage-product-barcode{
+  width:100%!important;
+  max-width:100%!important;
+  display:block;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+  overflow:hidden;
+  font-size:clamp(7px,1.75vw,9px);
+  color:#75808b;
+  font-weight:500;
+}
+#manageResults .manage-product-price{
+  display:block;
+  width:100%;
+  font-size:clamp(9px,2.35vw,12px);
+  line-height:1.25;
+  color:#f26a14;
+  font-weight:900;
+}
+#manageResults.manage-photo-grid .manage-more-button{
+  grid-column:1/-1;
+}
+#manageResults.manage-photo-grid>button.manage-product-card:focus-visible{
+  outline:2px solid #ff7a20;
+  outline-offset:2px;
+}
+@media(max-width:360px){
+  #manageResults.manage-photo-grid{gap:5px!important}
+  #manageResults.manage-photo-grid>button.manage-product-card{padding:2px 2px 6px!important}
+  #manageResults .manage-product-name{font-size:8px}
+}
