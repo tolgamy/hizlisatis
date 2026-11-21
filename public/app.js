@@ -14,7 +14,7 @@ import { fetchBundledCatalog } from './bundled-catalog.js';
 import { findBarcodeProduct } from './barcode-lookup.js';
 import { applyProductImage, detectImageResizing } from './image-delivery.js';
 import { isActive, productStatus } from './product-lifecycle.js';
-import { getBarcodeLibrary, supportedBarcodeFormats, acceptsBarcodeResult } from './barcode-scanner.js';
+import { getBarcodeLibrary, supportedBarcodeFormats, acceptsBarcodeResult, isRepeatScan, readScanHistory, rememberScan } from './barcode-scanner.js';
 import { createProductManager } from './product-management.js';
 import { checkRemoteProductStates } from './remote-products.js';
 import { createCustomerManager } from './customer-ui.js';
@@ -240,6 +240,9 @@ function openProductPicker() {
 function openCamera() {
   state.scanPurpose = 'sale';
   unlockScanAudio(); // user gesture unlocks iPhone audio before scan event callback
+  $('scanHistoryPanel').hidden=true;
+  $('scannerView').hidden=false;
+  dom.scanDialog.classList.remove('is-success');
   if (!dom.scanDialog.open) dom.scanDialog.showModal();
   startScanner();
 }
@@ -1048,27 +1051,80 @@ function chirp() {
   navigator.vibrate?.([90,45,90]);
 }
 let lastScanText = '', lastScanTime = 0;
-function scanned(raw) {
-  const text = String(raw ?? '').trim();
-  if (!text) return;
-  if(state.scanner){state.scanner.decoded=true;clearTimeout(state.scanner.fallbackTimer);}
-  if(state.scanPurpose==='manage') {
-    dom.scanDialog.close();
-    state.scanPurpose='sale';
-    productManager.manageScannedBarcode(text);
+function renderScanHistory() {
+  const root=$('scanHistoryList');
+  root.replaceChildren();
+  const entries=readScanHistory();
+  if(!entries.length){
+    const empty=document.createElement('p');
+    empty.className='scan-history-empty';
+    empty.textContent='Henüz barkod okunmadı. Son 20 barkod yalnızca bu cihazda saklanır.';
+    root.append(empty);
     return;
   }
-  const now = Date.now();
-  if (text === lastScanText && now - lastScanTime < 1400) return;
-  lastScanText = text; lastScanTime = now;
-  const product = exactProduct(text);
-  if(product) {
-    chirp();
-    if(productManager?.offerSaleActivation(product,active=>selectScannedQuantity(active,$('scanManualBarcode'))))return;
-    selectScannedQuantity(product,$('scanManualBarcode'));
-  }else{
-    dom.scanMessage.textContent='Barkod '+text+' bulundu ancak katalogda ürün yok.';
+  for(const entry of entries){
+    const button=document.createElement('button');
+    button.type='button';button.className='scan-history-entry';
+    const detail=document.createElement('span');
+    const code=document.createElement('strong');code.textContent=entry.code;
+    const caption=document.createElement('small');
+    caption.textContent=entry.format+' · '+new Date(entry.at).toLocaleString('tr-TR');
+    detail.append(code,caption);
+    const arrow=document.createElement('span');arrow.textContent='›';
+    button.append(detail,arrow);
+    button.addEventListener('click',()=>{
+      $('scanHistoryPanel').hidden=true;
+      $('scannerView').hidden=false;
+      scanned(entry.code,{source:'history',format:entry.format,force:true});
+    });
+    root.append(button);
   }
+}
+async function showScanHistory() {
+  await stopScanner();
+  $('scannerView').hidden=true;
+  $('scanHistoryPanel').hidden=false;
+  dom.scanMessage.textContent='Önceden okunan barkodu seçebilirsiniz.';
+  renderScanHistory();
+}
+function scanned(raw,{source='camera',format='Barkod',force=false}={}) {
+  const text=String(raw??'').trim();
+  if(!text)return;
+  const now=Date.now();
+  if(!force&&isRepeatScan(text,lastScanText,lastScanTime,now))return;
+  const session=state.scanner;
+  if(session?.decoded)return;
+  lastScanText=text;lastScanTime=now;
+  if(session){session.decoded=true;clearTimeout(session.fallbackTimer);}
+  $('scanManualBarcode').value=text;
+  rememberScan(text,format);
+  const purpose=state.scanPurpose;
+  const dialogWasOpen=dom.scanDialog.open;
+  if(dialogWasOpen){
+    dom.scanDialog.classList.add('is-success');
+    dom.scanMessage.textContent='Barkod başarıyla okundu';
+  }
+  chirp();
+  const deliver=()=>{
+    if(dialogWasOpen&&!dom.scanDialog.open)return;
+    if(purpose==='manage'){
+      if(dom.scanDialog.open)dom.scanDialog.close();
+      state.scanPurpose='sale';
+      productManager.manageScannedBarcode(text);
+      return;
+    }
+    const product=exactProduct(text);
+    if(product){
+      if(productManager?.offerSaleActivation(product,active=>selectScannedQuantity(active,$('scanManualBarcode'))))return;
+      selectScannedQuantity(product,$('scanManualBarcode'));
+    }else{
+      $('saleBarcode').value=text;
+      dom.scanMessage.textContent='Barkod '+text+' okundu ancak katalogda ürün bulunamadı.';
+      if(dialogWasOpen)stopScanner().catch(()=>{});
+    }
+  };
+  if(dialogWasOpen)setTimeout(deliver,540);
+  else deliver();
 }
 
 function updateTorchButton(enabled = false, on = false) {
@@ -1076,7 +1132,20 @@ function updateTorchButton(enabled = false, on = false) {
   button.disabled=!enabled;
   button.setAttribute('aria-pressed', String(on));
   button.setAttribute('aria-label', on ? 'Flaşı kapat' : 'Flaşı aç');
-  button.textContent=on ? '⚡ Açık' : '⚡ Flaş';
+  const label=button.querySelector('span');
+  if(label)label.textContent=on?'Açık':'Flaş';
+  else button.textContent=on?'⚡ Açık':'⚡ Flaş';
+}
+/** Request continuous autofocus only when supported by the running track. */
+async function optimizeScannerFocus(session) {
+  try{
+    const caps=session.lib?.getRunningTrackCapabilities?.() ||
+      session.stream?.getVideoTracks?.()[0]?.getCapabilities?.();
+    if(!Array.isArray(caps?.focusMode)||!caps.focusMode.includes('continuous'))return;
+    const constraints={advanced:[{focusMode:'continuous'}]};
+    if(session.lib?.applyVideoConstraints)await session.lib.applyVideoConstraints(constraints);
+    else await session.stream?.getVideoTracks?.()[0]?.applyConstraints(constraints);
+  }catch{/* Unsupported focus controls must not interrupt video. */}
 }
 function torchFeature(session) {
   try {
@@ -1153,7 +1222,7 @@ async function startNativeScanner(session) {
   if (!('BarcodeDetector' in window)) throw new Error('Yerel barkod algılayıcı desteklenmiyor.');
   const supported = typeof BarcodeDetector.getSupportedFormats === 'function'
     ? await BarcodeDetector.getSupportedFormats() : [];
-  const formats = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'itf']
+  const formats = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'itf', 'qr_code', 'pdf417']
     .filter(format => supported.includes(format));
   if (!formats.length) throw new Error('Yerel kamera barkod biçimlerini desteklemiyor.');
   const detector = new BarcodeDetector({ formats });
@@ -1166,17 +1235,18 @@ async function startNativeScanner(session) {
   video.style.display = '';
   video.srcObject = session.stream;
   await video.play();
-  dom.scanMessage.textContent = 'Barkodu kadraja tutun';
+  dom.scanMessage.textContent = 'Barkod aranıyor…';
+  await optimizeScannerFocus(session);
   updateTorchButton(Boolean(torchFeature(session)),false);
   const scanFrame = async () => {
     if (!session.active) return;
     try {
       if (video.readyState >= 2) {
         const codes = await detector.detect(video);
-        if (codes?.[0]?.rawValue && codes[0].format !== 'qr_code') scanned(codes[0].rawValue);
+        if (codes?.[0]?.rawValue) scanned(codes[0].rawValue,{format:codes[0].format||'Barkod'});
       }
     } catch { /* ignore a single frame decode failure */ }
-    if (session.active) session.timer = setTimeout(scanFrame, 180);
+    if (session.active && !session.decoded) session.timer = setTimeout(scanFrame, 160);
   };
   scanFrame();
 }
@@ -1189,24 +1259,33 @@ async function startScanner() {
   }
   const session = { active: true, stream: null, lib: null, timer: null, fallbackTimer:null, decoded:false, torchOn: false };
   state.scanner = session;
-  dom.scanMessage.textContent = 'Arka kamera başlatılıyor… Kamera izni sorulursa izin verin.';
+  $('scanHistoryPanel').hidden=true;
+  $('scannerView').hidden=false;
+  dom.scanDialog.classList.remove('is-success');
+  dom.scanMessage.textContent = 'Kamera başlatılıyor… İzin istenirse kameraya izin verin.';
   $('scanVideo').style.display = 'none';
   $('html5-reader').style.display = 'block';
   try {
-    // ZXing-based decoding is the first choice, including on iPhone Safari.
-    // QR codes are excluded: accept only linear product barcodes.
-    // Do not rely on Apple's optional native BarcodeDetector implementation.
+    // Bundled ZXing decodes 1D, QR and PDF417 on iPhone Safari and Android.
+    // Native BarcodeDetector is optional: browser support differs by device.
     await ensureQrLibrary();
     if (!session.active) return;
     const formats = desiredFormats();
-    if (!formats.length) throw new Error('Çizgili barkod desteği bulunamadı.');
+    if (!formats.length) throw new Error('Barkod biçimleri yüklenemedi.');
     const { Reader } = getBarcodeLibrary(window);
     if (!Reader) throw new Error('Barkod okuyucu yüklenemedi.');
     const options = { verbose: false, formatsToSupport: formats,
       useBarCodeDetectorIfSupported: false };
-    const config = { fps: 12, disableFlip: true };
+    const config = {
+      fps: 12, disableFlip: true,
+      qrbox: (viewWidth,viewHeight) => {
+        const width=Math.max(120,Math.min(Math.floor(viewWidth*.86),460,viewWidth-10));
+        return {width,height:Math.max(90,Math.min(Math.floor(width*.48),viewHeight-10))};
+      }
+    };
     const onSuccess = (decoded, details) => {
-      if (session.active && acceptsBarcodeResult(details)) scanned(decoded);
+      if(session.active&&!session.decoded&&acceptsBarcodeResult(details))
+        scanned(decoded,{format:details?.result?.format?.formatName||'Barkod'});
     };
     let scanner = new Reader('html5-reader', options);
     session.lib = scanner;
@@ -1231,40 +1310,14 @@ async function startScanner() {
       try { scanner.clear(); } catch {}
       return;
     }
-    // Use the full video width for 1D shop barcodes.
-    dom.scanMessage.textContent = 'Barkod çizgilerini yatay tutun, kamera odaklanana kadar sabit bekleyin.';
+    await optimizeScannerFocus(session);
+    dom.scanMessage.textContent = 'Barkod aranıyor…';
     updateTorchButton(Boolean(torchFeature(session)),false);
-    // Some mobile browsers open the camera yet html5-qrcode never decodes.
-    // After a short timeout, switch decoders *only if* native BarcodeDetector
-    // explicitly supports linear barcodes. Never use QR decoding here.
-    session.fallbackTimer=setTimeout(async()=>{
-      if(!session.active||session.decoded||state.scanner!==session)return;
-      try{
-        if(typeof window.BarcodeDetector!=='function')return;
-        const supported=await window.BarcodeDetector.getSupportedFormats?.()||[];
-        if(!supported.some(format=>['ean_13','ean_8','upc_a','code_128','code_39','itf'].includes(format)))return;
-        if(!session.active||session.decoded||state.scanner!==session)return;
-        try{await scanner.stop();}catch{}
-        try{await scanner.clear();}catch{}
-        session.lib=null;
-        if(!session.active||state.scanner!==session)return;
-        await startNativeScanner(session);
-        dom.scanMessage.textContent='Alternatif barkod okuyucu açıldı. Barkodu çizgileriyle birlikte kameraya tutun.';
-      }catch(error){
-        if(!session.active||state.scanner!==session)return;
-        // A failed native decoder must not leave the customer with a blank camera.
-        try{
-          if(session.stream){session.stream.getTracks().forEach(track=>track.stop());session.stream=null;}
-          $('scanVideo').style.display='none';$('html5-reader').style.display='block';
-          const backup=new Reader('html5-reader',options);
-          session.lib=backup;
-          await backup.start({facingMode:'environment'},config,onSuccess,()=>{});
-          dom.scanMessage.textContent='Barkod okuyucu yeniden hazır. Çizgileri tam kadraja alın.';
-        }catch{
-          dom.scanMessage.textContent='Barkod algılanamadı. Yeniden Dene, Fotoğraftan Oku veya elle giriş seçeneklerini kullanın.';
-        }
-      }
-    },8500);
+    // Do not reopen the camera after a timeout: this froze some iPhones.
+    session.fallbackTimer=setTimeout(()=>{
+      if(session.active&&!session.decoded&&state.scanner===session)
+        dom.scanMessage.textContent='Barkod aranıyor… Kamerayı sabit tutun veya flaşı deneyin.';
+    },9000);
   } catch (primaryError) {
     if (!session.active) return;
     if (session.lib) {
@@ -1290,19 +1343,19 @@ async function scanBarcodePhoto(file) {
   try {
     await ensureQrLibrary();
     const formats = desiredFormats();
-    if (!formats.length) throw new Error('Çizgili barkod desteği bulunamadı.');
+    if (!formats.length) throw new Error('Barkod biçimleri yüklenemedi.');
     const { Reader } = getBarcodeLibrary(window);
     if (!Reader) throw new Error('Barkod okuyucu yüklenemedi.');
     const lib = new Reader('html5-reader', {
       verbose: false, formatsToSupport: formats,
       useBarCodeDetectorIfSupported: false
     });
-    state.scanner = { active: true, lib, stream: null, timer: null };
+    state.scanner = { active: true, lib, stream: null, timer: null, decoded:false, fallbackTimer:null };
     const code = await lib.scanFile(file, false);
-    scanned(code);
+    scanned(code,{source:'gallery',format:'Galeri'});
     // The photo has been decoded; restart camera only if user taps 'Yeniden Dene'.
   } catch (error) {
-    dom.scanMessage.textContent = `Fotoğraftaki barkod okunamadı. Çizgileri net ve tam gösteren başka bir fotoğraf deneyin veya barkodu elle girin. (${String(error?.message || error).slice(0,90)})`;
+    dom.scanMessage.textContent = `Galeriden barkod okunamadı. Daha net bir görsel seçin veya elle girin. (${String(error?.message || error).slice(0,90)})`;
   }
 }
 
@@ -1455,7 +1508,12 @@ async function setup() {
   $('saleScanButton').addEventListener('click',openCamera);
   $('scanRetry').addEventListener('click',startScanner);
   $('scanTorch').addEventListener('click',toggleTorch);
-  $('scanManualForm').addEventListener('submit',event=>{event.preventDefault();scanned($('scanManualBarcode').value);});
+  $('scanHistoryButton').addEventListener('click',showScanHistory);
+  $('scanHistoryClose').addEventListener('click',startScanner);
+  $('scanManualForm').addEventListener('submit',event=>{
+    event.preventDefault();
+    scanned($('scanManualBarcode').value,{source:'manual',format:'Elle Girildi',force:true});
+  });
   $('scanPhotoFile').addEventListener('change',event=>{scanBarcodePhoto(event.target.files?.[0]);event.target.value='';});
   $('detailAdd').addEventListener('click',()=>{if(state.detailProduct&&addToCart(state.detailProduct))$('productDetailDialog').close();});
   $('detailImage').addEventListener('click',()=>{if(state.detailProduct?.gorsel)window.open(state.detailProduct.gorsel,'_blank','noopener,noreferrer');});
@@ -1472,7 +1530,14 @@ async function setup() {
     finally { button.disabled=false; }
   });
   document.querySelectorAll('[data-close]').forEach(button=>button.addEventListener('click',()=>$(button.dataset.close).close()));
-  dom.scanDialog.addEventListener('close',()=>stopScanner());
+  dom.scanDialog.addEventListener('close',()=>{
+    dom.scanDialog.classList.remove('is-success');
+    stopScanner();
+  });
+  document.addEventListener('visibilitychange',()=>{
+    if(document.hidden&&dom.scanDialog.open)stopScanner();
+  });
+  window.addEventListener('pagehide',()=>stopScanner());
   dom.cartDialog.addEventListener('close',updateNavigation);
   $('scanButton').addEventListener('click',openCamera);
   $('excelFile').addEventListener('change',()=>selectExcelFile($('excelFile').files[0]));
