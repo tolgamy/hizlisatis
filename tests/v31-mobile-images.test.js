@@ -21,9 +21,11 @@ test('mobile main and subcategories show readable two-column photo cards',()=>{
  assert.match(styles,/grid-template-columns:repeat\(2,minmax\(0,1fr\)\)!important/);
  assert.match(styles,/\.photo-category-name\{display:block!important/);
 });
-test('1D retail barcode decoding excludes QR and keeps external scanner input',()=>{
- assert.doesNotMatch(app,/['"]QR_CODE['"]/);
- assert.doesNotMatch(app,/['"]qr_code['"],/);
+test('retail barcode decoding includes QR and keeps external scanner input',()=>{
+ const scanner=read('../public/barcode-scanner.js');
+ assert.match(scanner,/QR_CODE: 0/);
+ assert.match(scanner,/PDF_417: 11/);
+ assert.match(app,/'qr_code', 'pdf417'/);
  assert.match(app,/saleBarcodeForm.*addEventListener/);
 });
 test('cart and saved sales retain brands without duplicate headings',()=>{
