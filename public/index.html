@@ -29,16 +29,58 @@
     </header>
 
     <main class="content clean-content" id="mainContent">
-      <section id="homeView" class="home-view clean-home" aria-label="Ana sayfa">
-        <h1 class="sr-only">Ana kategoriler</h1>
-        <div id="homeCategoryShortcuts" class="home-category-shortcuts category-photo-grid" aria-label="12 ana kategori"></div>
+      <section id="homeView" class="home-view clean-home dashboard-home" aria-label="Ana sayfa">
+        <div class="dashboard-hero">
+          <div class="dashboard-hero-copy">
+            <h1>HızlıSatış’a<br>Hoş Geldiniz <span aria-hidden="true">👋</span></h1>
+            <p>Satış, ürün, stok ve daha fazlası tek uygulamada.</p>
+          </div>
+          <img class="dashboard-hero-art" src="/icons/home-grocery-basket.svg" alt="" loading="eager" decoding="async">
+        </div>
+        <div class="dashboard-actions" aria-label="Hızlı işlemler">
+          <button id="homeQuickCategories" class="dashboard-action dashboard-action-categories" type="button">
+            <span class="dashboard-action-icon" aria-hidden="true">▦</span><strong>Kategoriler</strong><small>Tüm ürün grupları</small>
+          </button>
+          <button id="homeQuickSale" class="dashboard-action dashboard-action-sale" type="button">
+            <span class="dashboard-action-icon" aria-hidden="true">🛒</span><strong>Hızlı Satış</strong><small>Satışa başla</small>
+          </button>
+          <button id="homeQuickProducts" class="dashboard-action dashboard-action-products" type="button">
+            <span class="dashboard-action-icon" aria-hidden="true">📦</span><strong>Ürünler</strong><small>Ürün yönetimi</small>
+          </button>
+          <button id="homeQuickBarcode" class="dashboard-action dashboard-action-barcode" type="button">
+            <span class="dashboard-action-icon" aria-hidden="true">▥</span><strong>Barkod Ekle</strong><small>Yeni ürün oluştur</small>
+          </button>
+          <button id="homeQuickStock" class="dashboard-action dashboard-action-stock" type="button">
+            <span class="dashboard-action-icon" aria-hidden="true">⬡</span><strong>Stok Durumu</strong><small>Stokları görüntüle</small>
+          </button>
+          <button id="homeQuickReports" class="dashboard-action dashboard-action-reports" type="button">
+            <span class="dashboard-action-icon" aria-hidden="true">▤</span><strong>Raporlar</strong><small>Satış ve özetler</small>
+          </button>
+        </div>
+        <div class="dashboard-metrics" aria-label="Güncel özet">
+          <button id="homeTodaySalesButton" class="dashboard-metric dashboard-metric-sales" type="button" aria-label="Bugünkü satışları aç">
+            <span class="dashboard-metric-icon" aria-hidden="true">▥</span>
+            <span class="dashboard-metric-body"><span>Bugünkü Satış</span><strong id="homeTodaySales" aria-live="polite">—</strong><small>Bu cihazdaki satışlar</small></span>
+            <span class="dashboard-metric-arrow" aria-hidden="true">›</span>
+          </button>
+          <button id="homeTotalProductsButton" class="dashboard-metric dashboard-metric-products" type="button" aria-label="Ürünleri aç">
+            <span class="dashboard-metric-icon" aria-hidden="true">⬡</span>
+            <span class="dashboard-metric-body"><span>Toplam Ürün</span><strong id="homeTotalProducts" aria-live="polite">—</strong><small>Merkezi katalog</small></span>
+            <span class="dashboard-metric-arrow" aria-hidden="true">›</span>
+          </button>
+        </div>
       </section>
       <section id="catalogView" class="catalog-view clean-catalog" aria-label="Ürünler" hidden>
         <section id="categoryBrowser" class="clean-categories">
+          <div id="catalogCategoryNavigator">
           <div class="clean-page-head"><button id="categoryBack" type="button" class="clean-back" aria-label="Üst kategoriye dön">‹</button><h1 id="categoryTrailName">Kategoriler</h1></div>
           <label class="sr-only" for="categorySearch">Kategori ara</label><input id="categorySearch" class="clean-category-search" type="search" placeholder="Kategori ara" autocomplete="off">
           <div id="categoryTree" class="category-photo-grid category-grid-page" aria-label="Kategoriler"></div>
           <button id="categoryAllProducts" type="button" class="clean-see-all">Tüm Ürünleri Göster</button>
+          </div>
+          <section id="productCategoryHome" hidden aria-label="12 ana kategori">
+            <div id="homeCategoryShortcuts" class="home-category-shortcuts category-photo-grid" aria-label="12 ana kategori"></div>
+          </section>
         </section>
         <section id="productResults" hidden>
           <div class="clean-page-head"><button id="catalogBack" type="button" class="clean-back" aria-label="Kategorilere dön">‹</button><h1 id="browseHeading">Ürünler</h1><span id="resultCount" class="clean-result-count"></span></div>
@@ -80,7 +122,8 @@
       </button>
       <nav class="bottom-nav" aria-label="Ana gezinme">
         <button id="navHome" type="button" class="nav-item active" aria-current="page"><span aria-hidden="true">⌂</span><small>Ana Sayfa</small></button>
-        <button id="navProducts" type="button" class="nav-item"><span aria-hidden="true">▦</span><small>Ürünler</small></button>
+        <button id="navCategories" type="button" class="nav-item"><span aria-hidden="true">▦</span><small>Kategoriler</small></button>
+        <button id="navProducts" type="button" class="nav-item"><span aria-hidden="true">⬡</span><small>Ürünler</small></button>
         <button id="navSale" type="button" class="nav-item nav-sale"><span aria-hidden="true">⊕</span><small>Satış</small></button>
         <button id="navSettings" type="button" class="nav-item"><span aria-hidden="true">⚙</span><small>Ayarlar</small></button>
       </nav>
