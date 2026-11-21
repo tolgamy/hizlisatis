@@ -2,13 +2,11 @@
  * D1 remains the authority. This file never writes to the server and never
  * stores inactive, deleted, or initial-inactive product data.
  */
-import { isActive } from './product-lifecycle.js';
-
 export const ACTIVE_PRODUCTS_KEY='hizlisatis-active-products-v1';
 
 export function activeProductsForLocalStorage(products=[]) {
   return (Array.isArray(products)?products:[])
-    .filter(product=>product && product.id && isActive(product))
+    .filter(product=>product && product.id && product.lifecycleStatus==='active')
     .map(product=>{
       // Keep active product data usable after a reload without copying large
       // base64 photos or allowing image blobs to fill localStorage.
