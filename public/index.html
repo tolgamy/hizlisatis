@@ -157,7 +157,12 @@
         <label><input type="radio" name="payment" value="Nakit" checked><span>₺ Nakit</span></label>
         <label><input type="radio" name="payment" value="Kart"><span>▤ Kart</span></label>
         <label><input type="radio" name="payment" value="Veresiye"><span>◷ Veresiye</span></label>
+        <label class="payment-transfer"><input type="radio" name="payment" value="Havale"><span>↗ Havale</span></label>
+        <label class="payment-fast"><input type="radio" name="payment" value="FAST"><span>⚡ FAST</span></label>
       </fieldset>
+      <p id="bankPaymentNotice" class="bank-payment-notice" role="status" hidden>
+        Banka hesabınıza ödeme ulaştığını kontrol edin. Havale ve FAST işlemleri uygulama tarafından otomatik doğrulanmaz.
+      </p>
       <div id="creditBox" class="credit-box" hidden>
         <label for="creditCustomerSearch">Müşteri seç (isim veya telefon)</label>
         <input id="creditCustomerSearch" type="search" maxlength="100" placeholder="Müşteri adı veya telefon ara" autocomplete="off">
@@ -235,7 +240,7 @@
           <button id="customerCollect" type="button">Tahsilat Ekle</button></div>
         <form id="customerCollectForm" hidden>
           <label>Tahsilat Tutarı (₺)<input id="customerCollectAmount" type="text" inputmode="decimal" required></label>
-          <label>Ödeme Türü<select id="customerCollectPayment"><option>Nakit</option><option>Kart</option></select></label>
+          <label>Ödeme Türü<select id="customerCollectPayment"><option>Nakit</option><option>Kart</option><option>Havale</option><option>FAST</option></select></label>
           <label>Not<input id="customerCollectNotes" type="text" maxlength="500"></label>
           <button class="primary-button" type="submit">Tahsilatı Kaydet</button>
         </form>

@@ -610,6 +610,7 @@ function renderCart() {
 function updatePayment() {
   const selected = document.querySelector('input[name="payment"]:checked').value;
   $('creditBox').hidden=selected!=='Veresiye';
+  $('bankPaymentNotice').hidden=selected!=='Havale'&&selected!=='FAST';
   const paid=dom.cash.value.trim()===''?NaN:parseLocaleNumber(dom.cash.value,NaN);
   const total=totals().total;
   const change=Number.isFinite(paid)?round2(paid-total):NaN;
