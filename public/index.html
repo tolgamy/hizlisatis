@@ -112,6 +112,7 @@
         <section id="productResults" hidden>
           <div class="clean-page-head"><button id="catalogBack" type="button" class="clean-back" aria-label="Kategorilere dön">‹</button><h1 id="browseHeading">Ürünler</h1><span id="resultCount" class="clean-result-count"></span></div>
           <div class="clean-catalog-tools"><div class="view-switch" role="group" aria-label="Görünüm"><button id="viewGrid" type="button" aria-pressed="true" aria-label="Kart görünümü">▦</button><button id="viewList" type="button" aria-pressed="false" aria-label="Liste görünümü">☷</button></div><button id="onlyInStock" type="button" class="stock-filter" aria-pressed="false">Stokta</button><label class="sr-only" for="sortProducts">Sırala</label><select id="sortProducts" aria-label="Sırala"><option value="name">A–Z</option><option value="price-low">Ucuz</option><option value="price-high">Pahalı</option><option value="stock">Stok</option></select></div>
+          <p id="desktopStockHint" class="desktop-stock-hint" hidden>Stok Durumu · Görüntülenen değerler bu cihazın stok kayıtlarına göredir.</p>
           <section id="productList" class="products grid-view" aria-label="Ürünler"></section><button id="loadMoreProducts" class="load-more" type="button" hidden>Daha fazla göster</button><p id="productLimit" class="product-limit" hidden></p>
           <span id="imageHealth" class="sr-only"></span>
         </section>
@@ -641,6 +642,15 @@
   <dialog id="historyDialog" class="sheet" aria-labelledby="historyTitle">
     <div class="sheet-header"><h2 id="historyTitle">Satış Geçmişi</h2><button type="button" class="closebutton" data-close="historyDialog" aria-label="Kapat">×</button></div>
     <div class="history-actions"><span id="historyCount">0 satış</span><button id="exportSales" class="smallbutton secondary" type="button">CSV Dışa Aktar</button></div>
+    <section id="historySummary" class="history-summary" aria-label="Bu cihazın satış raporu" hidden>
+      <div class="history-summary-metrics">
+        <div><span>Toplam Satış · ₺</span><strong id="historySummaryTotal">₺0,00</strong></div>
+        <div><span>Satış Adedi</span><strong id="historySummaryCount">0</strong></div>
+        <div><span>Ortalama Sepet · ₺</span><strong id="historySummaryAverage">₺0,00</strong></div>
+      </div>
+      <h3>Son 7 Günün Satışları <small>(yalnızca bu cihaz, ₺)</small></h3>
+      <div id="historySummaryChart" class="history-summary-chart" aria-label="Yedi günlük cihaz satış grafiği"></div>
+    </section>
     <div id="historyItems" class="history-items"></div>
   </dialog>
 
