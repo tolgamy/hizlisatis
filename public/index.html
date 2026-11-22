@@ -191,7 +191,11 @@
         <div id="creditCustomerResults" class="credit-customer-results"></div>
         <button id="creditNewCustomer" type="button" class="sale-secondary-button">+ Yeni müşteri</button>
       </div>
-      <button id="completeSale" class="primary-button" type="button">Satışı Tamamla</button>
+      <button id="completeSale" class="primary-button is-empty-cart" type="button" aria-label="Ana Sayfaya Dön">
+        <svg class="checkout-home-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"/></svg>
+        <svg class="checkout-complete-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m7 12 3.5 3.5L17 9"/></svg>
+        <span id="checkoutActionLabel">Ana Sayfaya Dön</span>
+      </button>
     </div>
   </dialog>
 

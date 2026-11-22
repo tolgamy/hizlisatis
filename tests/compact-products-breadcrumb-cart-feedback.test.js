@@ -71,5 +71,5 @@ test('every successful cart add, increase and decrease plays a distinct short so
   assert.match(app,/state\.cart\.delete\(id\);playCartSound\('decrease'\)/);
   assert.match(app,/state\.cart\.delete\(line\.id\); playCartSound\('decrease'\)/);
   assert.match(app,/function chirp\(\)/); // original barcode audio retained
-  assert.match(sw,/cep-pos-shell-v41-settings-2x4-product-photos/);
+  assert.match(sw,/cep-pos-shell-v42-empty-cart-home/);
 });
