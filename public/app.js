@@ -36,7 +36,7 @@ const state = {
   search: '', meta: null, sales: [], lastSale: null, pendingCreditSale:null,
   saving: false, scanner: null, scanPurpose: 'sale',
   excelCount: 0, bundleCount: 0, bundleLoading: false, categoryPage: '', excelPreview: null, excelUploading: false, browseAll: false,
-  view: 'home', catalogMode: 'categories', catalogEntry: 'categories', categoryTreeData: [],
+  view: 'home', catalogMode: 'categories', catalogEntry: 'categories', categoryTreeData: [], expandedProductCategory: '',
   productLayout: 'grid', stockOnly: false, sort: 'name', visibleLimit: 48, detailProduct: null, manageSelection: null,
   stockOverviewFilter:'all',stockOverviewLimit:60
 };
@@ -574,6 +574,7 @@ function categoryCover(path) {
 function categoryTile(node, hasChildren = false) {
   const button = document.createElement('button');
   button.type = 'button'; button.className = 'photo-category-tile';
+  button.dataset.categoryPath = node.path;
   button.setAttribute('aria-label', `${node.name}, ${node.count} ürün`);
   button.title = node.name;
   const photo = document.createElement('span'); photo.className = 'photo-category-image';
@@ -608,8 +609,48 @@ function categoryTile(node, hasChildren = false) {
   name.className = 'photo-category-name';
   name.textContent = node.name;
   button.append(photo, name);
-  button.addEventListener('click', () => hasChildren ? openCategoryMenu(node.path) : selectCategory(node.path));
+  button.addEventListener('click', () => {
+    // On desktop Products, opening a main category reveals its real
+    // subcategories below the 6×2 grid; mobile retains the original browser.
+    if(hasChildren && !node.path.includes(' > ') &&
+       state.view==='catalog' && state.catalogMode==='category-home' &&
+       useDesktopWorkspace()) {
+      toggleProductInlineCategory(node.path);
+      return;
+    }
+    hasChildren ? openCategoryMenu(node.path) : selectCategory(node.path);
+  });
   return button;
+}
+/** The desktop category landing page is a single workspace: each of the
+ * twelve main cards expands its actual D1-backed subcategories in place.
+ * Never build example categories or change the underlying product dataset. */
+function renderInlineProductSubcategories() {
+  const panel=$('productSubcategoriesPanel');
+  const list=$('productSubcategoryList');
+  const root=state.categoryTreeData.find(node=>node.path===state.expandedProductCategory);
+  const children=root?sortCategoryNodes(root.children.filter(showCategoryInBrowse),root.path):[];
+  const visible=useDesktopWorkspace() && state.view==='catalog' &&
+    state.catalogMode==='category-home' && children.length>0;
+  panel.hidden=!visible;
+  for(const tile of $('homeCategoryShortcuts').querySelectorAll('.photo-category-tile')) {
+    const selected=visible&&tile.dataset.categoryPath===state.expandedProductCategory;
+    tile.classList.toggle('is-inline-selected',selected);
+    tile.setAttribute('aria-controls','productSubcategoriesPanel');
+    tile.setAttribute('aria-expanded',String(selected));
+  }
+  list.replaceChildren();
+  if(!visible)return;
+  $('productSubcategoriesTitle').textContent=root.name+' Alt Kategorileri';
+  $('productSubcategoriesCount').textContent=children.length.toLocaleString('tr-TR')+' alt kategori';
+  $('productSubcategoriesAll').textContent=root.name+' – Tüm Ürünleri Gör';
+  for(const child of children) list.append(categoryTile(child,false));
+}
+function toggleProductInlineCategory(path) {
+  state.expandedProductCategory=state.expandedProductCategory===path?'':path;
+  renderInlineProductSubcategories();
+  if(state.expandedProductCategory && !$('productSubcategoriesPanel').hidden)
+    $('productSubcategoriesPanel').scrollIntoView({block:'nearest',behavior:'smooth'});
 }
 function renderHomeStockInsights(){
   $('homeRecentSalesCard').hidden=!userCan('reports');
@@ -672,6 +713,7 @@ function renderHome() {
     card.append(arrow);
     desktop.append(card);
   }
+  renderInlineProductSubcategories();
   // A deleted record should not inflate the central catalogue count.
   $('homeTotalProducts').textContent=state.products.length?
     state.products.filter(product=>productStatus(product)!=='deleted').length.toLocaleString('tr-TR'):'—';
@@ -777,6 +819,7 @@ function renderProducts() {
   $('catalogCategoryNavigator').hidden=state.catalogMode!=='categories';
   $('productCategoryHome').hidden=state.catalogMode!=='category-home';
   $('productResults').hidden=state.catalogMode!=='products';
+  renderInlineProductSubcategories();
   if(state.view!=='catalog'||state.catalogMode!=='products') return;
   const query=fold(state.search);
   const items=state.products.filter(p=>{
@@ -2240,6 +2283,15 @@ async function setup() {
   });
   $('categorySearch').addEventListener('input',()=>renderCategoryTree($('categorySearch').value));
   $('categoryAllProducts').addEventListener('click',()=>state.categoryPage?selectCategory(state.categoryPage):showAllProducts());
+  $('productCategoryBrowseAll').addEventListener('click',showAllProducts);
+  $('productCategoryBrowseCategories').addEventListener('click',openCategoryBrowser);
+  $('productSubcategoriesAll').addEventListener('click',()=>{
+    if(state.expandedProductCategory)selectCategory(state.expandedProductCategory);
+  });
+  $('productSubcategoriesClose').addEventListener('click',()=>{
+    state.expandedProductCategory='';
+    renderInlineProductSubcategories();
+  });
   $('viewGrid').addEventListener('click',()=>{state.productLayout='grid';renderProducts();});
   $('viewList').addEventListener('click',()=>{state.productLayout='list';renderProducts();});
   $('onlyInStock').addEventListener('click',()=>{state.stockOnly=!state.stockOnly;renderProducts();});
