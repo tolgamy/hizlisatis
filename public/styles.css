@@ -5175,3 +5175,239 @@ body.auth-locked #app{display:none!important}
     font-size:10px!important;
   }
 }
+
+
+/* v73 — compact phone Sale: four visible standard cart products at typical
+   mobile visual viewport heights. Keep the approved colors, borders and
+   every sale/payment action. Only mobile #cartDialog is affected.
+   Scrolling stays enabled for long names, discounts and smaller devices. */
+@media (max-width:679px) {
+  /* Remove the redundant logo row from the already branded application. */
+  #cartDialog.sale-sheet .mobile-sale-brand {display:none!important}
+  #cartDialog.sale-sheet .sale-sheet-header {
+    display:grid!important;
+    grid-template-columns:minmax(0,1.05fr) minmax(0,1fr)!important;
+    grid-template-rows:56px!important;
+    align-items:stretch!important;
+    column-gap:6px!important;row-gap:0!important;
+    min-height:0!important;height:auto!important;
+    padding:6px 7px!important;
+  }
+  #cartDialog.sale-sheet .sale-heading {
+    grid-column:1!important;grid-row:1!important;
+    grid-template-columns:clamp(43px,12vw,49px) minmax(0,1fr)!important;
+    gap:4px!important;min-width:0!important;
+    align-self:stretch!important;
+  }
+  #cartDialog.sale-sheet .sale-heading h2,
+  #cartDialog.sale-sheet .sale-count-pill {
+    height:56px!important;min-height:56px!important;
+  }
+  #cartDialog.sale-sheet .sale-heading h2 {
+    font-size:clamp(11px,3vw,12px)!important;
+  }
+  #cartDialog.sale-sheet .sale-heading h2::before {
+    font-size:17px!important;
+  }
+  #cartDialog.sale-sheet .sale-mobile-count {
+    font-size:clamp(9px,2.6vw,11px)!important;
+  }
+  #cartDialog.sale-sheet .sale-mobile-count > span {
+    gap:2px!important;padding:3px 0!important;
+  }
+  #cartDialog.sale-sheet .sale-mobile-count .sale-count-icon {
+    font-size:15px!important;
+  }
+  #cartDialog.sale-sheet .sale-header-actions {
+    grid-column:2!important;grid-row:1!important;
+    height:56px!important;gap:4px!important;
+  }
+  #cartDialog.sale-sheet .sale-header-actions button {
+    height:56px!important;min-height:56px!important;max-height:56px!important;
+    gap:1px!important;padding:3px 1px!important;
+    border-radius:12px!important;
+  }
+  #cartDialog.sale-sheet .sale-header-actions button .sale-top-icon {
+    height:21px!important;min-height:21px!important;
+    font-size:22px!important;
+  }
+  #cartDialog.sale-sheet .sale-header-actions button .sale-top-icon svg {
+    width:20px!important;height:20px!important;
+  }
+  #cartDialog.sale-sheet .sale-header-actions button .sale-top-text,
+  #cartDialog.sale-sheet .sale-header-actions button .sale-cancel-short {
+    font-size:clamp(10px,2.7vw,12px)!important;
+  }
+
+  /* Gain vertical space above the cart without removing scan labels. */
+  #cartDialog.sale-sheet .sale-scanner {
+    padding:6px 7px!important;gap:5px!important;
+  }
+  #cartDialog.sale-sheet .sale-scanner input {
+    height:45px!important;min-height:45px!important;
+    font-size:clamp(11px,2.9vw,14px)!important;
+    padding-left:28px!important;
+  }
+  #cartDialog.sale-sheet .sale-search-symbol {
+    left:17px!important;font-size:20px!important;
+  }
+  #cartDialog.sale-sheet .sale-scanner .sale-manual-add,
+  #cartDialog.sale-sheet .sale-scanner #saleScanButton {
+    flex-basis:clamp(57px,16.3vw,70px)!important;
+    width:clamp(57px,16.3vw,70px)!important;
+    height:45px!important;min-height:45px!important;max-height:45px!important;
+    padding:2px 1px!important;gap:1px!important;
+    border-radius:12px!important;
+  }
+  #cartDialog.sale-sheet .sale-scanner button b {
+    font-size:21px!important;
+  }
+  #cartDialog.sale-sheet .sale-scanner button span {
+    font-size:clamp(9px,2.35vw,10px)!important;
+    line-height:1.05!important;
+  }
+
+  /* Keep four normal rows visible in a compact phone viewport by reducing needless padding.
+     Expanded per-product details remain in document flow and can be scrolled. */
+  #cartDialog.sale-sheet .cart-items {
+    flex:1 1 auto!important;min-height:0!important;
+    margin:4px 5px!important;padding:5px 6px!important;
+    border-radius:17px!important;
+    overflow-y:auto!important;overscroll-behavior:contain;
+  }
+  #cartDialog.sale-sheet .cart-line {
+    box-sizing:border-box!important;
+    display:grid!important;
+    grid-template-columns:64px minmax(0,1fr)!important;
+    gap:7px!important;
+    min-height:82px!important;
+    padding:5px 6px!important;
+    margin:0 0 5px!important;
+    border-radius:13px!important;
+  }
+  #cartDialog.sale-sheet .cart-line:last-child {margin-bottom:0!important}
+  #cartDialog.sale-sheet .sale-cart-media {
+    height:65px!important;min-height:0!important;
+    border-radius:10px!important;
+  }
+  #cartDialog.sale-sheet .sale-cart-emoji {
+    font-size:28px!important;
+  }
+  #cartDialog.sale-sheet .sale-product-row {
+    gap:4px!important;
+  }
+  #cartDialog.sale-sheet .sale-product-row .cart-line-name {
+    font-size:clamp(11px,3.0vw,12px)!important;
+    line-height:1.16!important;
+    -webkit-line-clamp:2;
+  }
+  #cartDialog.sale-sheet .sale-line-price {
+    font-size:clamp(11px,2.9vw,13px)!important;
+  }
+  #cartDialog.sale-sheet .sale-line-actions {
+    gap:4px!important;margin-top:4px!important;
+  }
+  #cartDialog.sale-sheet .sale-line-actions .stepper {
+    flex:0 1 auto!important;
+    width:clamp(96px,29vw,112px)!important;
+    max-width:56%!important;
+    height:34px!important;margin:0!important;
+  }
+  #cartDialog.sale-sheet .sale-line-actions .stepper button {
+    min-width:29px!important;height:33px!important;
+    flex-basis:31px!important;font-size:18px!important;
+  }
+  #cartDialog.sale-sheet .sale-line-actions .stepper input {
+    font-size:13px!important;
+  }
+  #cartDialog.sale-sheet .sale-line-more>summary,
+  #cartDialog.sale-sheet .sale-line-actions .remove-button {
+    width:34px!important;height:34px!important;
+    min-width:34px!important;font-size:21px!important;
+  }
+  #cartDialog.sale-sheet .sale-line-actions .sale-line-more {
+    min-width:34px!important;
+  }
+
+  /* Reserve less vertical space for checkout and keep it scrollable if a
+     customer/discount panel is expanded. Do not collapse those controls. */
+  #cartDialog.sale-sheet .checkout-area {
+    flex:0 0 auto!important;
+    box-sizing:border-box!important;
+    width:calc(100% - 10px)!important;
+    max-height:min(190px,30dvh)!important;
+    min-height:0!important;
+    margin:0 5px 5px!important;
+    padding:7px 8px calc(7px + env(safe-area-inset-bottom))!important;
+    border-radius:17px!important;
+    overflow-y:auto!important;
+  }
+  #cartDialog.sale-sheet .cart-totals {
+    margin:0 0 4px!important;
+    padding:0!important;
+  }
+  #cartDialog.sale-sheet .total-row.summary {
+    font-size:12px!important;line-height:1.18!important;
+  }
+  #cartDialog.sale-sheet .total-row.grand {
+    font-size:clamp(15px,4vw,18px)!important;
+    margin:0 0 3px!important;gap:5px!important;
+    line-height:1.12!important;
+  }
+  #cartDialog.sale-sheet .total-row.grand strong {
+    font-size:clamp(20px,5.5vw,24px)!important;
+    padding:3px 6px!important;
+    border-radius:13px!important;
+    line-height:1.12!important;
+  }
+  #cartDialog.sale-sheet .payment-types.checkout-shortcuts {
+    gap:5px!important;margin:4px 0 5px!important;
+  }
+  #cartDialog.sale-sheet .checkout-shortcuts > label > span,
+  #cartDialog.sale-sheet .checkout-shortcuts > .payment-shortcut {
+    height:50px!important;min-height:50px!important;max-height:50px!important;
+    padding:3px 2px!important;gap:2px!important;
+    border-radius:11px!important;
+  }
+  #cartDialog.sale-sheet .checkout-shortcuts > label > span b,
+  #cartDialog.sale-sheet .checkout-shortcuts > .payment-shortcut b {
+    font-size:17px!important;
+  }
+  #cartDialog.sale-sheet .checkout-shortcuts > label > span small,
+  #cartDialog.sale-sheet .checkout-shortcuts > .payment-shortcut small {
+    font-size:clamp(9px,2.5vw,10px)!important;line-height:1.03!important;
+  }
+  /* Short visual captions on idle payment tiles; JS text, accessible names,
+     dynamic selected transfer type and applied discount remain unchanged. */
+  #cartDialog.sale-sheet .checkout-shortcuts .payment-discount:not(.has-discount) #checkoutDiscountLabel,
+  #cartDialog.sale-sheet .checkout-shortcuts .payment-other:not(.is-selected) #checkoutOtherLabel {
+    font-size:0!important;
+  }
+  #cartDialog.sale-sheet .checkout-shortcuts .payment-discount:not(.has-discount) #checkoutDiscountLabel::after {
+    content:"İndirim";font-size:10px!important;
+  }
+  #cartDialog.sale-sheet .checkout-shortcuts .payment-other:not(.is-selected) #checkoutOtherLabel::after {
+    content:"Diğer";font-size:10px!important;
+  }
+  #cartDialog.sale-sheet #completeSale {
+    box-sizing:border-box!important;
+    min-height:45px!important;height:45px!important;
+    margin-top:5px!important;padding:7px 9px!important;
+    border-radius:13px!important;
+    font-size:clamp(14px,4vw,17px)!important;
+    line-height:1.1!important;
+  }
+}
+@media (max-width:359px) {
+  #cartDialog.sale-sheet .sale-sheet-header {
+    padding:5px 4px!important;column-gap:4px!important;
+  }
+  #cartDialog.sale-sheet .sale-heading {
+    grid-template-columns:39px minmax(0,1fr)!important;
+    gap:3px!important;
+  }
+  #cartDialog.sale-sheet .sale-heading h2 {
+    font-size:10px!important;
+  }
+  #cartDialog.sale-sheet .sale-header-actions {gap:3px!important}
+}
