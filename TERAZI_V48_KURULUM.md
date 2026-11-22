@@ -32,26 +32,19 @@ Bu belge HızlıSatış'ın mevcut **hizlisatis** Cloudflare Pages projesi için
 8. **Ham veri gelmiyorsa veya tanınmıyorsa** veri formatı, port/baud ayarı ve CAS haberleşme protokolü henüz doğrulanmamıştır. Tartımı elle girerek güvenli şekilde satışa devam edin. Yanlış sayıları ağırlık saymayın.
 9. İş bitince **Bağlantıyı Kes** seçeneğiyle COM portunu serbest bırakın.
 
-## 3. Cloudflare Pages'e v48 gönderimi
+## 3. Cloudflare Pages otomatik yayın
 
-GitHub'da CI testinin başarılı olması, Cloudflare'a yayın yapıldığını göstermez. Bu depoya ayrıca **Publish HızlıSatış to Cloudflare Pages** adlı **manuel başlatılan** yayın iş akışı eklendi.
+**22 Kasım 2026 kullanıcı ekran görüntüsüyle teyit:** Cloudflare'ın doğrudan GitHub entegrasyonunda **Automatic deployments enabled** yazıyor. Production → `main` → `e61cc4f` sürümü ve `https://923150aa.hizlisatis.pages.dev` dağıtım bağlantısı listeleniyor. Bu commit, HızlıSatış'ın **v48** uygulama dosyalarını içeriyor.
 
-Cloudflare hesabının sahibi **bir defaya mahsus** şu iki bilgiyi GitHub deposunun **Settings → Secrets and variables → Actions** bölümüne *Repository secret* olarak girer:
+- Cloudflare projesi: `hizlisatis`
+- Asıl site: https://hizlisatis.pages.dev
+- Kaynak: GitHub `tolgamy/hizlisatis` dalı `main`
+- Yayın yolu: **Cloudflare Pages Git entegrasyonu** (zaten aktif)
+- Gereken işlem: `main` güncellemesi ardından **Workers & Pages → hizlisatis → Deployments** listesinden son Production dağıtımını kontrol etmek.
 
-- `CLOUDFLARE_ACCOUNT_ID`: Cloudflare hesap kimliği.
-- `CLOUDFLARE_API_TOKEN`: Hesap düzeyinde **Cloudflare Pages: Edit** yetkisi bulunan sınırlı kapsamlı API token.
+**GitHub Actions üzerinden ayrıca Wrangler deploy'u yapmayın.** Daha önce eklenen fazladan yayın iş akışı, geçersiz token biçimi nedeniyle başarısız olduğu ve Cloudflare'ın kendi otomatik yayını zaten çalıştığı için kaldırıldı. `CLOUDFLARE_ACCOUNT_ID` ve `CLOUDFLARE_API_TOKEN` GitHub gizli değişkenleri bu otomatik dağıtım için gerekli değildir. Kullanılmıyorsa güvenlik için silinebilir.
 
-**Bu gizli bilgileri sohbet, ekran görüntüsü, kaynak kod veya GitHub issue üzerinden paylaşmayın.**
-
-Ardından GitHub **Actions → Publish HızlıSatış to Cloudflare Pages → Run workflow** bölümünden `main` üzerinde canlı yayına gönderim onayı işaretlenir.
-
-İş akışı:
-- Kaynağı test eder ve offline tarayıcı dosyalarını derler.
-- `npx wrangler pages deploy public --project-name=hizlisatis --branch=main` ile mevcut projeye gönderir.
-- Canlı servis çalışanından **v48** PWA sürümünü ve merkezi D1 sağlık yanıtını kontrol eder.
-- Bu iki kontrol doğrulanmadan "yayında" sonucu vermez.
-
-D1 veritabanı bağlamaları, yetki anahtarları ve Pages environment secrets **Cloudflare proje ayarlarında kalır**. Bu verileri yeni bir projeye taşımayın. Satışları ve ürünleri yanlış ortama yönlendirmemek için mevcut `hizlisatis` projesinde dağıtım yapın.
+Cloudflare'da görünür Production dağıtımı, bir uygulamanın kâğıt çıktısının veya gerçek CAS cihazının çalıştığını doğrulamaz. Uygulama ve merkezi veritabanının çalışmasını gerçek tarayıcıda ayrıca kontrol edin.
 
 ## Son saha kabulü
 
