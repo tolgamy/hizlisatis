@@ -9,17 +9,25 @@ const v64=css.slice(css.indexOf('/* v64 — approved Products workspace:'),
   css.indexOf('/* v65 — Native desktop Sale & Reports pages.'));
 const desktop='(min-width:1024px) and (min-height:600px) and (orientation:landscape) and (hover:hover) and (pointer:fine)';
 
-test('Products landing uses six actual main categories across two rows, with the existing images',()=>{
+test('Products landing uses 3 columns × 4 larger rows, with the existing images',()=>{
   assert.ok(v64.startsWith('/* v64'));
   assert.ok(v64.includes('@media '+desktop));
   assert.match(v64,/#productCategoryHome #homeCategoryShortcuts\.category-photo-grid/);
-  assert.match(v64,/grid-template-columns:repeat\(6,minmax\(0,1fr\)\)!important/);
-  assert.match(v64,/grid-template-rows:repeat\(2,minmax\(0,1fr\)\)!important/);
+  // Historical v64 CSS remains in the stylesheet but v68 wins by CSS order.
+  const v68=css.slice(css.indexOf('/* v68 — approved 3 across'));
+  assert.ok(v68.startsWith('/* v68'));
+  assert.ok(v68.includes('@media '+desktop));
+  assert.match(v68,/grid-template-columns:repeat\(3,minmax\(0,1fr\)\)!important/);
+  assert.match(v68,/grid-template-rows:repeat\(4,clamp\(240px,22vw,315px\)\)!important/);
+  assert.match(v68,/height:clamp\(240px,22vw,315px\)!important/);
+  assert.match(v68,/transform:scale\(1\.30\)!important/);
+  assert.match(v68,/font-size:clamp\(15px,1\.22vw,19px\)!important/);
+  assert.doesNotMatch(v68,/#desktopHomeCategoryGrid|#cartDialog|#historyDialog|#homeView/);
   assert.match(v64,/object-fit:contain!important/);
   assert.match(app,/target\.append\(categoryTile\(node,hasChildren\)\)/);
   assert.match(app,/categoryCover\(node\.path\)/);
   assert.match(app,/sortCategoryNodes\(state\.categoryTreeData\)/);
-  assert.match(sw,/products-inline-6x2-v64/);
+  assert.match(sw,/desktop-products-3x4-v68/);
   assert.equal((css.match(/{/g)||[]).length,(css.match(/}/g)||[]).length);
 });
 
