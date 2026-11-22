@@ -3237,3 +3237,8 @@ body.auth-locked #app{display:none!important}
 #app .dashboard-actions > .dashboard-action[hidden],
 #app .bottom-shell .bottom-nav .nav-item[hidden],
 #app .access-identity-actions > [hidden]{display:none!important}
+
+#app #checkoutDiscountToggle[hidden],
+#app #homeTodaySalesButton[hidden],
+#app .sale-cart-item .sale-edit-price[hidden],
+#app .sale-cart-item .sale-line-more[hidden]{display:none!important}
