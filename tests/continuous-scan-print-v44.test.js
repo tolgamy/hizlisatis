@@ -38,7 +38,7 @@ test('opening checkout places focus directly into hardware barcode input',()=>{
   const field={value:'old',focus(opts){focused++;assert.equal(opts.preventScroll,true)}};
   const cart={open:false,showModal(){this.open=true}};
   const dialogs={receiptActionsDialog:{open:false},scanQuantityDialog:{open:false},
-    pickProductDialog:{open:false},saleBarcode:field};
+    pickProductDialog:{open:false},weightDialog:{open:false},saleBarcode:field};
   const ctx={dom:{cartDialog:cart,scanDialog:{open:false}},
     $:id=>dialogs[id],renderCart:()=>rendered++,
     updateNavigation:()=>updated++};
