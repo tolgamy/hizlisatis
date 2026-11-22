@@ -12,7 +12,7 @@ test('desktop Sales and Reports open in document flow, not in the modal top laye
   assert.ok(app.includes(desktopBreakpoint));
   assert.match(app,/placeDesktopWorkspace\(dom\.cartDialog\)/);
   assert.match(app,/placeDesktopWorkspace\(dom\.historyDialog\)/);
-  assert.match(app,/if\(useDesktopWorkspace\(\)\) dom\.cartDialog\.show\(\)/);
+  assert.match(app,/if\(desktop\) dom\.cartDialog\.show\(\)/);
   assert.match(app,/if\(useDesktopWorkspace\(\)\) dom\.historyDialog\.show\(\)/);
   assert.match(app,/else dom\.cartDialog\.showModal\(\)/);
   assert.match(app,/else dom\.historyDialog\.showModal\(\)/);
