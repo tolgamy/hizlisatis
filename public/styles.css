@@ -3159,3 +3159,73 @@ body.view-home .desktop-home-categories{display:block!important}
   #categoryTree .photo-category-image,
   #desktopHomeCategoryGrid .photo-category-image{min-height:185px!important}
 }
+
+/* v56 – access gate and full-sized category cards on all screens.
+   Category count and the original picture mapping are unchanged. */
+body.auth-locked #app{display:none!important}
+.access-login-gate{
+  position:fixed;inset:0;z-index:9000;display:flex;align-items:center;
+  justify-content:center;overflow-y:auto;background:#e9f2f9;
+  padding:24px 14px;box-sizing:border-box;
+}
+.access-login-gate[hidden]{display:none!important}
+.access-login-card{
+  width:min(100%,430px);border-radius:22px;padding:26px;
+  background:#fff;border:1px solid #bfd5e5;
+  box-shadow:0 20px 55px #122b4928;color:#152f47;
+}
+.access-login-brand{
+  background:#102e50;color:#fff;border-radius:15px;padding:19px;text-align:center;
+}
+.access-login-brand>span{font-size:32px}
+.access-login-brand h1{font-size:27px;margin:3px 0 0}
+.access-login-brand p{margin:5px 0 0;color:#d1e3f7;font-size:13px}
+.access-login-card form{display:grid;gap:8px;margin-top:20px}
+.access-login-card form label{font-weight:800;margin-top:8px}
+.access-login-card form input{
+  width:100%;box-sizing:border-box;border:1px solid #b8cede;
+  border-radius:11px;min-height:49px;padding:10px 13px;font-size:16px;
+  background:#fff;color:#17344d;
+}
+.access-login-card form button,
+.access-users-dialog #accessSaveUser{
+  min-height:47px;border:0;background:#114a81;color:#fff;
+  border-radius:11px;font-size:15px;font-weight:850;cursor:pointer;margin-top:12px;
+}
+.access-login-card #loginError{color:#a32635;font-size:13px;line-height:1.45}
+.access-login-note{font-size:12px;color:#647a8d;text-align:center;line-height:1.4}
+.access-identity-actions{display:flex;align-items:center;flex-wrap:wrap;gap:6px;font-size:12px}
+.access-identity-actions>button{
+  border:1px solid #bdd4e7;border-radius:8px;min-height:32px;
+  background:#f2f8ff;color:#224d6f;padding:5px 9px;
+  font:inherit;font-weight:800;cursor:pointer;
+}
+.access-identity-actions [hidden],
+.settings-view .settings-inner-section[hidden]{display:none!important}
+.access-users-dialog{
+  width:min(96vw,650px);max-height:90dvh;overflow:auto;
+  border:0;border-radius:17px;padding:clamp(14px,3vw,25px);
+  background:#fff;color:#17344d;box-shadow:0 20px 60px #0005;
+}
+.access-users-dialog::backdrop{background:#0b1e32aa}
+.access-users-heading{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.access-users-heading h2{margin:0;font-size:20px}
+.access-users-heading button{border:1px solid #b6cbd9;border-radius:9px;background:#eef4fa;min-width:40px;min-height:39px;font-size:23px}
+.access-user-list{display:grid;gap:6px;margin:15px 0;padding:10px;border:1px solid #e0eaf2;border-radius:12px;max-height:195px;overflow:auto}
+.access-user-line{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:14px}
+.access-user-line button,.access-secondary-button{
+  border:1px solid #accce5;border-radius:9px;padding:8px 11px;
+  background:#e9f5ff;color:#175782;font-weight:750;cursor:pointer;
+}
+.access-users-dialog #accessUserForm{margin-top:17px;display:grid;gap:10px}
+.access-users-dialog #accessUserForm>label{display:grid;gap:5px;font-size:14px;font-weight:750}
+.access-users-dialog input:not([type="checkbox"]),.access-users-dialog select{
+  box-sizing:border-box;width:100%;min-height:43px;padding:9px;
+  border-radius:9px;border:1px solid #b9cbd9;font-size:16px;
+}
+.access-users-dialog fieldset{border:1px solid #d8e5ef;border-radius:10px;display:grid;gap:8px}
+.access-users-dialog fieldset[hidden]{display:none!important}
+.access-users-dialog fieldset label{font-weight:600;font-size:14px}
+.access-users-dialog #accessUserFormStatus{font-size:13px;color:#246548}
+.access-users-dialog .access-active-label{display:flex!important;flex-direction:row!important;align-items:center;gap:10px!important}
+

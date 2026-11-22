@@ -18,6 +18,13 @@ async function call(method='GET',body=null,query='') {
   };
   let response=await run();
   if(isWrite && response.status===401) {
+    const access=await fetch('/api/auth',{cache:'no-store',credentials:'same-origin'})
+      .then(r=>r.json()).catch(()=>({enabled:true,authenticated:false}));
+    if(access.enabled) {
+      if(!access.authenticated)window.dispatchEvent(new Event('hizlisatis:auth-required'));
+      throw Error('Bu işlem için geçerli ürün düzenleme yetkiniz yok. Yönetici hesabınızın izinlerini kontrol edin.');
+    }
+    // Backward compatibility only BEFORE AUTH_V2_ENABLED is activated.
     const key=window.prompt('Bu cihaz için bir kez merkezi yönetim anahtarını girin. Güvenli oturum 30 gün açık kalır:');
     if(!key)throw Error('Yönetim oturumu açılmadı. Ürün değiştirilmedi.');
     let login;

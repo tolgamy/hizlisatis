@@ -10,14 +10,32 @@
   <link rel="manifest" href="/manifest.json">
   <link rel="apple-touch-icon" href="/icons/icon-192.png">
   <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg">
+  <style>body.auth-locked #app{display:none!important}.access-login-gate[hidden]{display:none!important}</style>
   <link rel="stylesheet" href="/styles.css">
   <style id="receiptPaperSize"></style>
   <title>HızlıSatış · Mobil POS</title>
 </head>
-<body>
+<body class="auth-locked">
+  <section id="loginGate" class="access-login-gate" aria-label="HızlıSatış güvenli giriş">
+    <div class="access-login-card">
+      <div class="access-login-brand"><span aria-hidden="true">▣</span>
+        <h1>HızlıSatış</h1><p>Güvenli Kullanıcı Girişi</p>
+      </div>
+      <form id="loginForm" autocomplete="on">
+        <label for="loginUsername">Kullanıcı Adı</label>
+        <input id="loginUsername" name="username" autocomplete="username" minlength="3" maxlength="32" required autofocus>
+        <label for="loginPassword">Parola</label>
+        <input id="loginPassword" name="password" type="password" autocomplete="current-password" required maxlength="128">
+        <button id="loginSubmit" type="submit">Giriş Yap</button>
+      </form>
+      <p id="loginError" role="alert" aria-live="polite"></p>
+      <p class="access-login-note">Yetkiniz olmayan işlemler kullanılamaz. Giriş için ortak ürün anahtarı istenmez.</p>
+    </div>
+  </section>
   <div id="app">
     <header class="topbar clean-topbar">
-      <div class="brandline"><button id="brandHome" type="button" class="brand-home" aria-label="Hızlı Satış ana sayfasına dön"><span class="brandmark" aria-hidden="true"><img src="/icons/brand-mark.svg" alt=""></span><span><strong>Hızlı<span>Satış</span></strong><small>HIZLI · KOLAY · GÜVENLİ</small></span></button><span id="connectionStatus" class="connection" role="status"></span></div>
+      <div class="brandline"><button id="brandHome" type="button" class="brand-home" aria-label="Hızlı Satış ana sayfasına dön"><span class="brandmark" aria-hidden="true"><img src="/icons/brand-mark.svg" alt=""></span><span><strong>Hızlı<span>Satış</span></strong><small>HIZLI · KOLAY · GÜVENLİ</small></span></button><span id="connectionStatus" class="connection" role="status"></span>
+      <div class="access-identity-actions"><span id="accessIdentity" hidden></span><button id="accessUserButton" type="button" hidden>👥 Kullanıcılar</button><button id="accessLogout" type="button" hidden>Çıkış</button></div></div>
       <div class="searchline"><label for="search" class="sr-only">Ürün veya barkod ara</label><div class="searchbox"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><input id="search" type="search" placeholder="Ürün veya barkod ara" autocomplete="off" enterkeyhint="search"></div><button id="scanButton" class="iconbutton scanbutton" type="button" aria-label="Barkod okut">⌗</button></div>
       <div id="cartToast" class="cart-confirm-toast" role="status" aria-live="polite" hidden>
         <span class="cart-confirm-check" aria-hidden="true">✓</span>
@@ -184,6 +202,10 @@
         <details id="settingsCustomerGroup" class="settings-inner-section">
           <summary><span aria-hidden="true" class="settings-section-symbol">♙</span><span class="settings-section-name"><strong>Müşteri ve Veresiye Ayarları</strong><small>Müşteri kayıtları, borç ve tahsilatlar</small></span><span aria-hidden="true" class="settings-section-arrow">⌄</span></summary>
           <div class="settings-inner-content"><div class="settings-inner-actions"><button id="settingsCustomers" type="button" class="settings-tile settings-tile-customer"><span class="settings-tile-icon" aria-hidden="true"><svg viewBox="0 0 64 64"><circle cx="32" cy="18" r="10" fill="currentColor"/><circle cx="13" cy="26" r="7" fill="currentColor" opacity=".7"/><circle cx="51" cy="26" r="7" fill="currentColor" opacity=".7"/><path d="M13 57V46q0-12 19-12t19 12v11zM2 55V44q0-10 12-10M62 55V44q0-10-12-10" fill="currentColor" opacity=".85"/></svg></span><strong>Müşteri / Veresiye</strong><small>Borç ve tahsilatlar</small><b aria-hidden="true">›</b></button></div></div>
+        </details>
+        <details id="settingsAdminGroup" class="settings-inner-section" hidden>
+          <summary><span aria-hidden="true" class="settings-section-symbol">♙</span><span class="settings-section-name"><strong>Admin · Kullanıcı ve Yetkiler</strong><small>Hesaplar, roller ve giriş yetkileri</small></span><span aria-hidden="true" class="settings-section-arrow">⌄</span></summary>
+          <div class="settings-inner-content"><button id="settingsOpenUsers" class="settings-inner-action" type="button">Kullanıcı Yönetimini Aç <span aria-hidden="true">›</span></button></div>
         </details></div>
           <p id="catalogSource" class="settings-catalog-count">Katalog yükleniyor...</p>
         </section>
@@ -624,6 +646,29 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
   <div id="receiptPrint" aria-hidden="true"></div>
+  <dialog id="accessUsersDialog" class="access-users-dialog" aria-labelledby="accessUsersTitle">
+    <div class="access-users-heading"><h2 id="accessUsersTitle">Kullanıcı ve Yetki Yönetimi</h2><button id="accessCloseUsers" type="button" aria-label="Kapat">×</button></div>
+    <p>Çalışanlara kullanıcı hesabı açın ve hangi işlemleri yapabileceklerini belirleyin.</p>
+    <div id="accessUserList" class="access-user-list"></div>
+    <button id="accessNewUser" class="access-secondary-button" type="button">+ Yeni Kullanıcı</button>
+    <form id="accessUserForm">
+      <h3 id="accessUserFormTitle">Yeni Kullanıcı</h3>
+      <label>Kullanıcı Adı<input id="accessUsername" autocomplete="off" required minlength="3" maxlength="32" pattern="[a-zA-Z0-9._-]+"></label>
+      <label>Parola<input id="accessPassword" autocomplete="new-password" type="password" required minlength="12" maxlength="128"></label>
+      <small id="accessPasswordHelp">En az 12 karakter.</small>
+      <label>Rol<select id="accessRole"><option value="cashier">Kasiyer / Çalışan</option><option value="admin">Admin (Tam Yetki)</option></select></label>
+      <fieldset id="accessPermissions"><legend>Yetkiler</legend>
+        <label><input type="checkbox" data-access-permission value="sales" checked> Satış Yapma</label>
+        <label><input type="checkbox" data-access-permission value="products"> Ürün Yükleme / Düzenleme</label>
+        <label><input type="checkbox" data-access-permission value="customers"> Müşteri / Veresiye</label>
+        <label><input type="checkbox" data-access-permission value="reports"> Raporlar / Yedekleme</label>
+        <label><input type="checkbox" data-access-permission value="discounts"> İskonto ve Fiyat İndirimi</label>
+      </fieldset>
+      <label class="access-active-label"><input id="accessActive" type="checkbox" checked> Hesap Aktif</label>
+      <button id="accessSaveUser" type="submit">Kaydet</button>
+      <p id="accessUserFormStatus" role="status" aria-live="polite"></p>
+    </form>
+  </dialog>
   <script type="module" src="/app.js"></script>
 </body>
 </html>
