@@ -4609,3 +4609,19 @@ body.auth-locked #app{display:none!important}
 @media print {
   #saleView,#reportsView {display:none!important}
 }
+
+
+/* Desktop report navigation is a real page Back action; touch keeps its
+   familiar close symbol instead of introducing a new mobile layout. */
+.report-back-label{display:none}
+@media (min-width:1024px) and (min-height:600px) and (orientation:landscape) and (hover:hover) and (pointer:fine) {
+  #reportsView .report-close-symbol{display:none!important}
+  #reportsView .report-back-label{display:inline!important}
+  #reportsView .sheet-header .closebutton {
+    display:inline-flex!important;justify-content:center;align-items:center!important;
+    min-width:86px!important;width:auto!important;min-height:37px!important;
+    padding:7px 13px!important;border-radius:9px!important;
+    border:1px solid #7aa0c0!important;background:#244e70!important;
+    color:#fff!important;font-size:13px!important;font-weight:850!important;
+  }
+}
