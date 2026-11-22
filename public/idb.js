@@ -262,6 +262,51 @@ export async function getSales() {
   return requestPromise(tx.objectStore('sales').getAll());
 }
 
+/** Import device sales by their immutable receipt IDs, without rewriting D1
+ * product records or the customer ledger. Only genuinely new receipts affect
+ * this device's soldQuantity totals. Existing receipts are always skipped.
+ */
+export async function restoreSalesBackup(records) {
+  if(!Array.isArray(records))throw Error('Yedek satış listesi geçersiz.');
+  if(records.length>50000)throw Error('Yedekte çok fazla satış var.');
+  const db=await openDB();
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction(['sales','adjustments'],'readwrite');
+    const sales=tx.objectStore('sales'),adjustments=tx.objectStore('adjustments');
+    let added=0,skipped=0,index=0;
+    const sold=new Map();
+    tx.oncomplete=()=>resolve({added,skipped});
+    tx.onabort=()=>reject(tx.error||Error('Yedek geri yüklenemedi.'));
+    tx.onerror=()=>{}; // onabort supplies the error once, and rolls back atomically
+    function reconcileStock(){
+      for(const [id,quantity] of sold){
+        const request=adjustments.get(id);
+        request.onsuccess=()=>{
+          const previous=request.result?.soldQuantity||0;
+          adjustments.put({id,soldQuantity:previous+quantity});
+        };
+      }
+    }
+    function next(){
+      if(index>=records.length){reconcileStock();return;}
+      const record=records[index++];
+      const check=sales.get(record.id);
+      check.onsuccess=()=>{
+        if(check.result)skipped++;
+        else{
+          sales.add(record);added++;
+          for(const item of record.items){
+            if(typeof item.id==='string'&&Number.isFinite(item.quantity)&&item.quantity>0)
+              sold.set(item.id,(sold.get(item.id)||0)+item.quantity);
+          }
+        }
+        next();
+      };
+    }
+    next();
+  });
+}
+
 /** Status changes and product edits are atomic with their short audit trail. */
 export async function saveManagedProduct(product, action = 'edit') {
   if (!product || !product.id || !product.baslik) throw Error('Ürün adı veya kimliği eksik.');
