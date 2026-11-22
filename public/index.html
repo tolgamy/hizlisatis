@@ -150,13 +150,13 @@
       </section>
       <section id="stockView" class="stock-overview" aria-label="Stok Durumu" hidden>
         <header class="stock-overview-header">
-          <div><h1>Stok Durumu</h1><p>Bu cihazın güncel ürün ve stok kayıtları. Bu ekrandan stok değiştirilmez.</p></div>
+          <div><h1>Stok Durumu</h1><p>Gerçek stokları görüntüleyin; yetkili kullanıcılar azalan ürünlere stok ekleyebilir ve fiyat değiştirebilir.</p></div>
           <button id="stockBackToProducts" type="button" class="stock-overview-back">‹ Ürünlere Dön</button>
         </header>
         <div class="stock-overview-metrics" aria-label="Stok özeti">
           <div><span>Takip Edilen Ürün</span><strong id="stockOverviewTracked">—</strong></div>
           <div><span>Stoku Biten</span><strong id="stockOverviewEmpty">—</strong></div>
-          <div><span>Azalan (5 ve altı)</span><strong id="stockOverviewLow">—</strong></div>
+          <div><span>Azalan (5 ve altı)</span><strong id="stockOverviewLow">—</strong><button id="stockOverviewLowJump" class="stock-overview-metric-link" type="button">Azalanları Düzenle ›</button></div>
         </div>
         <div class="stock-overview-controls">
           <label class="sr-only" for="stockOverviewSearch">Stoklarda ürün veya barkod ara</label>
@@ -170,12 +170,35 @@
         <p id="stockOverviewCount" class="stock-overview-count" role="status"></p>
         <div class="stock-overview-table-wrap">
           <table class="stock-overview-table">
-            <thead><tr><th>Ürün / Barkod</th><th>Kategori</th><th>Mevcut Stok</th><th>Birim Fiyat</th><th>Durum</th></tr></thead>
+            <thead><tr><th>Ürün / Barkod</th><th>Kategori</th><th>Mevcut Stok</th><th>Birim Fiyat</th><th>Durum</th><th>İşlem</th></tr></thead>
             <tbody id="stockOverviewRows"></tbody>
           </table>
         </div>
         <button id="stockOverviewMore" class="stock-overview-more" type="button" hidden>60 ürün daha göster</button>
       </section>
+      <dialog id="stockEditDialog" class="stock-edit-dialog" aria-labelledby="stockEditTitle">
+        <form id="stockEditForm" novalidate>
+          <header class="stock-edit-heading">
+            <div><h2 id="stockEditTitle">Stok ve Fiyat Düzenle</h2><p id="stockEditProductTitle"></p><small id="stockEditBarcode"></small></div>
+            <button id="stockEditClose" type="button" aria-label="Stok düzenlemeyi kapat">×</button>
+          </header>
+          <p class="stock-edit-present">Bu cihazda görünen kalan stok: <strong id="stockEditCurrent">—</strong></p>
+          <label class="stock-edit-field" for="stockEditAmount">Stok ekle (<span id="stockEditUnit">adet</span>)
+            <input id="stockEditAmount" type="number" min="0" step="0.001" inputmode="decimal" value="0" autocomplete="off">
+          </label>
+          <button id="stockEditSet99" class="stock-edit-set99" type="button" aria-pressed="false">Seçili Ürünü 99’a Ayarla</button>
+          <p id="stockEditModeHint" class="stock-edit-hint">Bu işlem yalnızca seçili ürünü değiştirir.</p>
+          <label class="stock-edit-field" for="stockEditPrice">Yeni satış fiyatı (<span id="stockEditPriceCurrency">TRY</span>)
+            <input id="stockEditPrice" type="text" inputmode="decimal" placeholder="Örn. 49,90" autocomplete="off">
+          </label>
+          <p class="stock-edit-hint">Fiyatı aynı bırakabilirsiniz. Yeni fiyat KDV dahil satış fiyatıdır. Stok ve fiyat merkezi ürün kaydına yazılır; cihazdaki eski satışlar silinmez.</p>
+          <p id="stockEditMessage" class="stock-edit-message" role="status" aria-live="polite"></p>
+          <div class="stock-edit-actions">
+            <button id="stockEditCancel" type="button">İptal</button>
+            <button id="stockEditSave" type="submit">Kaydet</button>
+          </div>
+        </form>
+      </dialog>
       <section id="settingsView" class="settings-view" aria-label="Ana menü ve ayarlar" hidden>
         <h1 id="settingsPageTitle">Ana Menü</h1>
         <div id="settingsMainMenu" class="settings-links settings-card-grid" aria-label="Ana menü işlemleri">

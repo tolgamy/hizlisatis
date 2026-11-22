@@ -5,7 +5,7 @@ import {readFileSync} from 'node:fs';
 const read=name=>readFileSync(new URL('../public/'+name,import.meta.url),'utf8');
 const css=read('styles.css'),html=read('index.html'),app=read('app.js'),sw=read('sw.js');
 const at=css.indexOf('/* v66 — compact, even mobile Sale controls.');
-const v66=css.slice(at);
+const v66=css.slice(at,css.indexOf('/* v67 — Desktop stock table:'));
 function style(selector){
  const escaped=selector.replace(/[.*+?^$\u007b\u007d()|[\]\\]/g,'\\$&');
  const match=v66.match(new RegExp(escaped+'\\s*\\{([^}]*)\\}'));

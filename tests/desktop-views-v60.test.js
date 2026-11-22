@@ -63,10 +63,10 @@ test('stock table/search and counts are computed from actual product records wit
     {id:'fine',baslik:'Normal Ürün',kategori:'Gıda',barkod:'300',stok:15,birim:'adet',satisFiyati:30},
     {id:'unknown',baslik:'Bilinmeyen',kategori:'Ev',barkod:'400',stokBelirsiz:true,birim:'adet',satisFiyati:40}
   ];
-  const state={products,stockOverviewFilter:'all',stockOverviewLimit:60};
+  const state={products,stockOverviewFilter:'all',stockOverviewLimit:60,centralReadOnly:true};
   $('stockOverviewSearch').value='';
   const ctx={$,
-    state,isActive:p=>true,remaining:p=>p.stokBelirsiz?Infinity:p.stok,
+    state,userCan:()=>false,isActive:p=>true,remaining:p=>p.stokBelirsiz?Infinity:p.stok,
     priceLabel:p=>'₺'+p.satisFiyati,fold:t=>String(t).toLocaleLowerCase('tr-TR'),
     document:{createElement:domNode,querySelectorAll:()=>buttons},
     Infinity,Number,String,Math,Map,Set,Intl
@@ -77,6 +77,9 @@ test('stock table/search and counts are computed from actual product records wit
   assert.equal($('stockOverviewEmpty').textContent,'1');
   assert.equal($('stockOverviewLow').textContent,'1');
   assert.equal($('stockOverviewRows').children.length,4);
+  // Unauthorized/read-only views still show six accessible columns without edit controls.
+  assert.equal($('stockOverviewRows').children[0].children.length,6);
+  assert.equal($('stockOverviewRows').children[0].children[5].textContent,'—');
   assert.match($('stockOverviewRows').children[0].children[0].children[0].textContent,/Stok Bitti/);
   assert.equal($('stockOverviewMore').hidden,true);
   state.stockOverviewFilter='low';fn();
