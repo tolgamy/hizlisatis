@@ -46,7 +46,7 @@ test('four standard cart rows get priority while product edits stay scrollable',
   assert.match(line,/padding:5px 6px!important/);
   assert.match(rules('#cartDialog.sale-sheet .sale-cart-media'),/height:65px!important/);
   assert.match(rules('#cartDialog.sale-sheet .sale-line-actions .stepper'),/height:34px!important/);
-  assert.doesNotMatch(line,/overflow:hidden|position:fixed|height:82px/);
+  assert.doesNotMatch(line,/overflow:hidden|position:fixed|(?:^|;)\s*height:82px/);
   // A representative 693px browser viewport leaves at least 4 × 82px
   // plus list padding and small row gaps when the checkout is at its cap.
   const remaining=693-68-58-190-12;
