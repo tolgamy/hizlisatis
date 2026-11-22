@@ -224,7 +224,8 @@ function updateNavigation() {
 }
 function navigate(hash) { if(location.hash!==hash) location.hash=hash; else applyRoute(); }
 function applyRoute() {
-  closeDesktopWorkspaceForNavigation();
+  if(typeof closeDesktopWorkspaceForNavigation==='function')
+    closeDesktopWorkspaceForNavigation();
   const fragment=decodeURIComponent(location.hash.slice(1));
   if(fragment==='product-categories'){
     state.view='catalog';state.catalogMode='category-home';state.catalogEntry='products';state.categoryPage='';
@@ -263,10 +264,11 @@ function focusSaleBarcode(){
 }
 function openSale({preferCamera=false}={}) {
   renderCart();
-  if(useDesktopWorkspace() && dom.historyDialog.open) dom.historyDialog.close();
-  placeDesktopWorkspace(dom.cartDialog);
+  const desktop=typeof useDesktopWorkspace==='function' && useDesktopWorkspace();
+  if(desktop && dom.historyDialog?.open) dom.historyDialog.close();
+  if(desktop) placeDesktopWorkspace(dom.cartDialog);
   if (!dom.cartDialog.open) {
-    if(useDesktopWorkspace()) dom.cartDialog.show();
+    if(desktop) dom.cartDialog.show();
     else dom.cartDialog.showModal();
   }
   $('saleBarcode').value='';
