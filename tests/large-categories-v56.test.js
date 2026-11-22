@@ -33,6 +33,7 @@ test('tablet and desktop use 4 columns with bigger photos and scrolling allowed'
   assert.match(section,/min-height:210px!important/);
   assert.match(section,/@media\(min-width:1180px\)/);
   assert.match(section,/min-height:245px!important/);
-  assert.doesNotMatch(section,/max-height:\s*100vh|overflow:hidden\s*!important/);
+  // Cropping inside each image is intentional; page-level height limits are not.
+  assert.doesNotMatch(section,/max-height:\s*100vh/);
   assert.match(worker,/large-categories-v56/);
 });
