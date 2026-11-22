@@ -12,7 +12,7 @@ test('Settings keeps eight working main-menu tiles and moves preferences into a 
   const start=html.indexOf('class="settings-links settings-card-grid"');
   const end=html.indexOf('</div>',start);
   const tiles=html.slice(start,end);
-  const ids=[...tiles.matchAll(/<(?:button|a) id="(settings\\w+)"[^>]+class="settings-tile/g)].map(m=>m[1]);
+  const ids=[...tiles.matchAll(/<(?:button|a) id="(settings\w+)"[^>]+class="settings-tile/g)].map(m=>m[1]);
   assert.deepEqual(ids,['settingsExcel','settingsAdd','settingsHistory','settingsExport',
     'settingsManage','settingsCategoryImages','settingsBackup','settingsOpenPreferences']);
   assert.doesNotMatch(tiles,/id="settingsHome"|id="settingsTemplate"/);
