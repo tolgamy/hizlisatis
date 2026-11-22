@@ -331,18 +331,29 @@
 
   <dialog id="cartDialog" class="sheet sale-sheet" aria-labelledby="cartTitle">
     <div class="sheet-header sale-sheet-header">
+      <div class="mobile-sale-brand" aria-hidden="true">
+        <svg viewBox="0 0 50 42" focusable="false" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 10h8m-10 7h9m-5 7h5M12 5h6l4 24h20l5-19H19"/>
+          <circle cx="26" cy="36" r="2.5" fill="currentColor" stroke="none"/>
+          <circle cx="41" cy="36" r="2.5" fill="currentColor" stroke="none"/>
+        </svg>
+        <strong>HızlıSatış</strong>
+      </div>
       <div class="sale-heading">
         <span class="sale-heading-icon" aria-hidden="true">🛒</span>
         <h2 id="cartTitle">Satış</h2>
         <span class="sale-count-pill" aria-live="polite">
           <span class="sale-desktop-count"><span id="saleLineCount" class="sale-count" aria-label="Sepetteki adet">0</span> Ürün</span>
-          <span class="sale-mobile-count"><span id="saleVarietyCount">0</span> çeşit · <span id="saleTotalQty">0</span> ürün</span>
+          <span class="sale-mobile-count">
+            <span class="sale-variety-tile"><span class="sale-count-icon" aria-hidden="true">◇</span><span><b id="saleVarietyCount">0</b> Çeşit</span></span>
+            <span class="sale-quantity-tile"><span class="sale-count-icon" aria-hidden="true">⬡</span><span><b id="saleTotalQty">0</b> Ürün</span></span>
+          </span>
         </span>
       </div>
       <div class="sale-header-actions">
-        <button id="saleBack" class="sale-header-back" type="button" aria-label="Önceki ekrana dön">← <span>Geri</span></button>
-        <button id="saleCancel" class="sale-header-cancel" type="button">♲ <span class="sale-cancel-long">Satışı İptal Et</span><span class="sale-cancel-short" aria-hidden="true">İptal</span></button>
-        <button id="saleClose" class="sale-header-close" type="button" aria-label="Satış ekranını kapat">× <span>Kapat</span></button>
+        <button id="saleBack" class="sale-header-back" type="button" aria-label="Kategorilere geri dön"><span class="sale-top-icon" aria-hidden="true">←</span><span class="sale-top-text">Geri</span></button>
+        <button id="saleCancel" class="sale-header-cancel" type="button" aria-label="Satışı iptal et"><span class="sale-top-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 4h4m-7 3 1 13h8l1-13M10 11v5m4-5v5"/></svg></span><span class="sale-cancel-long">Satışı İptal Et</span><span class="sale-cancel-short" aria-hidden="true">İptal</span></button>
+        <button id="saleClose" class="sale-header-close" type="button" aria-label="Satış ekranını kapat"><span class="sale-top-icon" aria-hidden="true">×</span><span class="sale-top-text">Kapat</span></button>
       </div>
     </div>
     <form id="saleBarcodeForm" class="sale-scanner">
