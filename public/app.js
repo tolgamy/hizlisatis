@@ -173,6 +173,7 @@ function setCatalog(products, adjustments, meta, excelCount = 0, bundleCount = 0
 /** Navigation and home dashboard never replace IndexedDB records. */
 function updateNavigation() {
   document.body.classList.toggle('view-home', state.view === 'home');
+  document.body.classList.toggle('view-settings', state.view === 'settings');
   $('homeView').hidden = state.view !== 'home';
   $('catalogView').hidden = state.view !== 'catalog';
   $('settingsView').hidden = state.view !== 'settings';
