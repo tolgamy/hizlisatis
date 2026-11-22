@@ -4139,3 +4139,76 @@ body.auth-locked #app{display:none!important}
   #cartDialog.sale-sheet .payment-types small{font-size:16px!important}
   #cartDialog.sale-sheet #completeSale{min-height:66px!important;font-size:18px!important}
 }
+
+
+/* v61: Desktop account controls live in the top-right on EVERY route.
+   The same original nodes drive mobile and desktop: no stale duplicate
+   connectivity indicator, user name or logout button. */
+.topbar-account-panel { display:contents; }
+@media (min-width:1024px) and (min-height:600px) and (orientation:landscape) and (hover:hover) and (pointer:fine) {
+  .clean-topbar .brandline .topbar-account-panel {
+    position:fixed!important;
+    top:12px!important;
+    right:clamp(16px,2vw,34px)!important;
+    left:auto!important;bottom:auto!important;
+    z-index:22;
+    display:flex!important;align-items:center!important;justify-content:flex-end!important;
+    flex-wrap:nowrap!important;gap:clamp(7px,.7vw,14px)!important;
+    min-width:0;max-width:min(400px,44vw);
+    height:48px;box-sizing:border-box;
+  }
+  /* Cancel the previous fixed BOTTOM-LEFT sidebar badge styling. */
+  .clean-topbar .brandline #connectionStatus {
+    position:static!important;top:auto!important;right:auto!important;
+    bottom:auto!important;left:auto!important;z-index:auto!important;
+    display:inline-flex!important;align-items:center;justify-content:center;
+    flex:0 0 auto!important;width:auto!important;min-width:0!important;
+    margin:0!important;padding:9px 12px!important;
+    border-radius:999px!important;
+    font-size:clamp(11px,.83vw,14px)!important;font-weight:850;
+    white-space:nowrap;text-align:center;
+  }
+  .clean-topbar .brandline #connectionStatus.online {
+    color:#d7ffe7!important;background:#126b4d!important;
+    border-color:#23866b!important;
+  }
+  .clean-topbar .brandline #connectionStatus.offline {
+    color:#fff3e5!important;background:#763c43!important;
+    border-color:#914f53!important;
+  }
+  .clean-topbar .brandline .access-identity-actions {
+    display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;
+    align-items:center!important;justify-content:flex-end!important;
+    gap:clamp(6px,.65vw,12px)!important;min-width:0;margin:0!important;
+    font-size:clamp(11px,.92vw,15px)!important;
+  }
+  .clean-topbar #accessIdentity:not([hidden]) {
+    display:block!important;
+    max-width:clamp(92px,11vw,170px);min-width:0;overflow:hidden;
+    white-space:nowrap;text-overflow:ellipsis;
+    color:#f1f7ff;font-size:inherit;font-weight:850;
+  }
+  .clean-topbar #accessLogout:not([hidden]) {
+    display:inline-flex!important;align-items:center;justify-content:center;
+    flex:0 0 auto;min-height:39px!important;min-width:64px;
+    margin:0;padding:7px 12px!important;border:1px solid #c4d6eb;
+    border-radius:10px!important;background:#f5faff!important;
+    color:#164368!important;font-size:clamp(12px,.9vw,15px)!important;
+    font-weight:850;cursor:pointer;
+  }
+  .clean-topbar #accessLogout:focus-visible,
+  .clean-topbar #accessIdentity:focus-visible {
+    outline:3px solid #77c9ff;outline-offset:2px;
+  }
+  /* The scan box contracts before account actions do. */
+  .clean-topbar .searchline {
+    flex:0 1 auto!important;
+    width:min(920px,calc(100% - 405px))!important;
+    max-width:min(920px,calc(100% - 405px))!important;
+    min-width:0!important;margin:0 auto 0 0!important;
+  }
+  .clean-topbar .searchbox {min-width:0!important;flex:1 1 auto!important}
+  .clean-topbar .searchbox input {min-width:0!important;width:100%!important}
+}
+/* Never override the auth module's permission and visibility decisions. */
+#app .topbar-account-panel [hidden] { display:none!important; }
