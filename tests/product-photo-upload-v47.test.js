@@ -137,6 +137,6 @@ test('editor verifies remote photo, explains centralized storage and shows uploa
   assert.match(manager,/\(verified\.gorsel\|\|''\)!==\(product\.gorsel\|\|''\)/);
   assert.match(html,/id="manageImageStatus"[^>]+role="status"/);
   assert.match(html,/merkezi veritabanına yüklenir ve diğer cihazlarda da görünür/);
-  assert.match(sw,/cep-pos-shell-v47-product-photo-upload/);
+  assert.match(sw,/cep-pos-shell-v48-windows-scale-manual-grams/);
   assert.match(sw,/\/product-photo\.js/);
 });
