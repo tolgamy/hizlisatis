@@ -6,7 +6,7 @@ const read=name=>readFileSync(new URL('../public/'+name,import.meta.url),'utf8')
 const css=read('styles.css'),sw=read('sw.js'),html=read('index.html'),app=read('app.js');
 const marker='/* v71 — approved framed mobile Sale design.';
 const at=css.indexOf(marker);
-const v71=css.slice(at);
+const v71=css.slice(at,css.indexOf('/* v72 — approved unified mobile Sale toolbar,',at));
 
 test('framed Sale design applies only to mobile dialog, not desktop or other screens',()=>{
   assert.ok(at>0);
