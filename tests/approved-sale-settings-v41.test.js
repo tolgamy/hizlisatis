@@ -8,21 +8,25 @@ import {restoreSalesBackup,getSales,getLocalSnapshot} from '../public/idb.js';
 const read=path=>readFileSync(new URL('../public/'+path,import.meta.url),'utf8');
 const html=read('index.html'),css=read('styles.css'),app=read('app.js'),sw=read('sw.js');
 
-test('Settings contains exactly eight same-sized cards in a two-column layout',()=>{
+test('Settings has nine functional tiles plus home with responsive 3x3 and 5x2 arrangements',()=>{
   const start=html.indexOf('class="settings-links settings-card-grid"');
   const end=html.indexOf('</div>',start);
   const tiles=html.slice(start,end);
-  const ids=[...tiles.matchAll(/<button id="(settings\w+)"[^>]+class="settings-tile/g)].map(m=>m[1]);
+  const ids=[...tiles.matchAll(/<(?:button|a) id="(settings\w+)"[^>]+class="settings-tile/g)].map(m=>m[1]);
   assert.deepEqual(ids,['settingsExcel','settingsAdd','settingsManage','settingsCategoryImages',
-    'settingsCustomers','settingsHistory','settingsExport','settingsBackup']);
-  assert.match(css,/\.settings-view \.settings-card-grid\{[^}]*grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
-  assert.match(css,/\.settings-view \.settings-card-grid>\.settings-tile\{[\s\S]*?height:clamp\(151px,43vw,191px\)/);
-  assert.match(html,/href="\/urun-yukleme-sablonu.xlsx"/);
+    'settingsCustomers','settingsHistory','settingsExport','settingsBackup','settingsTemplate','settingsHome']);
+  assert.match(css,/\/\* v4\.9 — approved device-specific Settings grid/);
+  assert.match(css,/\.settings-view \.settings-card-grid\{[\s\S]*?grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
+  assert.match(css,/@media \(min-width:900px\) and \(hover:hover\) and \(pointer:fine\)\{[\s\S]*?grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
+  assert.match(css,/\.settings-view \.settings-card-grid>\.settings-tile-home\{[\s\S]*?grid-column:1\/-1/);
+  assert.match(html,/id="settingsTemplate"[^>]+href="\/urun-yukleme-sablonu.xlsx"/);
+  assert.match(html,/<details id="settingsPrinterDetails" class="settings-printer-details">/);
+  assert.doesNotMatch(html,/<details id="settingsPrinterDetails"[^>]*\sopen\b/);
   assert.match(html,/id="settingsReceiptSave"/);
   assert.match(html,/id="backupDialog"/);
+  assert.match(app,/\$\('settingsHome'\)\.addEventListener\('click',\(\)=>setView\('home'\)\)/);
   assert.match(app,/classList\.toggle\('view-settings', state\.view === 'settings'\)/);
 });
-
 test('Sale has one-line header and image-led cart without redundant screen shortcuts',()=>{
   const sale=html.slice(html.indexOf('<dialog id="cartDialog"'),html.indexOf('</dialog>',html.indexOf('<dialog id="cartDialog"')));
   assert.doesNotMatch(sale,/class="sale-quick-nav"|saleQuickHome|saleQuickProducts|saleQuickSettings/);
@@ -35,7 +39,7 @@ test('Sale has one-line header and image-led cart without redundant screen short
   assert.match(css,/\.sale-sheet \.cart-items\{[\s\S]*?overflow-y:auto/);
   for(const id of ['saleBack','saleCancel','saleClose','completeSale'])
     assert.match(sale,new RegExp('id="'+id+'"'));
-  assert.match(sw,/v42-empty-cart-home/);
+  assert.match(sw,/v43-settings-device-grids/);
 });
 
 test('Device backup rejects foreign, broken or duplicate sales and carries settings safely',()=>{
