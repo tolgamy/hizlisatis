@@ -21,12 +21,12 @@
       <div class="access-login-brand"><span aria-hidden="true">▣</span>
         <h1>HızlıSatış</h1><p>Güvenli Kullanıcı Girişi</p>
       </div>
-      <form id="loginForm" autocomplete="on">
+      <form id="loginForm" autocomplete="on" method="post" action="/api/auth">
         <label for="loginUsername">Kullanıcı Adı</label>
         <input id="loginUsername" name="username" autocomplete="username" minlength="3" maxlength="32" required autofocus>
         <label for="loginPassword">Parola</label>
         <input id="loginPassword" name="password" type="password" autocomplete="current-password" required maxlength="128">
-        <button id="loginSubmit" type="submit">Giriş Yap</button>
+        <button id="loginSubmit" type="button" disabled>Giriş Yap</button>
       </form>
       <p id="loginError" role="alert" aria-live="polite"></p>
       <p class="access-login-note">Yetkiniz olmayan işlemler kullanılamaz. Giriş için ortak ürün anahtarı istenmez.</p>
