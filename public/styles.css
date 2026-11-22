@@ -5177,8 +5177,8 @@ body.auth-locked #app{display:none!important}
 }
 
 
-/* v73 — iPhone compact Sale: four visible standard cart products at the
-   iPhone 15 visual viewport height. Keep the approved colors, borders and
+/* v73 — compact phone Sale: four visible standard cart products at typical
+   mobile visual viewport heights. Keep the approved colors, borders and
    every sale/payment action. Only mobile #cartDialog is affected.
    Scrolling stays enabled for long names, discounts and smaller devices. */
 @media (max-width:679px) {
