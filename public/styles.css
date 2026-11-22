@@ -4982,6 +4982,10 @@ body.auth-locked #app{display:none!important}
    single-line header. Logo row + equal-height labeled controls; visually
    separate live variety/item counters. Basket and payment are unchanged. */
 .mobile-sale-brand {display:none}
+/* Set explicit desktop icon dimensions too; an SVG with no dimensions
+   otherwise uses the browser's large intrinsic default size. */
+.sale-sheet .sale-top-icon {display:inline-flex;align-items:center;justify-content:center;flex:none}
+.sale-sheet .sale-top-icon svg {display:block;width:20px;height:20px}
 @media (max-width:679px) {
   #cartDialog.sale-sheet .sale-sheet-header {
     box-sizing:border-box!important;
