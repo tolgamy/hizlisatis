@@ -69,7 +69,7 @@ test('every successful cart add, increase and decrease plays a distinct short so
   assert.match(app,/playCartSound\(current&&!separate\?'increase':'add'\)/);
   assert.match(app,/if\(num!==line\.quantity\)playCartSound\(num>line\.quantity\?'increase':'decrease'\)/);
   assert.match(app,/state\.cart\.delete\(id\);playCartSound\('decrease'\)/);
-  assert.match(app,/state\.cart\.delete\(line\.id\); playCartSound\('decrease'\)/);
+  assert.match(app,/state\.cart\.delete\(line\.cartKey\|\|line\.id\); playCartSound\('decrease'\)/);
   assert.match(app,/function chirp\(\)/); // original barcode audio retained
   assert.match(sw,/cep-pos-shell-v48-windows-scale-manual-grams/);
 });
