@@ -31,3 +31,19 @@ export function receiptPrintLayout(width='80'){
     innerPaddingMm:2
   };
 }
+
+/** Each browser profile keeps its own post-sale receipt action, not a shared D1 setting. */
+export const RECEIPT_ACTIONS=Object.freeze(['network','bluetooth','whatsapp','pdf']);
+export const DEFAULT_RECEIPT_ACTION='network';
+const RECEIPT_ACTION_KEY='hizlisatis-device-receipt-action';
+export function readReceiptAction(store=globalThis.localStorage){
+  try{
+    const action=store?.getItem(RECEIPT_ACTION_KEY);
+    return RECEIPT_ACTIONS.includes(action)?action:DEFAULT_RECEIPT_ACTION;
+  }catch{return DEFAULT_RECEIPT_ACTION;}
+}
+export function saveReceiptAction(action,store=globalThis.localStorage){
+  if(!RECEIPT_ACTIONS.includes(action))throw Error('Geçerli bir fiş yöntemi seçin.');
+  store.setItem(RECEIPT_ACTION_KEY,action);
+  return action;
+}
