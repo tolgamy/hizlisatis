@@ -12,7 +12,7 @@ test('compact grid removes excessive card height and flexible blank area; list l
   assert.match(segment,/#productResults \.products\.grid-view \.product-info\{[\s\S]*?flex:0 0 auto!important/);
   assert.match(segment,/#productResults \.products\.grid-view \.product-photo\{[\s\S]*?height:clamp\(112px,35vw,150px\)!important/);
   assert.doesNotMatch(segment,/\.bottom-shell\{|\.bottom-nav\{|\.products\.list-view\{/);
-  assert.match(app,/row\.querySelector\('\.add-button'\)\.addEventListener\('click',\(\)=>addToCart\(p\)\)/);
+  assert.match(app,/row\.querySelector\('\.add-button'\)\.addEventListener\('click',\(\)=>isWeightProduct\(p\)\?openWeightProduct\(p\):addToCart\(p\)\)/);
 });
 
 test('main and subcategory names are clickable, not selectable label-only text',()=>{
@@ -71,5 +71,5 @@ test('every successful cart add, increase and decrease plays a distinct short so
   assert.match(app,/state\.cart\.delete\(id\);playCartSound\('decrease'\)/);
   assert.match(app,/state\.cart\.delete\(line\.id\); playCartSound\('decrease'\)/);
   assert.match(app,/function chirp\(\)/); // original barcode audio retained
-  assert.match(sw,/cep-pos-shell-v47-product-photo-upload/);
+  assert.match(sw,/cep-pos-shell-v48-windows-scale-manual-grams/);
 });
