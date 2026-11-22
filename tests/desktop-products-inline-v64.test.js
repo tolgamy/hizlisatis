@@ -14,7 +14,8 @@ test('Products landing uses 3 columns × 4 larger rows, with the existing images
   assert.ok(v64.includes('@media '+desktop));
   assert.match(v64,/#productCategoryHome #homeCategoryShortcuts\.category-photo-grid/);
   // Historical v64 CSS remains in the stylesheet but v68 wins by CSS order.
-  const v68=css.slice(css.indexOf('/* v68 — approved 3 across'));
+  const v68=css.slice(css.indexOf('/* v68 — approved 3 across'),
+    css.indexOf('/* v70 — approved compact mobile Sale header only.'));
   assert.ok(v68.startsWith('/* v68'));
   assert.ok(v68.includes('@media '+desktop));
   assert.match(v68,/grid-template-columns:repeat\(3,minmax\(0,1fr\)\)!important/);
