@@ -380,7 +380,8 @@ function openWeightProduct(product){
   if(!supported)$('weightGrams').focus({preventScroll:true});
 }
 function confirmWeight(){
-  if(!weightProduct)return;
+  // A successful click closes the dialog; late/double taps cannot add again.
+  if(!weightProduct||!$('weightDialog').open)return;
   const product=weightProduct;
   let grams,quantity;
   try{
