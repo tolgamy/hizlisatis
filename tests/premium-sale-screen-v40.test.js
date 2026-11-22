@@ -86,6 +86,6 @@ test('sales functionality is kept: real save path, unchanged barcode and custome
   assert.match(app,/if\(payment==='Veresiye'\)await recordCustomerCredit/);
   assert.match(app,/const cash = payment === 'Nakit'/);
   assert.match(app,/\$\('saleScanButton'\)\.addEventListener\('click',openCamera\)/);
-  assert.match(app,/\$\('saleQuickHome'\)/);
+  assert.match(app,/\['saleQuickHome','home'\]/);
   assert.match(app,/renderCartBar\(\);renderCart\(\)/);
 });
