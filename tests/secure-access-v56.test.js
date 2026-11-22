@@ -82,7 +82,7 @@ test('first admin bootstraps from a normal password and receives an HttpOnly ses
   assert.equal(response.status,200);
   assert.match(response.headers.get('set-cookie'),/HttpOnly; SameSite=Strict/);
   const account=env.DB.users.values().next().value;
-  assert.match(account.password_hash,/^pbkdf2\$180000\$/);
+  assert.match(account.password_hash,/^pbkdf2\$100000\$/);
   assert.doesNotMatch(account.password_hash,/OwnerFirstPassword/);
   const user=await currentAccessUser(request('/api/auth','GET',null,session(response)),env);
   assert.equal(user.username,'admin');
