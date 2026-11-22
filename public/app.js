@@ -1949,9 +1949,19 @@ async function setup() {
       if(!scaleConnection)scaleConnection=new ScaleSerialConnection({
         onReading:reading=>{
           scaleLatest=reading;
-          $('weightLive').textContent=(reading.grams/1000).toLocaleString('tr-TR',{
+          const kg=(reading.grams/1000).toLocaleString('tr-TR',{
             minimumFractionDigits:3,maximumFractionDigits:3})+' kg';
+          $('weightLive').textContent=kg;
           $('weightUseLive').disabled=!$('weightDialog').open;
+          if($('weightDialog').open)
+            $('weightSerialStatus').textContent='Sabit ağırlık okundu: '+kg+'. Teraziden Ağırlığı Al düğmesine basın.';
+        },
+        onUnstable:()=>{
+          scaleLatest=null;scaleCapturedAt=0;
+          $('weightLive').textContent='— kg';
+          $('weightUseLive').disabled=true;
+          if($('weightDialog').open)
+            $('weightSerialStatus').textContent='Ağırlık sabitleniyor veya terazi boş. Ürünü yerleştirin.';
         },
         onStatus:status=>$('weightSerialStatus').textContent=status,
         onRaw:raw=>$('weightRaw').textContent='Ham veri: '+raw
