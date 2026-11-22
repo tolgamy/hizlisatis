@@ -96,6 +96,19 @@
           <h2>Ana Kategoriler</h2>
           <div id="desktopHomeCategoryGrid" class="desktop-home-category-grid" aria-label="12 ana kategori"></div>
         </section>
+        <section id="homeDesktopInsights" class="home-desktop-insights" aria-label="Bu cihazın kısa durum özeti">
+          <article class="home-insight-card" id="homeStockInsight">
+            <div class="home-insight-heading"><h3>Stok Uyarıları</h3><span>Bu cihaz · 5 ve altı</span></div>
+            <p id="homeStockInsightCount" class="home-insight-count">—</p>
+            <ul id="homeStockInsightList" class="home-insight-list"></ul>
+            <button type="button" id="homeStockInsightOpen" class="home-insight-link">Tüm stokları görüntüle ›</button>
+          </article>
+          <article class="home-insight-card" id="homeRecentSalesCard" hidden>
+            <div class="home-insight-heading"><h3>Son Satışlar</h3><span>Yalnızca bu cihaz</span></div>
+            <ul id="homeRecentSalesList" class="home-insight-list"></ul>
+            <button type="button" id="homeRecentSalesOpen" class="home-insight-link">Satış Geçmişi ›</button>
+          </article>
+        </section>
       </section>
       <section id="catalogView" class="catalog-view clean-catalog" aria-label="Ürünler" hidden>
         <section id="categoryBrowser" class="clean-categories">
@@ -116,6 +129,34 @@
           <section id="productList" class="products grid-view" aria-label="Ürünler"></section><button id="loadMoreProducts" class="load-more" type="button" hidden>Daha fazla göster</button><p id="productLimit" class="product-limit" hidden></p>
           <span id="imageHealth" class="sr-only"></span>
         </section>
+      </section>
+      <section id="stockView" class="stock-overview" aria-label="Stok Durumu" hidden>
+        <header class="stock-overview-header">
+          <div><h1>Stok Durumu</h1><p>Bu cihazın güncel ürün ve stok kayıtları. Bu ekrandan stok değiştirilmez.</p></div>
+          <button id="stockBackToProducts" type="button" class="stock-overview-back">‹ Ürünlere Dön</button>
+        </header>
+        <div class="stock-overview-metrics" aria-label="Stok özeti">
+          <div><span>Takip Edilen Ürün</span><strong id="stockOverviewTracked">—</strong></div>
+          <div><span>Stoku Biten</span><strong id="stockOverviewEmpty">—</strong></div>
+          <div><span>Azalan (5 ve altı)</span><strong id="stockOverviewLow">—</strong></div>
+        </div>
+        <div class="stock-overview-controls">
+          <label class="sr-only" for="stockOverviewSearch">Stoklarda ürün veya barkod ara</label>
+          <input id="stockOverviewSearch" type="search" placeholder="Ürün, barkod veya kategori ara…" autocomplete="off">
+          <div id="stockOverviewFilters" class="stock-overview-filters" role="group" aria-label="Stok filtresi">
+            <button type="button" data-stock-filter="all" aria-pressed="true">Tümü</button>
+            <button type="button" data-stock-filter="low" aria-pressed="false">Azalan</button>
+            <button type="button" data-stock-filter="empty" aria-pressed="false">Biten</button>
+          </div>
+        </div>
+        <p id="stockOverviewCount" class="stock-overview-count" role="status"></p>
+        <div class="stock-overview-table-wrap">
+          <table class="stock-overview-table">
+            <thead><tr><th>Ürün / Barkod</th><th>Kategori</th><th>Mevcut Stok</th><th>Birim Fiyat</th><th>Durum</th></tr></thead>
+            <tbody id="stockOverviewRows"></tbody>
+          </table>
+        </div>
+        <button id="stockOverviewMore" class="stock-overview-more" type="button" hidden>60 ürün daha göster</button>
       </section>
       <section id="settingsView" class="settings-view" aria-label="Ana menü ve ayarlar" hidden>
         <h1 id="settingsPageTitle">Ana Menü</h1>
@@ -641,15 +682,18 @@
   </dialog>
   <dialog id="historyDialog" class="sheet" aria-labelledby="historyTitle">
     <div class="sheet-header"><h2 id="historyTitle">Satış Geçmişi</h2><button type="button" class="closebutton" data-close="historyDialog" aria-label="Kapat">×</button></div>
-    <div class="history-actions"><span id="historyCount">0 satış</span><button id="exportSales" class="smallbutton secondary" type="button">CSV Dışa Aktar</button></div>
+    <div class="history-actions"><span id="historyCount">0 satış</span><span class="history-device-note">Bu cihazın kayıtları · Diğer kasalar dahil değildir</span><button id="exportSales" class="smallbutton secondary" type="button">CSV Dışa Aktar</button></div>
     <section id="historySummary" class="history-summary" aria-label="Bu cihazın satış raporu" hidden>
       <div class="history-summary-metrics">
         <div><span>Toplam Satış · ₺</span><strong id="historySummaryTotal">₺0,00</strong></div>
         <div><span>Satış Adedi</span><strong id="historySummaryCount">0</strong></div>
         <div><span>Ortalama Sepet · ₺</span><strong id="historySummaryAverage">₺0,00</strong></div>
       </div>
-      <h3>Son 7 Günün Satışları <small>(yalnızca bu cihaz, ₺)</small></h3>
-      <div id="historySummaryChart" class="history-summary-chart" aria-label="Yedi günlük cihaz satış grafiği"></div>
+      <p id="historySummaryEmpty" class="history-summary-empty" hidden>Bu cihazda henüz satış yok. İlk satıştan sonra günlük grafik ve fişler burada görünecek.</p>
+      <div id="historySummaryPlot">
+        <h3>Son 7 Günün Satışları <small>(yalnızca bu cihaz, ₺)</small></h3>
+        <div id="historySummaryChart" class="history-summary-chart" aria-label="Yedi günlük cihaz satış grafiği"></div>
+      </div>
     </section>
     <div id="historyItems" class="history-items"></div>
   </dialog>

@@ -37,7 +37,8 @@ const state = {
   saving: false, scanner: null, scanPurpose: 'sale',
   excelCount: 0, bundleCount: 0, bundleLoading: false, categoryPage: '', excelPreview: null, excelUploading: false, browseAll: false,
   view: 'home', catalogMode: 'categories', catalogEntry: 'categories', categoryTreeData: [],
-  productLayout: 'grid', stockOnly: false, sort: 'name', visibleLimit: 48, detailProduct: null, manageSelection: null
+  productLayout: 'grid', stockOnly: false, sort: 'name', visibleLimit: 48, detailProduct: null, manageSelection: null,
+  stockOverviewFilter:'all',stockOverviewLimit:60
 };
 const dom = {
   search: $('search'), productList: $('productList'), count: $('resultCount'),
@@ -179,9 +180,14 @@ function setCatalog(products, adjustments, meta, excelCount = 0, bundleCount = 0
 function updateNavigation() {
   document.body.classList.toggle('view-home', state.view === 'home');
   document.body.classList.toggle('view-settings', state.view === 'settings');
+  document.body.classList.toggle('view-stock', state.view === 'stock');
   $('homeView').hidden = state.view !== 'home';
   $('catalogView').hidden = state.view !== 'catalog';
   $('settingsView').hidden = state.view !== 'settings';
+  $('stockView').hidden = state.view !== 'stock';
+  $('sidebarStock').classList.toggle('active',state.view==='stock');
+  if(state.view==='stock')$('sidebarStock').setAttribute('aria-current','page');
+  else $('sidebarStock').removeAttribute('aria-current');
   // The approved mobile navigation has four destinations only; all category
   // levels remain inside Products, and desktop uses the same routes.
   const active = dom.cartDialog.open ? 'sale' :
@@ -204,9 +210,14 @@ function applyRoute() {
     state.view='catalog';state.catalogMode='products';state.browseAll=true;
     state.category=fragment.startsWith('products/') ? fragment.slice('products/'.length) : '';
   } else if (fragment==='settings') state.view='settings';
+  else if (fragment==='stock') state.view='stock';
   else state.view='home';
   updateNavigation();renderProducts();
-  if(state.view==='home') refreshHomeSales().catch(()=>{});
+  if(state.view==='stock')renderStockOverview();
+  if(state.view==='home'){
+    if(typeof renderHomeStockInsights==='function')renderHomeStockInsights();
+    refreshHomeSales().catch(()=>{});
+  }
   window.scrollTo({top:0,behavior:'auto'});
 }
 function setView(view,showAll=false) {
@@ -567,6 +578,49 @@ function categoryTile(node, hasChildren = false) {
   button.addEventListener('click', () => hasChildren ? openCategoryMenu(node.path) : selectCategory(node.path));
   return button;
 }
+function renderHomeStockInsights(){
+  $('homeRecentSalesCard').hidden=!userCan('reports');
+  const stock=state.products.filter(isActive).map(p=>({p,...stockState(p)}))
+    .filter(item=>item.status==='empty'||item.status==='low')
+    .sort((a,b)=>a.stock-b.stock||a.p.baslik.localeCompare(b.p.baslik,'tr'));
+  $('homeStockInsightCount').textContent=stock.length.toLocaleString('tr-TR')+
+    ' üründe stok az veya bitmiş';
+  const list=$('homeStockInsightList');list.replaceChildren();
+  if(!stock.length){
+    const item=document.createElement('li');
+    item.textContent=state.products.length?
+      'Stoku 5 ve altında ürün bulunmuyor.':'Ürün ve stok verileri henüz yüklenmedi.';
+    list.append(item);return;
+  }
+  for(const entry of stock.slice(0,5)){
+    const li=document.createElement('li');
+    const title=document.createElement('span');title.textContent=entry.p.baslik;
+    const value=document.createElement('strong');value.textContent=entry.label;
+    li.append(title,value);list.append(li);
+  }
+}
+function renderHomeRecentSales(sales){
+  const card=$('homeRecentSalesCard');
+  card.hidden=!userCan('reports');
+  if(card.hidden)return;
+  const list=$('homeRecentSalesList');list.replaceChildren();
+  const recent=sales.filter(s=>s&&s.createdAt&&
+    Number.isFinite(Number(s.total))&&
+    Number.isFinite(new Date(s.createdAt).getTime()))
+    .sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))).slice(0,5);
+  if(!recent.length){
+    const li=document.createElement('li');
+    li.textContent='Bu cihazda henüz tamamlanmış satış yok.';
+    list.append(li);return;
+  }
+  for(const sale of recent){
+    const row=document.createElement('li');
+    const date=document.createElement('span');date.textContent=fmtDate(sale.createdAt);
+    const price=document.createElement('strong');
+    price.textContent=money(Number(sale.total),sale.currency||'TRY');
+    row.append(date,price);list.append(row);
+  }
+}
 function renderHome() {
   // Both devices display the SAME twelve categories from the one D1-backed
   // category tree. CSS switches from mobile Products to desktop Home; no
@@ -606,6 +660,7 @@ async function refreshHomeSales() {
         ? sum+Number(sale.total):sum;
     },0);
     $('homeTodaySales').textContent=money(round2(amount),'TRY');
+    if(typeof renderHomeRecentSales==='function')renderHomeRecentSales(sales);
   } catch {
     if(requestId===homeSalesReadId)$('homeTodaySales').textContent='—';
   }
@@ -739,6 +794,75 @@ function renderProducts() {
   if(!items.length)dom.productList.innerHTML='<p class="clean-empty">Ürün bulunamadı</p>';
   $('loadMoreProducts').hidden=items.length<=state.visibleLimit;
   $('productLimit').hidden=true;
+}
+/** Read-only stock state derived from the products and this device's sold ledger.
+ * No stock quantities or product statuses are changed by this view.
+ */
+function stockState(product){
+  if(product.stokBelirsiz)return {stock:Infinity,status:'unknown',label:'Belirtilmemiş'};
+  const value=remaining(product);
+  if(!Number.isFinite(value))return {stock:Infinity,status:'unknown',label:'Belirtilmemiş'};
+  const formatted=value.toLocaleString('tr-TR',{maximumFractionDigits:3})+' '+(product.birim||'adet');
+  return {stock:value,status:value<=0?'empty':value<=5?'low':'ok',label:formatted};
+}
+function renderStockOverview(){
+  const products=state.products.filter(isActive);
+  const inventory=products.map(p=>({product:p,...stockState(p)}));
+  const tracked=inventory.filter(item=>item.status!=='unknown');
+  const empty=tracked.filter(item=>item.status==='empty');
+  const low=tracked.filter(item=>item.status==='low');
+  $('stockOverviewTracked').textContent=tracked.length.toLocaleString('tr-TR');
+  $('stockOverviewEmpty').textContent=empty.length.toLocaleString('tr-TR');
+  $('stockOverviewLow').textContent=low.length.toLocaleString('tr-TR');
+  const search=fold($('stockOverviewSearch').value);
+  const filter=state.stockOverviewFilter;
+  for(const button of document.querySelectorAll('#stockOverviewFilters [data-stock-filter]')){
+    const selected=button.dataset.stockFilter===filter;
+    button.setAttribute('aria-pressed',String(selected));
+    button.classList.toggle('active',selected);
+  }
+  const statusOrder={empty:0,low:1,ok:2,unknown:3};
+  const matches=inventory.filter(item=>{
+    if(filter==='low' && item.status!=='low')return false;
+    if(filter==='empty' && item.status!=='empty')return false;
+    if(search&&!fold([item.product.baslik,item.product.barkod,item.product.urunKodu,
+      item.product.kategori,item.product.marka].join(' ')).includes(search))return false;
+    return true;
+  }).sort((a,b)=>statusOrder[a.status]-statusOrder[b.status]||
+    a.stock-b.stock||a.product.baslik.localeCompare(b.product.baslik,'tr'));
+  const shown=matches.slice(0,state.stockOverviewLimit);
+  const tbody=$('stockOverviewRows');tbody.replaceChildren();
+  for(const item of shown){
+    const row=document.createElement('tr');
+    const product=document.createElement('td');
+    const name=document.createElement('strong');name.textContent=item.product.baslik;
+    const barcode=document.createElement('small');
+    barcode.textContent=item.product.barkod||item.product.urunKodu||'Barkod belirtilmemiş';
+    product.append(name,barcode);
+    const category=document.createElement('td');
+    category.textContent=item.product.kategori||'—';
+    const quantity=document.createElement('td');
+    quantity.textContent=item.label;
+    quantity.className='stock-quantity';
+    const price=document.createElement('td');
+    price.textContent=priceLabel(item.product);
+    const status=document.createElement('td');
+    const tag=document.createElement('span');
+    tag.className='stock-status stock-status-'+item.status;
+    tag.textContent={empty:'Stok bitti',low:'Azalan',ok:'Yeterli',unknown:'Belirsiz'}[item.status];
+    status.append(tag);
+    row.append(product,category,quantity,price,status);tbody.append(row);
+  }
+  if(!matches.length){
+    const row=document.createElement('tr');const cell=document.createElement('td');
+    cell.colSpan=5;cell.className='stock-overview-no-results';
+    cell.textContent=search||filter!=='all'?
+      'Aramanıza uygun stok kaydı bulunamadı.':'Henüz görüntülenecek stok kaydı yok.';
+    row.append(cell);tbody.append(row);
+  }
+  $('stockOverviewCount').textContent=matches.length.toLocaleString('tr-TR')+
+    ' ürün · '+shown.length.toLocaleString('tr-TR')+' gösteriliyor';
+  $('stockOverviewMore').hidden=matches.length<=state.stockOverviewLimit;
 }
 function renderCartBar() {
   const count = cartQty();
@@ -996,7 +1120,7 @@ function confirmScannedQuantity() {
     focusSaleBarcode();
   }
 }
-function renderAll() { renderHome(); renderFilters(); renderProducts(); renderCartBar(); setSyncStatus(); updateNavigation(); if (dom.cartDialog.open) renderCart(); }
+function renderAll() { renderHome(); if(typeof renderHomeStockInsights==='function')renderHomeStockInsights(); renderFilters(); renderProducts(); if(state.view==='stock')renderStockOverview(); renderCartBar(); setSyncStatus(); updateNavigation(); if (dom.cartDialog.open) renderCart(); }
 function exactProduct(raw) {
   const code = String(raw ?? '').trim();
   return findBarcodeProduct(state.byBarcode, code) || state.products.find(p => p.urunKodu && fold(p.urunKodu) === fold(code));
@@ -1384,6 +1508,9 @@ function renderHistorySummary(sales){
     caption.textContent=day.date.toLocaleDateString('tr-TR',{day:'2-digit',month:'2-digit'});
     column.append(value,track,caption);chart.append(column);
   }
+  const empty=!localTrySales.length;
+  $('historySummaryEmpty').hidden=!empty;
+  $('historySummaryPlot').hidden=empty;
   $('historySummary').hidden=false;
 }
 async function showHistory() {
@@ -2035,13 +2162,31 @@ async function setup() {
   $('homeQuickProducts').addEventListener('click',()=>productManager.openManage());
   $('homeQuickBarcode').addEventListener('click',()=>productManager.openNew());
   $('homeQuickStock').addEventListener('click',()=>{
+    // Mouse/keyboard desktop gets a dedicated, read-only stock workspace.
+    // On phones and touch tablets preserve the existing product listing.
+    if(window.matchMedia('(min-width:1024px) and (hover:hover) and (pointer:fine)').matches){
+      state.stockOverviewFilter='all';state.stockOverviewLimit=60;
+      $('stockOverviewSearch').value='';navigate('#stock');
+      return;
+    }
     state.stockOnly=false;state.sort='stock';$('sortProducts').value='stock';
-    // Desktop stock overview uses the existing real catalog in a readable list;
-    // the handheld product gallery and all mutations stay unchanged.
-    if(window.matchMedia('(min-width:1024px) and (hover:hover) and (pointer:fine)').matches)
-      state.productLayout='list';
     state.catalogEntry='products';showAllProducts();
   });
+  $('stockBackToProducts').addEventListener('click',showAllProducts);
+  $('stockOverviewSearch').addEventListener('input',()=>{
+    state.stockOverviewLimit=60;renderStockOverview();
+  });
+  for(const button of document.querySelectorAll('#stockOverviewFilters [data-stock-filter]')){
+    button.addEventListener('click',()=>{
+      state.stockOverviewFilter=button.dataset.stockFilter;
+      state.stockOverviewLimit=60;renderStockOverview();
+    });
+  }
+  $('stockOverviewMore').addEventListener('click',()=>{
+    state.stockOverviewLimit+=60;renderStockOverview();
+  });
+  $('homeStockInsightOpen').addEventListener('click',()=>$('homeQuickStock').click());
+  $('homeRecentSalesOpen').addEventListener('click',showHistory);
   $('homeQuickReports').addEventListener('click',showHistory);
   $('homeTodaySalesButton').addEventListener('click',showHistory);
   $('homeTotalProductsButton').addEventListener('click',openProductCategoryHome);

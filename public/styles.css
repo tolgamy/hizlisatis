@@ -3907,3 +3907,235 @@ body.auth-locked #app{display:none!important}
   #categoryTree .photo-category-tile,
   #homeCategoryShortcuts .photo-category-tile {transition:none!important}
 }
+
+
+/* v60: Fix the screen-leak root cause.
+   The desktop rule #homeView.dashboard-home { display:grid!important }
+   defeated the generic [hidden] rule, leaving Home underneath Settings, Stock
+   and Sales. Explicit ID-level hidden always wins on every form factor. */
+#app #mainContent > #homeView[hidden],
+#app #mainContent > #catalogView[hidden],
+#app #mainContent > #settingsView[hidden],
+#app #mainContent > #stockView[hidden],
+#app #catalogView #categoryBrowser[hidden],
+#app #catalogView #catalogCategoryNavigator[hidden],
+#app #catalogView #productCategoryHome[hidden],
+#app #catalogView #productResults[hidden],
+#app #settingsView #settingsMainMenu[hidden],
+#app #settingsView #settingsPreferences[hidden],
+#app #settingsView #settingsPageTitle[hidden],
+#app #homeDesktopInsights #homeRecentSalesCard[hidden],
+#historyDialog #historySummaryPlot[hidden],
+#historyDialog #historySummaryEmpty[hidden],
+#app #stockOverviewMore[hidden] {display:none!important}
+
+/* Home extra space is useful only on desktop; mobile keeps its approved home
+   and three-across/touch categories. These are real device-local values. */
+.home-desktop-insights{display:none}
+.home-insight-card{
+  min-width:0;padding:17px 19px;border:1px solid #d7e5f1;
+  border-radius:16px;background:#fff;
+  box-shadow:0 5px 15px #163a5312;
+  display:flex;flex-direction:column;gap:10px;
+}
+.home-insight-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.home-insight-heading h3{font-size:18px;color:#153a57;margin:0;font-weight:900}
+.home-insight-heading span{font-size:12px;color:#657e92;font-weight:700}
+.home-insight-count{font-size:14px;font-weight:850;color:#a15e18;margin:0}
+.home-insight-list{display:grid;gap:7px;list-style:none;margin:0;padding:0;flex:1}
+.home-insight-list li{
+  display:flex;align-items:start;justify-content:space-between;
+  gap:12px;font-size:14px;color:#28485f;
+  padding:7px 0;border-bottom:1px solid #edf2f7;line-height:1.35;
+}
+.home-insight-list li strong{flex:none;font-size:14px;color:#175a7e;white-space:nowrap}
+.home-insight-list li span{overflow-wrap:anywhere}
+.home-insight-link{
+  margin-top:auto;align-self:flex-start;cursor:pointer;
+  padding:9px 13px;border-radius:9px;
+  border:1px solid #bad5ea;background:#eaf5ff;
+  color:#175c8a;font-size:13px;font-weight:850;
+}
+
+/* Dedicated stock status, with real inventory counts and read-only rows.
+   The table scrolls horizontally instead of squeezing labels on narrow screens. */
+.stock-overview{
+  box-sizing:border-box;width:100%;max-width:1400px;margin:0 auto;
+  padding:clamp(12px,1.7vw,27px);background:#fff;color:#18354d;
+  border:1px solid #dce6ef;border-radius:18px;
+  box-shadow:0 7px 25px #112d4b12;
+}
+.stock-overview-header{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:18px}
+.stock-overview-header h1{font-size:clamp(23px,2vw,30px);font-weight:950;margin:0 0 5px}
+.stock-overview-header p{font-size:13px;line-height:1.4;margin:0;color:#5e758b}
+.stock-overview-back{padding:11px 14px;border-radius:10px;border:1px solid #c5d9eb;background:#f0f7ff;color:#184e7a;min-height:44px;font-weight:850}
+.stock-overview-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;margin-bottom:20px}
+.stock-overview-metrics>div{display:flex;flex-direction:column;gap:9px;min-height:85px;background:#f3f8ff;border:1px solid #deeaf5;border-radius:13px;padding:13px}
+.stock-overview-metrics>div:nth-child(2){background:#fff1ef;border-color:#f5d6d2}
+.stock-overview-metrics>div:nth-child(3){background:#fff8e9;border-color:#f3e2bb}
+.stock-overview-metrics span{font-size:13px;color:#506e85;font-weight:750}
+.stock-overview-metrics strong{font-size:27px;font-weight:950;color:#173855;font-variant-numeric:tabular-nums}
+.stock-overview-controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+#stockOverviewSearch{
+  box-sizing:border-box;flex:1 1 280px;min-width:160px;
+  min-height:49px;padding:11px 15px;
+  border:1px solid #cbdce9;background:#fff;border-radius:11px;
+  font-size:16px;color:#19354e;
+}
+.stock-overview-filters{display:flex;gap:7px;flex-wrap:wrap}
+.stock-overview-filters button{
+  cursor:pointer;min-height:43px;border-radius:10px;padding:7px 14px;
+  border:1px solid #cbdbe8;background:#f1f6fa;color:#2b5577;
+  font-size:14px;font-weight:850;
+}
+.stock-overview-filters button[aria-pressed=true]{border-color:#126fc1;background:#1768bb;color:#fff}
+.stock-overview-count{font-size:13px;color:#587187;font-weight:700;margin:6px 0 11px}
+.stock-overview-table-wrap{width:100%;overflow-x:auto;border:1px solid #d9e4ef;border-radius:13px}
+.stock-overview-table{width:100%;min-width:770px;border-collapse:collapse;text-align:left}
+.stock-overview-table thead{background:#eaf2fb}
+.stock-overview-table th{padding:14px 16px;font-size:13px;font-weight:900;color:#28516d}
+.stock-overview-table td{border-top:1px solid #e8eef5;padding:13px 16px;font-size:14px;line-height:1.35;vertical-align:middle}
+.stock-overview-table tbody tr:nth-child(even){background:#fafcff}
+.stock-overview-table tbody tr:hover{background:#edf6ff}
+.stock-overview-table td:first-child{width:36%}
+.stock-overview-table td:first-child strong{display:block;font-size:15px;color:#173950;overflow-wrap:anywhere}
+.stock-overview-table td:first-child small{display:block;font-size:12px;color:#658098;margin-top:4px}
+.stock-overview-table .stock-quantity{font-weight:850;font-variant-numeric:tabular-nums}
+.stock-status{display:inline-flex;align-items:center;justify-content:center;border-radius:8px;min-width:82px;padding:7px 10px;font-weight:850;font-size:12px}
+.stock-status-empty{background:#ffe8e6;color:#a33131}
+.stock-status-low{background:#fff3d5;color:#966116}
+.stock-status-ok{background:#e2f8eb;color:#216c45}
+.stock-status-unknown{background:#edf1f5;color:#627589}
+.stock-overview-no-results{text-align:center!important;padding:45px 18px!important;color:#667e94!important}
+.stock-overview-more{display:block;margin:16px auto 0;padding:12px 22px;border-radius:11px;background:#176cc2;color:#fff;border:0;font-weight:850;cursor:pointer}
+@media(max-width:650px){
+  .stock-overview-metrics{gap:6px}
+  .stock-overview-metrics>div{padding:9px 8px;min-height:85px}
+  .stock-overview-metrics span{font-size:11px}
+  .stock-overview-metrics strong{font-size:21px}
+  .stock-overview{padding:12px 8px}
+}
+
+@media (min-width:1024px) and (min-height:600px) and (orientation:landscape) and (hover:hover) and (pointer:fine) {
+  /* Add a complete fourth grid row, not an implicit half-width column. */
+  #homeView.dashboard-home{
+    grid-template-rows:auto auto auto auto!important;
+    grid-template-areas:"hero metrics" "actions actions" "categories categories" "insights insights"!important;
+  }
+  #homeDesktopInsights.home-desktop-insights{
+    display:grid;grid-area:insights;
+    grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;
+    align-items:stretch;width:100%;margin:10px 0 20px;
+  }
+  #homeDesktopInsights.home-desktop-insights:has(#homeRecentSalesCard[hidden]){grid-template-columns:1fr}
+
+  /* Settings occupy the clean content area with only their own tiles.
+     Do not show Home or Products behind the settings work area. */
+  body.view-settings #settingsView.settings-view{
+    min-height:calc(100dvh - 160px)!important;
+    background:linear-gradient(145deg,#103b64,#0d567a)!important;
+    padding:22px!important;
+  }
+  #settingsView #settingsMainMenu.settings-card-grid{gap:clamp(12px,1.2vw,20px)!important}
+  #settingsView .settings-inner-list{align-items:start}
+
+  /* History: typography, meaningful empty state, useful per-device graph,
+     scrollable recent receipts below. */
+  #historyDialog.sheet[open]{
+    display:flex!important;flex-direction:column;
+    box-sizing:border-box!important;
+    width:min(1120px,calc(100vw - var(--hizli-sidebar) - 64px))!important;
+    max-width:1120px!important;
+    max-height:90dvh!important;
+    padding:0!important;
+    border-radius:18px!important;
+    overflow:hidden!important;background:#f8fbff;
+  }
+  #historyDialog .sheet-header{
+    flex:none;position:relative!important;top:auto!important;
+    background:linear-gradient(100deg,#123c63,#0a6289)!important;
+    color:#fff;padding:17px 22px!important;border:0;
+  }
+  #historyDialog .sheet-header h2{font-size:22px!important}
+  #historyDialog .closebutton{color:#123c63;background:#fff}
+  #historyDialog .history-actions{
+    flex:none;display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+    padding:14px 21px!important;background:#fff;border-bottom:1px solid #e0e9f2;
+  }
+  #historyDialog #historyCount{font-size:15px!important;font-weight:900}
+  #historyDialog .history-device-note{color:#638097;font-size:12px;font-weight:700}
+  #historyDialog #exportSales{margin-left:auto;min-height:41px;font-size:13px}
+  #historyDialog #historySummary.history-summary:not([hidden]){
+    display:grid!important;flex:none;
+    gap:13px!important;margin:0!important;padding:17px 20px 12px!important;
+    border:0!important;background:#f8fbff!important;
+  }
+  #historyDialog .history-summary-metrics{gap:11px!important}
+  #historyDialog .history-summary-metrics>div{
+    min-height:76px!important;padding:12px 15px!important;
+    gap:6px!important;
+  }
+  #historyDialog .history-summary-metrics span{font-size:13px!important}
+  #historyDialog .history-summary-metrics strong{font-size:clamp(22px,2.1vw,29px)!important}
+  #historyDialog .history-summary-empty{
+    border:1px dashed #c8dced;border-radius:12px;
+    padding:25px 18px;margin:0;
+    text-align:center;background:#fff;color:#506e86;
+    font-size:15px;font-weight:750;line-height:1.6;
+  }
+  #historyDialog #historySummaryPlot h3{margin:0 0 9px!important;font-size:16px!important}
+  #historyDialog .history-summary-chart{min-height:130px!important;gap:10px}
+  #historyDialog .history-summary-value{font-size:12px!important}
+  #historyDialog .history-summary-day small{font-size:12px!important}
+  #historyDialog #historyItems.history-items{
+    box-sizing:border-box;flex:1 1 auto;min-height:90px;max-height:none!important;
+    overflow-y:auto!important;padding:13px 20px 20px!important;
+    border-top:1px solid #e2eaf3;background:#fff;
+  }
+  #historyDialog .history-card{
+    padding:13px 16px!important;margin-bottom:8px!important;
+    border:1px solid #e0eaf2;border-radius:12px!important;
+  }
+  #historyDialog .history-head{font-size:15px!important}
+  #historyDialog .history-card small{font-size:12px!important}
+  #historyDialog .history-card p{font-size:14px!important;line-height:1.45!important}
+  #historyDialog .history-card button{font-size:13px!important;min-height:38px}
+
+  /* Sale uses the already approved left cart/right payment layout.
+     Make primary actions readable instead of tiny in a large blank workspace. */
+  #cartDialog.sale-sheet .sale-empty-premium{
+    box-sizing:border-box;min-height:0!important;height:auto!important;
+    width:min(580px,94%)!important;
+    margin:auto!important;padding:24px 26px!important;
+    gap:10px!important;border:1px dashed #bbd6ec;
+    border-radius:19px;background:#fff;
+    box-shadow:0 5px 18px #113d5e0c;
+  }
+  #cartDialog.sale-sheet .sale-empty-basket{width:145px!important}
+  #cartDialog.sale-sheet .sale-empty-premium strong{font-size:27px!important}
+  #cartDialog.sale-sheet .sale-empty-premium p{font-size:15px!important;line-height:1.5!important}
+  #cartDialog.sale-sheet .sale-empty-actions{gap:10px!important;max-width:480px!important}
+  #cartDialog.sale-sheet .sale-empty-actions button{
+    min-height:51px!important;padding:9px 11px!important;
+    border-radius:12px!important;font-size:13px!important;
+  }
+  #cartDialog.sale-sheet .sale-empty-actions span{font-size:22px!important}
+  #cartDialog.sale-sheet .cart-items{padding:20px!important}
+  #cartDialog.sale-sheet .sale-scanner{padding:16px 20px!important}
+  #cartDialog.sale-sheet .sale-scanner input{font-size:17px!important}
+  #cartDialog.sale-sheet .sale-scanner button{
+    font-size:14px!important;min-height:50px!important;padding:8px 12px!important;
+  }
+  #cartDialog.sale-sheet .checkout-area{padding:22px!important;gap:14px!important}
+  #cartDialog.sale-sheet .cart-totals{
+    padding:17px!important;border-radius:14px!important;
+  }
+  #cartDialog.sale-sheet .payment-types{gap:11px!important}
+  #cartDialog.sale-sheet .payment-types label span,
+  #cartDialog.sale-sheet .payment-types .payment-shortcut{
+    min-height:64px!important;height:64px!important;font-size:16px!important;
+    justify-content:flex-start!important;padding:12px 20px!important;
+  }
+  #cartDialog.sale-sheet .payment-types small{font-size:16px!important}
+  #cartDialog.sale-sheet #completeSale{min-height:66px!important;font-size:18px!important}
+}
