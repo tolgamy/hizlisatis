@@ -141,27 +141,35 @@
 
   <dialog id="cartDialog" class="sheet sale-sheet" aria-labelledby="cartTitle">
     <div class="sheet-header sale-sheet-header">
-      <h2 id="cartTitle">Satış <span id="saleLineCount" class="sale-count" aria-label="Sepetteki adet">0</span></h2>
-      <button type="button" class="closebutton" data-close="cartDialog" aria-label="Kapat">×</button>
+      <div class="sale-heading">
+        <span class="sale-heading-icon" aria-hidden="true">🛒</span>
+        <h2 id="cartTitle">Satış</h2>
+        <span class="sale-count-pill"><span id="saleLineCount" class="sale-count" aria-label="Sepetteki adet">0</span> Ürün</span>
+      </div>
+      <div class="sale-header-actions">
+        <button id="saleBack" class="sale-header-back" type="button" aria-label="Önceki ekrana dön">← <span>Geri</span></button>
+        <button id="saleCancel" class="sale-header-cancel" type="button">♲ <span>Satışı İptal Et</span></button>
+        <button id="saleClose" class="sale-header-close" type="button" aria-label="Satış ekranını kapat">× <span>Kapat</span></button>
+      </div>
     </div>
     <form id="saleBarcodeForm" class="sale-scanner">
       <label for="saleBarcode" class="sr-only">Barkod</label>
-      <input id="saleBarcode" type="text" inputmode="search" placeholder="Barkod / ürün kodu" autocomplete="off" enterkeyhint="done">
-      <button class="sale-manual-add" type="submit" aria-label="Barkodla veya ürün seçerek ekle">+</button>
-      <button id="saleScanButton" type="button" aria-label="Kamerayla barkod oku">⌗</button>
+      <span class="sale-search-symbol" aria-hidden="true">⌕</span>
+      <input id="saleBarcode" type="text" inputmode="search" placeholder="Barkod / ürün adı / kodu ara" autocomplete="off" enterkeyhint="done">
+      <button class="sale-manual-add" type="submit" aria-label="Barkodla veya ürün seçerek ekle"><b aria-hidden="true">＋</b><span>Ürün Ekle</span></button>
+      <button id="saleScanButton" type="button" aria-label="Kamerayla barkod oku"><b aria-hidden="true">▥</b><span>Barkod Oku</span></button>
     </form>
     <div id="cartItems" class="cart-items" aria-label="Sepetteki ürünler"></div>
     <div class="checkout-area">
       <div id="cartTotals" class="cart-totals" aria-live="polite"></div>
       <fieldset class="payment-types"><legend class="sr-only">Ödeme türü</legend>
-        <label><input type="radio" name="payment" value="Nakit" checked><span>₺ Nakit</span></label>
-        <label><input type="radio" name="payment" value="Kart"><span>▤ Kart</span></label>
-        <label><input type="radio" name="payment" value="Veresiye"><span>◷ Veresiye</span></label>
-        <label class="payment-transfer"><input type="radio" name="payment" value="Havale"><span>↗ Havale</span></label>
-        <label class="payment-fast"><input type="radio" name="payment" value="FAST"><span>⚡ FAST</span></label>
+        <label class="payment-cash"><input type="radio" name="payment" value="Nakit" checked><span><b aria-hidden="true">▣</b><small>Nakit</small></span></label>
+        <label class="payment-card"><input type="radio" name="payment" value="Kart"><span><b aria-hidden="true">▤</b><small>Kart</small></span></label>
+        <label class="payment-credit"><input type="radio" name="payment" value="Veresiye"><span><b aria-hidden="true">◷</b><small>Veresiye</small></span></label>
+        <label class="payment-transfer"><input type="radio" name="payment" value="Havale / FAST"><span><b aria-hidden="true">↗</b><small>Havale / FAST</small></span></label>
       </fieldset>
       <p id="bankPaymentNotice" class="bank-payment-notice" role="status" hidden>
-        Banka hesabınıza ödeme ulaştığını kontrol edin. Havale ve FAST işlemleri uygulama tarafından otomatik doğrulanmaz.
+        Havale / FAST ödemesinin banka hesabınıza geçtiğini kontrol edin. Uygulama banka transferlerini otomatik doğrulamaz.
       </p>
       <div id="creditBox" class="credit-box" hidden>
         <label for="creditCustomerSearch">Müşteri seç (isim veya telefon)</label>
@@ -176,6 +184,16 @@
         <button id="saleQuickSettings" type="button"><span aria-hidden="true">⚙</span>Ayarlar</button>
       </nav>
       <button id="completeSale" class="primary-button" type="button">Satışı Tamamla</button>
+    </div>
+  </dialog>
+
+  <dialog id="saleExitDialog" class="modal sale-exit-dialog" aria-labelledby="saleExitTitle" aria-describedby="saleExitDescription">
+    <div class="sale-exit-head"><span aria-hidden="true">🛒</span><h2 id="saleExitTitle">Satıştan çıkılsın mı?</h2></div>
+    <p id="saleExitDescription">Sepetinizde ürün var. Çıkarsanız satış kaydedilmez; uygulama açıkken sepete daha sonra devam edebilirsiniz.</p>
+    <div class="sale-exit-actions">
+      <button id="saleExitStay" type="button">Satışa Dön</button>
+      <button id="saleExitKeep" type="button">Sepeti Koru ve Çık</button>
+      <button id="saleExitDiscard" type="button">Satışı İptal Et ve Sepeti Boşalt</button>
     </div>
   </dialog>
 
@@ -240,7 +258,7 @@
           <button id="customerCollect" type="button">Tahsilat Ekle</button></div>
         <form id="customerCollectForm" hidden>
           <label>Tahsilat Tutarı (₺)<input id="customerCollectAmount" type="text" inputmode="decimal" required></label>
-          <label>Ödeme Türü<select id="customerCollectPayment"><option>Nakit</option><option>Kart</option><option>Havale</option><option>FAST</option></select></label>
+          <label>Ödeme Türü<select id="customerCollectPayment"><option>Nakit</option><option>Kart</option><option>Havale / FAST</option></select></label>
           <label>Not<input id="customerCollectNotes" type="text" maxlength="500"></label>
           <button class="primary-button" type="submit">Tahsilatı Kaydet</button>
         </form>
