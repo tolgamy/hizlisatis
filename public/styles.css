@@ -5411,3 +5411,108 @@ body.auth-locked #app{display:none!important}
   }
   #cartDialog.sale-sheet .sale-header-actions {gap:3px!important}
 }
+
+
+/* v74 — Taslak 3 product picker: 4 main / 4 sub / 2 product cards.
+   Only the Ürün Ekle modal is affected; the sale, cart and product data stay unchanged. */
+#pickProductDialog.product-picker .picker-category-grid{
+  display:grid!important;
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:clamp(4px,1.4vw,9px)!important;
+  align-content:start;
+  max-height:min(54dvh,570px);
+  overflow-y:auto;
+  overscroll-behavior:contain;
+}
+#pickProductDialog.product-picker .picker-category-tile{
+  box-sizing:border-box;
+  width:100%;min-width:0;min-height:125px;
+  padding:8px 3px;gap:5px;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:flex-start;
+  border-radius:13px;
+}
+#pickProductDialog.product-picker .picker-category-tile img{
+  box-sizing:border-box;
+  display:block;
+  width:100%;max-width:85px;height:64px;
+  object-fit:contain;flex:none;
+}
+#pickProductDialog.product-picker .picker-category-tile strong{
+  display:block;min-width:0;width:100%;
+  font-size:clamp(10px,2.65vw,13px);font-weight:850;
+  line-height:1.15;overflow-wrap:anywhere;
+  text-align:center;
+}
+#pickProductDialog.product-picker .picker-category-tile small{
+  display:block;min-width:0;width:100%;
+  font-size:clamp(9px,2.35vw,11px);line-height:1.1;
+  text-align:center;margin-top:auto;
+}
+#pickProductDialog.product-picker #pickProductResults.picker-results{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  align-content:start;
+  gap:10px;
+  padding:8px 12px 14px;
+  max-height:min(56dvh,600px);
+  overflow-y:auto;
+  overscroll-behavior:contain;
+}
+#pickProductDialog.product-picker #pickProductResults.picker-results:empty{
+  display:none!important;
+}
+#pickProductDialog.product-picker .picker-product{
+  box-sizing:border-box;
+  width:100%;min-width:0;min-height:210px;
+  display:flex!important;flex-direction:column;
+  align-items:center;justify-content:flex-start;
+  gap:6px;padding:10px 7px;
+  background:#fff;color:#122c43;
+  border:1px solid #dce6ef;border-radius:14px;
+  text-align:center;
+}
+#pickProductDialog.product-picker .picker-product img{
+  display:block;flex:none;
+  width:100%;max-width:118px;height:94px;
+  border-radius:10px;object-fit:contain;
+}
+#pickProductDialog.product-picker .picker-product .picker-emoji{
+  display:flex;flex:0 0 auto;
+  width:100%;height:94px;
+  align-items:center;justify-content:center;
+  font-size:48px;line-height:1;
+}
+#pickProductDialog.product-picker .picker-product span:not(.picker-emoji){
+  display:-webkit-box;flex:0 0 auto;
+  -webkit-box-orient:vertical;-webkit-line-clamp:3;
+  overflow:hidden;min-width:0;width:100%;
+  min-height:30px;
+  font-size:clamp(11px,2.85vw,13px);line-height:1.16;
+  font-weight:800;text-align:center;overflow-wrap:anywhere;
+}
+#pickProductDialog.product-picker .picker-product strong{
+  display:block;flex:0 0 auto;
+  font-size:clamp(13px,3.4vw,16px);
+  color:#167451;font-weight:900;
+  white-space:normal;text-align:center;
+}
+#pickProductDialog.product-picker .picker-product::after{
+  content:"+ Ekle";
+  display:block;flex:none;
+  margin-top:auto;
+  padding:7px 15px;
+  border-radius:9px;background:#079b5c;color:white;
+  font-size:12px;font-weight:900;line-height:1.2;
+}
+#pickProductDialog.product-picker .picker-product:focus-visible,
+#pickProductDialog.product-picker .picker-category-tile:focus-visible{
+  outline:3px solid #2588f3;outline-offset:2px;
+}
+@media(max-width:359px){
+  #pickProductDialog.product-picker .picker-category-tile{min-height:113px;padding:6px 2px}
+  #pickProductDialog.product-picker .picker-category-tile img{height:53px}
+  #pickProductDialog.product-picker .picker-product{min-height:188px}
+  #pickProductDialog.product-picker .picker-product img,
+  #pickProductDialog.product-picker .picker-product .picker-emoji{height:75px}
+}
