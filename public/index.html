@@ -111,6 +111,18 @@
           <a id="settingsTemplate" class="settings-tile settings-tile-template" href="/urun-yukleme-sablonu.xlsx" download="Hizlisatis_Urun_Sablonu.xlsx"><span class="settings-tile-icon" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M15 7h26l12 12v37H15z" stroke="currentColor" stroke-width="3.3" stroke-linejoin="round" fill="none"/><path d="M41 7v13h12M23 30h22M23 39h22M23 48h15" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/><path d="m25 21 7 7 7-7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><strong>Excel Şablonunu İndir</strong><small>Hazır ürün yükleme dosyası</small><b aria-hidden="true">›</b></a>
           <button id="settingsHome" type="button" class="settings-tile settings-tile-home"><span class="settings-tile-icon" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="m8 30 24-20 24 20v26a2 2 0 0 1-2 2H41V39H23v19H10a2 2 0 0 1-2-2z" stroke="currentColor" stroke-width="4.3" stroke-linejoin="round" fill="none"/></svg></span><strong>Ana Sayfaya Git</strong><small>Ana ekrana dön</small><b aria-hidden="true">›</b></button>
         </div>
+        <section class="settings-device-receipt" aria-label="Bu cihazın fiş tercihi">
+          <h2>Bu Cihazın Fiş / Paylaşım Tercihi</h2>
+          <label for="settingsReceiptAction">Satış tamamlandıktan sonra gösterilecek işlem</label>
+          <select id="settingsReceiptAction">
+            <option value="network">Ağ / AirPrint</option>
+            <option value="bluetooth">Bluetooth</option>
+            <option value="whatsapp">WhatsApp Paylaş</option>
+            <option value="pdf">PDF Yap ve Paylaş</option>
+          </select>
+          <small>Bu tercih yalnızca bu cihazın tarayıcısında saklanır. Diğer seçenekler satış sonrası ekranda gizlenir.</small>
+          <p id="settingsReceiptActionStatus" role="status">Bu cihazın tercihi yüklendi.</p>
+        </section>
         <details id="settingsPrinterDetails" class="settings-printer-details">
           <summary>Gelişmiş Ayarlar · Fiş Yazıcısı <span aria-hidden="true">⌄</span></summary>
           <section class="settings-receipt" aria-label="Fiş yazıcı ayarları">
@@ -194,6 +206,12 @@
         <input id="creditName" type="text" readonly placeholder="Seçilen müşteri" aria-label="Seçilen veresiye müşterisi">
         <div id="creditCustomerResults" class="credit-customer-results"></div>
         <button id="creditNewCustomer" type="button" class="sale-secondary-button">+ Yeni müşteri</button>
+      </div>
+      <div class="basket-discount-control">
+        <label for="basketDiscountPct">Toplam Sepet İskontosu (%)</label>
+        <div class="basket-discount-input"><input id="basketDiscountPct" type="text" inputmode="decimal" autocomplete="off" placeholder="0" aria-describedby="basketDiscountHelp basketDiscountError"><strong>%</strong></div>
+        <small id="basketDiscountHelp">Ürün iskontolarından sonra tüm sepete uygulanır.</small>
+        <p id="basketDiscountError" role="alert" hidden></p>
       </div>
       <button id="completeSale" class="primary-button is-empty-cart" type="button" aria-label="Ana Sayfaya Dön">
         <svg class="checkout-home-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"/></svg>
@@ -508,7 +526,7 @@
   <dialog id="receiptActionsDialog" class="sheet receipt-actions-dialog" aria-labelledby="receiptActionsTitle">
     <div class="sheet-header"><h2 id="receiptActionsTitle">Satış Tamamlandı ✓</h2><button type="button" class="closebutton" data-close="receiptActionsDialog" aria-label="Kapat">×</button></div>
     <div class="receipt-actions-body"><div id="receiptActionsTotal" class="receipt-actions-total">₺0,00</div>
-      <div class="receipt-actions-grid">
+      <div id="receiptActionsGrid" class="receipt-actions-grid single-action">
         <button id="receiptNetworkPrint" type="button">▤ <span>Ağ / AirPrint</span></button>
         <button id="receiptBluetoothPrint" type="button">ᛒ <span>Bluetooth</span></button>
         <button id="receiptWhatsApp" type="button">↗ <span>WhatsApp Paylaş</span></button>
