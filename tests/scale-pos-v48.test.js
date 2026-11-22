@@ -134,7 +134,7 @@ test('Weight modal, receipt and checkout preserve distinct measured line values'
   assert.match(app,/birim:line\.product\.birim,grams:line\.weighed\?line\.grams:null/);
   assert.match(pdf,/item\.birim==='kg'/);
   assert.match(css,/\.weight-dialog/);
-  assert.match(sw,/cep-pos-shell-v48-windows-scale-manual-grams/);
+  assert.match(sw,/cep-pos-shell-v49-cas-stable-frame/);
   assert.match(sw,/\/scale-serial\.js/);
   const sale={id:'scale-test',createdAt:new Date().toISOString(),items:[
     {baslik:'Muz KG',birim:'kg',quantity:.564,unitPrice:210,total:118.44}
