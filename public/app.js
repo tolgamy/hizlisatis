@@ -2590,7 +2590,12 @@ async function setup() {
   dom.cartDialog.addEventListener('cancel',event=>{
     event.preventDefault();requestSaleExit('previous');
   });
-  $('saleBack').addEventListener('click',()=>requestSaleExit('previous'));
+  $('saleBack').addEventListener('click',()=>{
+    if(state.saving)return;
+    // Return to the existing category screen without losing any cart lines.
+    if(dom.cartDialog.open)dom.cartDialog.close();
+    openProductCategoryHome();
+  });
   $('saleClose').addEventListener('click',()=>requestSaleExit('home'));
   $('saleCancel').addEventListener('click',()=>requestSaleExit('cancel'));
   $('saleExitStay').addEventListener('click',()=>$('saleExitDialog').close());
