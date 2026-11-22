@@ -26,5 +26,30 @@ export async function onRequestPost({request,env}){
     return reply({error:'Bu kullanıcıda indirim yetkisi bulunmuyor.'},403);
   if(r.payment==='Veresiye'&&!hasPermission(user,'customers'))
     return reply({error:'Bu kullanıcıda veresiye yetkisi bulunmuyor.'},403);
+  // The client may edit unitPrice through "Fiyatı Düzenle". Do not trust a
+  // caller-supplied "priceChanged" flag. Compare every line against D1 before
+  // allowing a cashier without discounts permission to complete a checkout.
+  const ids=[...new Set(r.items.map(line=>String(line.id)))];
+  if(ids.length>150||ids.some(id=>!id||id.length>200))
+    return reply({error:'Satış ürün kimlikleri geçersiz.'},400);
+  let rows;
+  try{
+    rows=await env.DB.prepare('SELECT id,payload FROM product_changes WHERE id IN ('+
+      ids.map(()=>'?').join(',')+')').bind(...ids).all();
+  }catch{return reply({error:'Güncel ürün fiyatları doğrulanamadı.'},503)}
+  const catalog=new Map();
+  try{
+    for(const row of rows.results||[])catalog.set(row.id,JSON.parse(row.payload));
+  }catch{return reply({error:'Merkezi ürün fiyatları okunamadı.'},503)}
+  for(const line of r.items){
+    const product=catalog.get(line.id);
+    if(!product)return reply({error:'Satıştaki ürün merkezi katalogda bulunamadı.'},409);
+    if(!Number.isFinite(line.unitPrice)||line.unitPrice<0)
+      return reply({error:'Ürün fiyatı geçersiz.'},400);
+    if(!Number.isFinite(product.satisFiyati)||product.satisFiyati<0)
+      return reply({error:'Merkezi ürün fiyatı geçersiz.'},503);
+    if(Math.abs(line.unitPrice-product.satisFiyati)>0.011&&!hasPermission(user,'discounts'))
+      return reply({error:'Birim fiyatını değiştirmek için indirim/fiyat yetkisi gerekli.'},403);
+  }
   return reply({ok:true,authorizedBy:user.id});
 }
