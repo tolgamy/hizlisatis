@@ -2571,3 +2571,39 @@ body.view-settings .settings-view .settings-printer-details .settings-receipt{
 @media(prefers-reduced-motion:reduce){
   .settings-view .settings-printer-details>summary span{transition:none}
 }
+
+/* v5.0 — Thermal printer fallback: the 80/58 mm media size is NOT necessarily
+ * the printer's writable width. Reserve physical room on the right for values.
+ * Popup print uses the matching independently generated safe-width rules.
+ */
+@media print {
+  #receiptPrint {
+    box-sizing:border-box!important;
+    width:var(--receipt-content-width,70mm)!important;
+    min-width:0!important;
+    max-width:var(--receipt-content-width,70mm)!important;
+    margin:0 0 0 var(--receipt-left-inset,2mm)!important;
+    padding:1mm 2mm!important;
+    overflow:hidden!important;
+  }
+  #receiptPrint .receipt-row {
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    gap:1mm;
+    min-width:0;
+  }
+  #receiptPrint .receipt-row span:first-child {
+    min-width:0;
+    overflow-wrap:anywhere;
+  }
+  #receiptPrint .receipt-row span:last-child {
+    flex:0 0 auto;
+    white-space:nowrap;
+    font-variant-numeric:tabular-nums;
+    text-align:right;
+  }
+  #receiptPrint .receipt-grand {
+    font-size:11pt!important;
+  }
+}
