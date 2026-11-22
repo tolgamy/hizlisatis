@@ -2400,3 +2400,174 @@ body.view-settings .settings-view .settings-catalog-count{color:#d3e7f2}
 .sale-sheet #completeSale:focus-visible{outline:3px solid #62b4ff;outline-offset:2px}
 .sale-sheet #completeSale:disabled{cursor:wait;opacity:.68}
 @media(prefers-reduced-motion:reduce){.sale-sheet #completeSale{transition:none}}
+
+/* v4.9 — approved device-specific Settings grid:
+   phones and touch tablets: 3 x 3 actions + one full-width Home control;
+   mouse/trackpad desktops: 5 x 2 equal actions.
+   Printer configuration is not removed; it is collapsed by default. */
+body.view-settings .settings-view{max-width:1040px}
+.settings-view .settings-card-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:clamp(6px,1.75vw,13px);
+}
+.settings-view .settings-card-grid>.settings-tile{
+  width:100%;min-width:0;min-height:0;
+  height:clamp(123px,34vw,167px);
+  padding:clamp(7px,1.6vw,13px) clamp(4px,1.2vw,11px) 18px;
+  gap:clamp(4px,.9vw,8px);
+  border-radius:clamp(13px,2.6vw,22px);
+  text-decoration:none;
+}
+.settings-view .settings-card-grid>.settings-tile .settings-tile-icon{
+  width:clamp(34px,9.2vw,58px);
+  height:clamp(34px,9.2vw,58px);
+  flex:none;
+}
+.settings-view .settings-card-grid>.settings-tile strong{
+  color:#18314a;
+  font-size:clamp(10px,2.75vw,16px);
+  line-height:1.14;
+  font-weight:900;
+  overflow-wrap:anywhere;
+}
+.settings-view .settings-card-grid>.settings-tile small{
+  color:#587086;font-size:clamp(9px,2.25vw,11px);
+  line-height:1.15;overflow-wrap:anywhere;
+}
+.settings-view .settings-card-grid>.settings-tile b{
+  width:clamp(21px,5.4vw,27px);height:clamp(21px,5.4vw,27px);
+  right:7px;bottom:7px;
+  font-size:clamp(17px,4.7vw,23px);
+}
+.settings-view .settings-card-grid>.settings-tile-template{
+  --tile-ink:#7242c5;--tile-start:#f7f1ff;--tile-end:#e8d9ff;--tile-edge:#9c69e7;
+}
+.settings-view .settings-card-grid>.settings-tile-home{
+  --tile-ink:#1263b2;--tile-start:#eaf6ff;--tile-end:#c9e7ff;--tile-edge:#55b1f1;
+  grid-column:1/-1;
+  height:clamp(52px,14vw,67px);
+  flex-direction:row;justify-content:center;
+  padding:7px 46px 7px 16px;
+  gap:11px;
+}
+.settings-view .settings-card-grid>.settings-tile-home::after{display:none}
+.settings-view .settings-card-grid>.settings-tile-home .settings-tile-icon{
+  width:30px;height:30px;
+}
+.settings-view .settings-card-grid>.settings-tile-home strong{
+  width:auto;max-width:calc(100% - 75px);
+  font-size:clamp(13px,3.5vw,17px);white-space:nowrap;
+}
+.settings-view .settings-card-grid>.settings-tile-home small{display:none}
+.settings-view .settings-card-grid>.settings-tile-home b{
+  right:10px;bottom:auto;top:50%;transform:translateY(-50%);
+}
+/* Keep the receipt/thermal printer controls working, but not visible until
+   the operator explicitly expands advanced settings. */
+.settings-view .settings-printer-details{
+  margin:12px 0 0;
+  border:1px solid #ffffff56;
+  border-radius:13px;
+  overflow:hidden;
+  background:#0e325288;
+}
+.settings-view .settings-printer-details>summary{
+  display:flex;justify-content:space-between;align-items:center;
+  gap:9px;min-height:44px;padding:11px 14px;
+  color:#d5e8fa;font-size:12px;font-weight:760;
+  cursor:pointer;list-style:none;
+}
+.settings-view .settings-printer-details>summary::-webkit-details-marker{display:none}
+.settings-view .settings-printer-details>summary span{transition:transform .18s ease}
+.settings-view .settings-printer-details[open]>summary span{transform:rotate(180deg)}
+body.view-settings .settings-view .settings-printer-details .settings-receipt{
+  margin:0;border:0;border-radius:0;
+}
+@media (max-width:359px){
+  .settings-view .settings-card-grid{gap:5px}
+  .settings-view .settings-card-grid>.settings-tile:not(.settings-tile-home){
+    height:122px;padding:8px 3px 16px;border-radius:12px;
+  }
+  .settings-view .settings-card-grid>.settings-tile:not(.settings-tile-home) strong{
+    font-size:10px;
+  }
+  .settings-view .settings-card-grid>.settings-tile:not(.settings-tile-home) small{
+    font-size:9px;
+  }
+}
+@media (min-width:600px) and (pointer:coarse){
+  .settings-view .settings-card-grid{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:clamp(12px,1.6vw,18px);
+  }
+  .settings-view .settings-card-grid>.settings-tile:not(.settings-tile-home){
+    height:clamp(156px,17vw,192px);padding:15px 10px 21px;
+  }
+  .settings-view .settings-card-grid>.settings-tile strong{
+    font-size:clamp(14px,1.7vw,18px);
+  }
+  .settings-view .settings-card-grid>.settings-tile small{
+    font-size:clamp(10px,1.15vw,13px);
+  }
+  .settings-view .settings-card-grid>.settings-tile .settings-tile-icon{
+    width:clamp(49px,6vw,68px);height:clamp(49px,6vw,68px);
+  }
+  .settings-view .settings-card-grid>.settings-tile-home{
+    height:65px;
+  }
+  .settings-view .settings-card-grid>.settings-tile-home .settings-tile-icon{
+    width:31px;height:31px;
+  }
+}
+@media (min-width:900px) and (hover:hover) and (pointer:fine){
+  body.view-settings .settings-view{
+    max-width:1320px;
+    width:100%;
+    padding:clamp(18px,2vw,30px);
+  }
+  .settings-view .settings-card-grid{
+    grid-template-columns:repeat(5,minmax(0,1fr));
+    gap:clamp(10px,1vw,18px);
+  }
+  .settings-view .settings-card-grid>.settings-tile,
+  .settings-view .settings-card-grid>.settings-tile-home{
+    height:clamp(154px,14vw,205px);
+    grid-column:auto;
+    padding:17px 9px 24px;
+    flex-direction:column;
+    gap:8px;
+    justify-content:center;
+  }
+  .settings-view .settings-card-grid>.settings-tile-home::after{display:block}
+  .settings-view .settings-card-grid>.settings-tile-home .settings-tile-icon{
+    width:clamp(43px,4.6vw,62px);height:clamp(43px,4.6vw,62px);
+  }
+  .settings-view .settings-card-grid>.settings-tile-home strong{
+    width:100%;max-width:100%;white-space:normal;
+  }
+  .settings-view .settings-card-grid>.settings-tile-home small{
+    display:block;
+  }
+  .settings-view .settings-card-grid>.settings-tile-home b{
+    right:9px;top:auto;bottom:10px;transform:none;
+  }
+  .settings-view .settings-card-grid>.settings-tile strong{
+    font-size:clamp(13px,1.1vw,17px);
+  }
+  .settings-view .settings-card-grid>.settings-tile small{
+    font-size:clamp(10px,.85vw,12px);
+  }
+  .settings-view .settings-card-grid>.settings-tile .settings-tile-icon{
+    width:clamp(42px,4.5vw,63px);height:clamp(42px,4.5vw,63px);
+  }
+}
+/* A landscape tablet with coarse/touch input retains the 3x3 layout even
+   though the surrounding PWA may use its existing desktop-style sidebar. */
+@media (min-width:900px) and (pointer:coarse){
+  body.view-settings .settings-view{width:100%;max-width:1040px}
+  .settings-view .settings-card-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(prefers-reduced-motion:reduce){
+  .settings-view .settings-printer-details>summary span{transition:none}
+}
