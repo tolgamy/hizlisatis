@@ -64,7 +64,8 @@ export class ScaleSerialConnection {
     this.onUnstable=onUnstable;
     this.port=null;this.reader=null;this.readTask=null;this.connected=false;
     this.active=false;this.lastGrams=null;this.matches=0;this.lastAt=0;
-    this.buffer='';
+    this.buffer='';this.lastPublishedGrams=null;this.lastPublishedAt=0;
+    this.lastRawText='';this.lastRawAt=0;
   }
   async connect({baudRate=9600,dataBits=8,parity='none',stopBits=1}={}){
     if(!scaleSupported(this.nav))throw Error('Seri terazi yalnız Windows Chrome/Edge üzerinden bağlanabilir.');
@@ -77,6 +78,8 @@ export class ScaleSerialConnection {
     }
     this.port=port;this.active=true;this.connected=true;
     this.lastGrams=null;this.matches=0;this.lastAt=0;this.buffer='';
+    this.lastPublishedGrams=null;this.lastPublishedAt=0;
+    this.lastRawText='';this.lastRawAt=0;
     this.onStatus('Bağlandı. Teraziden sabit ağırlık bekleniyor…');
     // Loop runs while this modal is open; connection remains available for
     // future weighings until the operator explicitly disconnects.
@@ -91,7 +94,13 @@ export class ScaleSerialConnection {
     for(const frame of frames){
       const text=frame.replace(/[\x00-\x1f]/g,'').trim();
       if(!text)continue;
-      this.onRaw(text.slice(0,140));
+      // Scales may emit dozens of identical frames per second. Do not run
+      // DOM callbacks for every one: draining the serial buffer comes first.
+      const rawAt=Date.now();
+      if(text!==this.lastRawText||rawAt-this.lastRawAt>=200){
+        this.lastRawText=text;this.lastRawAt=rawAt;
+        this.onRaw(text.slice(0,140));
+      }
       const parsed=parseScaleReading(text);
       if(!parsed){
         // Clear stale captured weights when the scale says it is moving,
@@ -99,6 +108,7 @@ export class ScaleSerialConnection {
         if(/^(?:U|US|OL|OVER)(?:[\s,;]|$)/i.test(text) ||
            /^(?:S[\s,;]+)?0(?:[.,]0+)?\s*(?:kg|g)\s*$/i.test(text)){
           this.matches=0;this.lastGrams=null;this.lastAt=0;
+          this.lastPublishedGrams=null;
           this.onUnstable();
         }
         continue;
@@ -109,32 +119,65 @@ export class ScaleSerialConnection {
       this.lastGrams=parsed.grams;this.lastAt=now;
       // S/ST is an explicit stable flag from the device, so a single frame
       // is sufficient. Untagged weight readings still require two matches.
-      if(parsed.stable||this.matches>=2)this.onReading({...parsed,at:now});
+      if(parsed.stable||this.matches>=2){
+        if(parsed.grams!==this.lastPublishedGrams||now-this.lastPublishedAt>=120){
+          this.lastPublishedGrams=parsed.grams;this.lastPublishedAt=now;
+          this.onReading({...parsed,at:now});
+        }
+      }
     }
   }
   async readLoop(port){
     const decoder=new TextDecoder();
+    let consecutiveErrors=0;
     try{
+      // Web Serial can report a transient non-fatal read error (such as
+      // "Buffer overrun") and expose a new readable stream on the same port.
+      // Reacquire its reader rather than permanently abandoning the port.
       while(this.active&&this.port===port&&port.readable){
         const reader=port.readable.getReader();
         this.reader=reader;
+        let readError=null;
         try{
           while(this.active){
             const {value,done}=await reader.read();
             if(done)break;
-            if(value?.length)this.consume(decoder.decode(value,{stream:true}));
+            if(value?.length){
+              consecutiveErrors=0;
+              this.consume(decoder.decode(value,{stream:true}));
+            }
           }
+        }catch(error){
+          readError=error;
         }finally{
           reader.releaseLock();
           if(this.reader===reader)this.reader=null;
         }
-        if(this.active)break;
+        if(!this.active||this.port!==port)break;
+        if(readError){
+          // The bytes surrounding the error may be truncated; never reuse an
+          // older stable reading to sell the next product.
+          this.buffer='';this.lastGrams=null;this.matches=0;this.lastAt=0;
+          this.lastPublishedGrams=null;
+          this.onUnstable();
+          consecutiveErrors++;
+          if(consecutiveErrors>=5)throw readError;
+          this.onStatus('Seri veri taşması algılandı; okuma yeniden deneniyor…');
+          await new Promise(resolve=>setTimeout(resolve,100));
+          continue;
+        }
+        break; // Stream ended normally; avoid a busy restart loop.
       }
       if(this.active)this.onStatus('Teraziden veri akışı durdu. Bağlantıyı kontrol edin.');
     }catch(e){
       if(this.active)this.onStatus('Seri veri okunamadı: '+(e?.message||'Bağlantı kesildi.'));
     }finally{
-      if(this.port===port){this.connected=false;this.active=false;}
+      if(this.port===port){
+        this.connected=false;this.active=false;
+        // A physical port may remain open even though the read loop stopped.
+        // Update the UI so the operator can reconnect instead of seeing "Bağlı".
+        this.onStatus('Terazi veri bağlantısı kapalı. COM portunu yeniden bağlayın.');
+      }
     }
   }
   async disconnect(){
