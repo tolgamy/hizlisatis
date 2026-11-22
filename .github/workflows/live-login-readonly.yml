@@ -1,4 +1,5 @@
 name: Live login read-only verification
+# Repeat production-safe anonymous login probe after Cloudflare setup
 on:
   pull_request:
     branches: [main]
