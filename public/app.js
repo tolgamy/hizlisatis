@@ -217,7 +217,7 @@ function openSale() {
 // chooses to cancel the sale and clear it in the confirmation dialog.
 let pendingSaleExitTarget='previous';
 function finishSaleExit({discard=false}={}) {
-  $('saleExitDialog').close();
+  if($('saleExitDialog').open)$('saleExitDialog').close();
   if(discard) {
     state.cart.clear();
     state.pendingCreditSale=null;
