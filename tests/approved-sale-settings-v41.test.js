@@ -39,7 +39,7 @@ test('Sale has one-line header and image-led cart without redundant screen short
   assert.match(css,/\.sale-sheet \.cart-items\{[\s\S]*?overflow-y:auto/);
   for(const id of ['saleBack','saleCancel','saleClose','completeSale'])
     assert.match(sale,new RegExp('id="'+id+'"'));
-  assert.match(sw,/v49-cas-stable-frame/);
+  assert.match(sw,/v50-one-tap-live-scale/);
 });
 
 test('Device backup rejects foreign, broken or duplicate sales and carries settings safely',()=>{
