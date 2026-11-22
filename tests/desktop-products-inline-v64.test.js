@@ -123,7 +123,8 @@ test('category card opens inline only on desktop Products landing; other routes 
 test('Sale, Reports and Home keep the existing working layouts and payment/data safeguards',()=>{
   assert.match(app,/await authorizeCheckout\(record\)/);
   assert.match(app,/renderHistorySummary\(state\.sales\)/);
-  assert.match(app,/placeDesktopWorkspace\(dom\.cartDialog\)/);
-  assert.match(app,/placeDesktopWorkspace\(dom\.historyDialog\)/);
+  assert.match(app,/placeNativeWorkspacePages\(\)/);
+  assert.match(app,/navigate\('#sale'\)/);
+  assert.match(app,/navigate\('#reports'\)/);
   assert.doesNotMatch(v64,/#cartDialog|#historyDialog|#settingsView|#homeView/);
 });
