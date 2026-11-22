@@ -2007,7 +2007,11 @@ async function setup() {
           else{scaleLatest=null;scaleCapturedAt=0;clearWeightFreshnessTimer();}
         },
         onStatus:status=>{
-          if(/veri akışı durdu|okunamadı|bağlantısı kapalı/i.test(status)){
+          const connected=Boolean(scaleConnection?.connected);
+          $('weightConnectionState').textContent=connected?'Bağlı':'Bağlı değil';
+          $('weightConnect').disabled=connected;
+          $('weightDisconnect').disabled=!connected;
+          if(/veri akışı durdu|okunamadı|taşması|bağlantısı kapalı/i.test(status)){
             invalidateAutoWeight(status);
           }else $('weightSerialStatus').textContent=status;
         },
