@@ -4976,3 +4976,202 @@ body.auth-locked #app{display:none!important}
     overscroll-behavior:contain;
   }
 }
+
+
+/* v72 — approved unified mobile Sale toolbar, replacing the cramped
+   single-line header. Logo row + equal-height labeled controls; visually
+   separate live variety/item counters. Basket and payment are unchanged. */
+.mobile-sale-brand {display:none}
+/* Set explicit desktop icon dimensions too; an SVG with no dimensions
+   otherwise uses the browser's large intrinsic default size. */
+.sale-sheet .sale-top-icon {display:inline-flex;align-items:center;justify-content:center;flex:none}
+.sale-sheet .sale-top-icon svg {display:block;width:20px;height:20px}
+@media (max-width:679px) {
+  #cartDialog.sale-sheet .sale-sheet-header {
+    box-sizing:border-box!important;
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) minmax(0,1.08fr)!important;
+    grid-template-rows:auto auto!important;
+    gap:10px 7px!important;
+    align-items:stretch!important;
+    justify-content:stretch!important;
+    min-width:0!important;
+    padding:8px 8px 12px!important;
+    background:linear-gradient(115deg,#078b7b 0%,#057365 62%,#06534e 100%)!important;
+  }
+  #cartDialog.sale-sheet .mobile-sale-brand {
+    display:flex!important;grid-column:1/-1;grid-row:1;
+    align-items:center;justify-content:center;gap:7px;
+    min-height:37px;color:#fff;white-space:nowrap;
+  }
+  #cartDialog.sale-sheet .mobile-sale-brand svg {
+    width:34px;height:32px;flex:none;
+  }
+  #cartDialog.sale-sheet .mobile-sale-brand strong {
+    font-size:clamp(21px,5.5vw,27px);font-style:italic;
+    font-weight:950;letter-spacing:-.04em;line-height:1;
+    text-shadow:0 1px 2px #064a4936;
+  }
+  #cartDialog.sale-sheet .sale-heading {
+    grid-column:1;grid-row:2;
+    box-sizing:border-box!important;
+    display:grid!important;
+    grid-template-columns:clamp(43px,12.5vw,53px) minmax(0,1fr)!important;
+    gap:5px!important;
+    flex:none!important;align-items:stretch!important;
+    width:100%!important;min-width:0!important;
+    white-space:normal!important;
+  }
+  #cartDialog.sale-sheet .sale-heading-icon {display:none!important}
+  #cartDialog.sale-sheet .sale-heading h2 {
+    box-sizing:border-box!important;
+    display:flex!important;flex-direction:column;
+    align-items:center!important;justify-content:center!important;
+    gap:2px!important;
+    margin:0!important;padding:3px 0!important;
+    min-width:0!important;width:100%!important;height:64px!important;
+    border:1.5px solid #d9fff9!important;
+    border-radius:13px!important;
+    font-size:clamp(11px,3vw,13px)!important;
+    font-weight:900!important;line-height:1.1!important;
+    white-space:nowrap!important;color:white!important;
+  }
+  #cartDialog.sale-sheet .sale-heading h2::before {
+    content:"▣";display:block;
+    font-size:clamp(17px,4.7vw,21px);
+    font-weight:800;line-height:1.1;
+  }
+  #cartDialog.sale-sheet .sale-count-pill {
+    box-sizing:border-box!important;
+    display:block!important;
+    min-width:0!important;width:100%!important;height:64px!important;
+    margin:0!important;padding:0!important;
+    border-radius:13px!important;
+    color:#102f4c!important;background:#eaf5ff!important;
+    overflow:hidden!important;white-space:normal!important;
+  }
+  #cartDialog.sale-sheet .sale-desktop-count {display:none!important}
+  #cartDialog.sale-sheet .sale-mobile-count {
+    box-sizing:border-box!important;
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    width:100%!important;height:100%!important;min-width:0!important;
+    align-items:stretch!important;
+    font-size:clamp(9px,2.55vw,12px)!important;
+    font-weight:900!important;line-height:1.1!important;
+  }
+  #cartDialog.sale-sheet .sale-mobile-count > span {
+    display:flex;flex-direction:column;
+    align-items:center;justify-content:center;
+    min-width:0;gap:4px;padding:4px 1px;box-sizing:border-box;
+    text-align:center;white-space:nowrap;
+  }
+  #cartDialog.sale-sheet .sale-mobile-count > span + span {
+    border-left:1px solid #a6c5e0;
+  }
+  #cartDialog.sale-sheet .sale-mobile-count .sale-count-icon {
+    display:block;font-size:18px;line-height:1;color:#1d5c91;
+  }
+  #cartDialog.sale-sheet .sale-mobile-count b {font:inherit}
+  #cartDialog.sale-sheet .sale-header-actions {
+    grid-column:2;grid-row:2;
+    box-sizing:border-box!important;
+    display:grid!important;
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    align-items:stretch!important;
+    gap:5px!important;
+    width:100%!important;max-width:100%!important;min-width:0!important;
+    height:64px!important;
+    margin:0!important;padding:0!important;
+    flex:none!important;
+  }
+  #cartDialog.sale-sheet .sale-header-actions button {
+    box-sizing:border-box!important;
+    display:flex!important;flex-direction:column!important;
+    align-items:center!important;justify-content:center!important;
+    gap:2px!important;
+    width:100%!important;min-width:0!important;
+    height:64px!important;min-height:64px!important;max-height:64px!important;
+    margin:0!important;padding:4px 2px!important;
+    border:1.5px solid #e1fff9!important;
+    border-radius:13px!important;
+    color:#fff!important;
+    background:#ffffff12!important;
+    font-size:12px!important;line-height:1.1!important;
+    white-space:nowrap!important;flex-wrap:nowrap!important;
+  }
+  #cartDialog.sale-sheet .sale-header-actions .sale-header-cancel {
+    background:linear-gradient(135deg,#ed4258,#ba1731)!important;
+    border-color:#ffced7!important;
+  }
+  #cartDialog.sale-sheet .sale-header-actions button .sale-top-icon {
+    box-sizing:border-box!important;
+    display:flex!important;
+    align-items:center!important;justify-content:center!important;
+    height:25px!important;min-height:25px!important;
+    font-size:clamp(22px,5.5vw,26px)!important;
+    line-height:1!important;
+    color:#fff!important;
+  }
+  #cartDialog.sale-sheet .sale-header-actions button .sale-top-icon svg {
+    display:block;width:23px;height:23px;
+    color:inherit;
+  }
+  #cartDialog.sale-sheet .sale-header-actions button .sale-top-text,
+  #cartDialog.sale-sheet .sale-header-actions button .sale-cancel-short {
+    display:block!important;
+    font-size:clamp(11px,2.8vw,13px)!important;
+    line-height:1.1!important;
+    font-weight:900!important;white-space:nowrap!important;
+    color:#fff!important;
+  }
+  #cartDialog.sale-sheet .sale-header-actions button .sale-cancel-long {
+    display:none!important;
+  }
+  #cartDialog.sale-sheet .sale-scanner {
+    gap:6px!important;
+    padding:9px 9px 11px!important;
+  }
+  #cartDialog.sale-sheet .sale-scanner input {
+    box-sizing:border-box!important;
+    flex:1 1 auto!important;
+    width:0!important;min-width:0!important;
+    height:58px!important;min-height:58px!important;
+    padding-left:30px!important;
+    font-size:clamp(11px,3vw,15px)!important;
+  }
+  #cartDialog.sale-sheet .sale-search-symbol {
+    left:20px!important;font-size:22px!important;
+  }
+  #cartDialog.sale-sheet .sale-scanner .sale-manual-add,
+  #cartDialog.sale-sheet .sale-scanner #saleScanButton {
+    box-sizing:border-box!important;
+    display:flex!important;flex-direction:column!important;
+    justify-content:center!important;align-items:center!important;
+    flex:0 0 clamp(60px,16.8vw,75px)!important;
+    width:clamp(60px,16.8vw,75px)!important;
+    min-width:0!important;
+    height:58px!important;min-height:58px!important;max-height:58px!important;
+    padding:3px 2px!important;gap:2px!important;
+    border-radius:14px!important;
+  }
+  #cartDialog.sale-sheet .sale-scanner button b {
+    font-size:clamp(22px,5.5vw,27px)!important;line-height:1!important;
+  }
+  #cartDialog.sale-sheet .sale-scanner button span {
+    display:block!important;
+    font-size:clamp(9px,2.4vw,11px)!important;
+    font-weight:900!important;line-height:1.05!important;
+    text-align:center!important;white-space:normal!important;
+  }
+}
+@media (max-width:340px) {
+  #cartDialog.sale-sheet .sale-sheet-header {padding:7px 5px 10px!important;gap:8px 4px!important}
+  #cartDialog.sale-sheet .sale-heading {gap:3px!important}
+  #cartDialog.sale-sheet .sale-header-actions {gap:3px!important}
+  #cartDialog.sale-sheet .sale-mobile-count {font-size:9px!important}
+  #cartDialog.sale-sheet .sale-header-actions button .sale-top-text,
+  #cartDialog.sale-sheet .sale-header-actions button .sale-cancel-short {
+    font-size:10px!important;
+  }
+}
