@@ -695,6 +695,10 @@ function addToCart(product, quantity=1,{separate=false,grams=null}={}) {
   }
   if(!isActive(product)) { announce('Ürün pasif. Satış için önce aktifleştirin.','error'); return false; }
   const current = state.cart.get(product.id);
+  // Merge repeated weighed packages of one product; the scale serial reader is unchanged.
+  const existingWeighed=separate?[...state.cart.values()].find(
+    line=>line.id===product.id&&line.weighed&&line.product.birim===product.birim
+  ):null;
   const already=[...state.cart.values()].filter(line=>line.id===product.id)
     .reduce((sum,line)=>sum+line.quantity,0);
   if (product.fiyatBelirsiz) { announce('Bu ürünün satış fiyatı girilmemiş. Ayarlar’dan fiyatı düzenleyin.', 'error'); return false; }
@@ -704,17 +708,30 @@ function addToCart(product, quantity=1,{separate=false,grams=null}={}) {
   if (remaining(product) + 0.000001 < already+quantity) {
     announce('Bu ürün için yeterli yerel stok yok.', 'error'); return false;
   }
-  if (current&&!separate) current.quantity=Math.round((current.quantity+quantity)*1000)/1000;
-  else {
+  if(separate&&(!Number.isInteger(grams)||grams<1||
+      (product.birim==='kg'?Math.round(quantity*1000):quantity)!==grams)){
+    announce('Tartım gramajı geçersiz. Ürünü yeniden tartın.','error');return false;
+  }
+  if(existingWeighed){
+    const before=Number.isInteger(existingWeighed.grams)?existingWeighed.grams:
+      Math.round(existingWeighed.quantity*(product.birim==='kg'?1000:1));
+    const totalGrams=before+grams;
+    existingWeighed.grams=totalGrams;
+    existingWeighed.quantity=product.birim==='kg'?totalGrams/1000:totalGrams;
+    existingWeighed.weighCount=(existingWeighed.weighCount||1)+1;
+    // Preserve any cashier-edited price or discount on this product.
+  }else if(current&&!separate)current.quantity=Math.round((current.quantity+quantity)*1000)/1000;
+  else{
     const cartKey=separate?'weight::'+product.id+'::'+(globalThis.crypto?.randomUUID?.()||
       (Date.now().toString(36)+'-'+Math.random().toString(36).slice(2))):product.id;
     state.cart.set(cartKey,{id:product.id,cartKey,product:{...product},
       quantity,grams:separate?grams:null,weighed:separate,
+      weighCount:separate?1:null,
       unitPrice:product.satisFiyati,discountPct:0});
   }
   renderCartBar();
-  if (dom.cartDialog.open) renderCart();
-  playCartSound(current&&!separate?'increase':'add');
+  if(dom.cartDialog.open)renderCart();
+  playCartSound(existingWeighed||(current&&!separate)?'increase':'add');
   showCartConfirmation(product);
   return true;
 }
@@ -736,7 +753,10 @@ function updateCart(id, field, value) {
     }
     if(num!==line.quantity)playCartSound(num>line.quantity?'increase':'decrease');
     line.quantity = num;
-    if(line.weighed)line.grams=line.product.birim==='g'?Math.round(num):Math.round(num*1000);
+    if(line.weighed){
+      line.grams=line.product.birim==='g'?Math.round(num):Math.round(num*1000);
+      line.weighCount=1; // The manual edit replaces the recorded weighing count.
+    }
   } else if (field === 'price') {
     const num = parseLocaleNumber(value, NaN);
     if (!Number.isFinite(num) || num < 0) { announce('Geçerli bir birim fiyat girin.', 'error'); renderCart(); return; }
@@ -792,7 +812,7 @@ function renderCart() {
     </div>
     ${line.weighed?'<small class="cart-weight-badge">⚖ '+esc(
       line.product.birim==='kg'?line.quantity.toFixed(3)+' kg':line.quantity+' g'
-    )+' · Ayrı tartım</small>':''}
+    )+' · '+(line.weighCount>1?line.weighCount+' tartım':'Tartılı ürün')+'</small>':''}
     <div class="sale-line-actions">
       <div class="stepper">
         <button type="button" data-step="-1" aria-label="Adedi azalt">−</button>
