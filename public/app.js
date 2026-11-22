@@ -20,7 +20,7 @@ import { createProductManager } from './product-management.js';
 import { checkRemoteProductStates } from './remote-products.js';
 import { createCustomerManager } from './customer-ui.js';
 import { recordCustomerCredit } from './customer-api.js';
-import { readReceiptSettings,saveReceiptSettings } from './receipt-settings.js';
+import { readReceiptSettings,saveReceiptSettings,receiptPrintLayout } from './receipt-settings.js';
 import { writeActiveProductsLocalStorage } from './active-products-cache.js';
 
 const $ = id => document.getElementById(id);
@@ -210,10 +210,20 @@ function setView(view,showAll=false) {
   else if(view==='catalog' && (showAll||state.search.trim())) navigate('#products');
   else if(view==='catalog') openProductCategoryHome();
 }
-function openSale() {
+/** Focus the real barcode entry so USB/Bluetooth scanners can send the next
+ * EAN/UPC immediately, without a second tap. Do not steal focus from overlays.
+ */
+function focusSaleBarcode(){
+  if(!dom.cartDialog.open || $('receiptActionsDialog').open ||
+     $('scanQuantityDialog').open || dom.scanDialog.open || $('pickProductDialog').open) return;
+  $('saleBarcode').focus({preventScroll:true});
+}
+function openSale({preferCamera=false}={}) {
   renderCart();
   if (!dom.cartDialog.open) dom.cartDialog.showModal();
+  $('saleBarcode').value='';
   updateNavigation();
+  if(!preferCamera)focusSaleBarcode();
 }
 // A closed sale never destroys the cart unless the operator explicitly
 // chooses to cancel the sale and clear it in the confirmation dialog.
@@ -274,9 +284,9 @@ function openCamera() {
   if (!dom.scanDialog.open) dom.scanDialog.showModal();
   startScanner();
 }
-function selectScannedQuantity(product,sourceInput=null) {
+function selectScannedQuantity(product,sourceInput=null,resumeCamera=false) {
   if(!product)return;
-  pendingScanProduct={product,sourceInput};
+  pendingScanProduct={product,sourceInput,resumeCamera};
   const weighted=['kg','g','litre'].includes(product.birim);
   $('scanQuantityProduct').textContent=product.baslik+' · '+money(product.satisFiyati,product.paraBirimi);
   const input=$('scanQuantityInput');
@@ -701,12 +711,20 @@ function adjustScanQuantity(delta) {
 function confirmScannedQuantity() {
   const pending=pendingScanProduct;
   if(!pending)return;
-  const {product,sourceInput}=pending,qty=Number($('scanQuantityInput').value);
+  const {product,sourceInput,resumeCamera}=pending,qty=Number($('scanQuantityInput').value);
   if(addToCart(product,qty)) {
     if(sourceInput)sourceInput.value='';
+    $('saleBarcode').value='';
     pendingScanProduct=null;
     $('scanQuantityDialog').close();
     chirp();
+    if(!dom.cartDialog.open)openSale({preferCamera:resumeCamera});
+    if(resumeCamera){
+      // A quantity confirmation is a deliberate new scan, including when the
+      // same EAN is scanned again. Video-frame debounce still runs normally.
+      lastScanText='';lastScanTime=0;
+      openCamera();
+    } else focusSaleBarcode();
   }
 }
 function renderAll() { renderHome(); renderFilters(); renderProducts(); renderCartBar(); setSyncStatus(); updateNavigation(); if (dom.cartDialog.open) renderCart(); }
@@ -855,11 +873,14 @@ async function completeSale() {
 }
 function renderReceipt(sale) {
   const prefs=sale.receiptSettings||readReceiptSettings();
-  const width=prefs.width==='58'?'58mm':'80mm';
-  $('receiptPrint').style.setProperty('--receipt-width', width);
-  // Set physical paper dimensions instead of only CSS content width. Mobile
-  // print sheets still require an 80/58-mm paper preset in the printer driver.
-  const mm = width === '58mm' ? 58 : 80;
+  const layout=receiptPrintLayout(prefs.width);
+  const width=layout.paperMm+'mm';
+  $('receiptPrint').style.setProperty('--receipt-width',width);
+  $('receiptPrint').style.setProperty('--receipt-content-width',layout.contentMm+'mm');
+  $('receiptPrint').style.setProperty('--receipt-left-inset',layout.leftInsetMm+'mm');
+  // Physical paper is still 58/80 mm; text stays inside a narrower safe zone.
+  // The printer driver's actual paper preset must also match the roll.
+  const mm=layout.paperMm;
   const height=Math.max(80,Math.min(1000,60+sale.items.length*11));
   $('receiptPaperSize').textContent = `@media print { @page { size: ${mm}mm ${height}mm; margin: 0; } }`;
   const root = $('receiptPrint');
@@ -894,7 +915,11 @@ function renderReceipt(sale) {
 function printSale(sale) {
   renderReceipt(sale);
   // Isolate roll paper from the POS layout; system printer must still select 80/58-mm media.
-  const mm = (sale.receiptSettings?.width||readReceiptSettings().width)==='58'?58:80;
+  const layout=receiptPrintLayout(sale.receiptSettings?.width||readReceiptSettings().width);
+  const mm=layout.paperMm;
+  const printableMm=layout.contentMm;
+  const leftInsetMm=layout.leftInsetMm;
+  const innerPaddingMm=layout.innerPaddingMm;
   const receipt = $('receiptPrint').innerHTML;
   let preview;
   try { preview = window.open('', '_blank'); } catch { /* popup blocked */ }
@@ -905,7 +930,6 @@ function printSale(sale) {
   }
   try {
     const initialHeight = Math.min(2500, Math.max(85, 65 + (sale.items?.length || 1) * 12));
-    const padding=mm===58?2:3;
     const fontSize=mm===58?9:10;
     const fontTitle=mm===58?12:14;
     const style = '<style id="printPaper">@page{size:' + mm + 'mm ' + initialHeight + 'mm;margin:0}</style>' +
@@ -913,19 +937,20 @@ function printSale(sale) {
       '.print-controls{max-width:520px;margin:15px auto;padding:14px;text-align:center;background:#fff;border-radius:12px}' +
       '.print-controls button{background:#127653;color:white;border:0;border-radius:10px;padding:13px 24px;font-size:16px;font-weight:800}' +
       '.print-controls p{font-size:12px;line-height:1.5;color:#475569;margin:10px 0 0}' +
-      '#receipt{width:' + mm + 'mm;max-width:100%;margin:12px auto;padding:5mm ' + padding + 'mm;background:#fff;' +
+      '#receipt{width:' + printableMm + 'mm;max-width:100%;margin:12px auto;padding:5mm ' + innerPaddingMm + 'mm;background:#fff;' +
         'box-shadow:0 4px 20px #14253b22;font:700 ' + fontSize + 'pt/1.15 Arial,sans-serif;overflow-wrap:anywhere}' +
       '.receipt-title{text-align:center;font-weight:900;font-size:' + fontTitle + 'pt;margin-bottom:1mm}' +
       '.receipt-center{text-align:center}.receipt-small{font-size:8pt}.receipt-footer-line{font-size:9pt;font-weight:900;margin:0}' +
       '.receipt-rule{border-bottom:1px dashed #000;margin:1mm 0}' +
-      '.receipt-row{display:flex;justify-content:space-between;align-items:baseline;gap:2mm;min-width:0}' +
+      '.receipt-row{display:flex;justify-content:space-between;align-items:baseline;gap:1mm;min-width:0}' +
       '.receipt-row span{min-width:0;overflow-wrap:anywhere}' +
-      '.receipt-row span:last-child{white-space:nowrap;text-align:right;flex:none}' +
+      '.receipt-row span:last-child{white-space:nowrap;text-align:right;flex:none;font-variant-numeric:tabular-nums}' +
       '.receipt-product{margin:0;line-height:1.12;break-inside:avoid;page-break-inside:avoid}' +
-      '.receipt-grand{font-size:12pt;font-weight:900}' +
+      '.receipt-grand{font-size:' + (mm===58?10:11) + 'pt;font-weight:900}' +
       '@media print{html,body{width:' + mm + 'mm!important;max-width:' + mm + 'mm!important;background:#fff!important}' +
-      '.print-controls{display:none!important}#receipt{width:' + mm + 'mm!important;max-width:' + mm + 'mm!important;' +
-      'margin:0!important;padding:1mm ' + padding + 'mm!important;box-shadow:none!important}}</style>';
+      '.print-controls{display:none!important}#receipt{width:' + printableMm + 'mm!important;max-width:' + printableMm + 'mm!important;' +
+      'margin:0 0 0 ' + leftInsetMm + 'mm!important;padding:1mm ' + innerPaddingMm + 'mm!important;' +
+      'box-shadow:none!important;overflow:hidden!important}}</style>';
     const page = '<!doctype html><html lang="tr"><head><meta charset="utf-8">' +
       '<meta name="viewport" content="width=device-width,initial-scale=1">' +
       '<title>Hizlisatis ' + mm + ' mm Fiş</title>' + style + '</head><body>' +
@@ -936,6 +961,12 @@ function printSale(sale) {
     preview.document.open();
     preview.document.write(page);
     preview.document.close();
+    // Return to the already-open barcode field once the OS print dialog ends.
+    preview.addEventListener?.('afterprint',()=>{
+      try{preview.close();}catch{}
+      try{window.focus();}catch{}
+      focusSaleBarcode();
+    },{once:true});
     preview.document.getElementById('doPrint').addEventListener('click', () => {
       const sheet = preview.document.getElementById('receipt');
       const height = Math.min(2500, Math.max(110, Math.ceil(sheet.scrollHeight * 25.4 / 96 + 5)));
@@ -1235,8 +1266,9 @@ function scanned(raw,{source='camera',format='Barkod',force=false}={}) {
     }
     const product=exactProduct(text);
     if(product){
-      if(productManager?.offerSaleActivation(product,active=>selectScannedQuantity(active,$('scanManualBarcode'))))return;
-      selectScannedQuantity(product,$('scanManualBarcode'));
+      const resumeCamera=source==='camera' && dialogWasOpen;
+      if(productManager?.offerSaleActivation(product,active=>selectScannedQuantity(active,$('scanManualBarcode'),resumeCamera)))return;
+      selectScannedQuantity(product,$('scanManualBarcode'),resumeCamera);
     }else{
       $('saleBarcode').value=text;
       dom.scanMessage.textContent='Barkod '+text+' okundu ancak katalogda ürün bulunamadı.';
@@ -1664,6 +1696,7 @@ async function setup() {
   dom.scanDialog.addEventListener('close',()=>{
     dom.scanDialog.classList.remove('is-success');
     stopScanner();
+    focusSaleBarcode();
   });
   document.addEventListener('visibilitychange',()=>{
     if(document.hidden&&dom.scanDialog.open)stopScanner();
@@ -1714,17 +1747,29 @@ async function setup() {
   $('scanQuantityCancel').addEventListener('click',()=>{
     pendingScanProduct=null;$('scanQuantityDialog').close();
   });
-  $('receiptNetworkPrint').addEventListener('click',()=>{if(state.lastSale)printSale(state.lastSale);});
+  function beginNextSaleAfterPrint(){
+    if($('receiptActionsDialog').open)$('receiptActionsDialog').close();
+    openSale();
+  }
+  $('receiptNetworkPrint').addEventListener('click',()=>{
+    if(!state.lastSale)return;
+    printSale(state.lastSale);
+    beginNextSaleAfterPrint();
+  });
   $('receiptBluetoothPrint').addEventListener('click',async()=>{
     if(!state.lastSale)return;const button=$('receiptBluetoothPrint');button.disabled=true;
     $('receiptActionStatus').textContent='Bluetooth yazıcı aranıyor…';
-    try{await printBluetoothReceipt(state.lastSale);$('receiptActionStatus').textContent='Fiş yazıcıya gönderildi.';}
+    try{
+      await printBluetoothReceipt(state.lastSale);
+      $('receiptActionStatus').textContent='Fiş yazıcıya gönderildi.';
+      beginNextSaleAfterPrint();
+    }
     catch(error){$('receiptActionStatus').textContent=error.message;}
     finally{button.disabled=false;}
   });
   $('receiptWhatsApp').addEventListener('click',async()=>{if(state.lastSale)await shareReceiptWhatsApp(state.lastSale);});
   $('receiptPdfShare').addEventListener('click',()=>{if(state.lastSale)shareReceiptPdf(state.lastSale);});
-  $('receiptClose').addEventListener('click',()=>{$('receiptActionsDialog').close();openSale();});
+  $('receiptClose').addEventListener('click',beginNextSaleAfterPrint);
   $('exportSales').addEventListener('click',exportHistory);
   for(const dialog of [dom.cartDialog,dom.scanDialog,dom.historyDialog,$('backupDialog'),$('saleExitDialog'),$('excelDialog'),$('manageDialog'),$('passiveProductDialog'),$('productDetailDialog'),$('pickProductDialog'),$('receiptActionsDialog'),$('cashPaymentDialog'),$('scanQuantityDialog'),$('manageActivationDialog'),$('customerDialog'),$('categoryImageDialog')]){
     dialog.addEventListener('click',event=>{
