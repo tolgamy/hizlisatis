@@ -3242,3 +3242,407 @@ body.auth-locked #app{display:none!important}
 #app #homeTodaySalesButton[hidden],
 #app .sale-cart-item .sale-edit-price[hidden],
 #app .sale-cart-item .sale-line-more[hidden]{display:none!important}
+
+
+/* v58 — approved large-screen POS redesign.
+   Scoped to mouse-and-keyboard desktop widths: mobile 3-across categories,
+   touch tablets, phone checkout, CAS scale and receipt printing are unchanged.
+   Put after earlier v4/v56 rules so the desktop layout is deterministic. */
+@media (min-width:1024px) and (min-height:600px) and (orientation:landscape) and (hover:hover) and (pointer:fine) {
+  :root { --hizli-desktop-gap:clamp(11px,1.05vw,20px); }
+  .clean-topbar {
+    min-height:72px!important;
+    padding-top:8px!important;
+    padding-bottom:8px!important;
+  }
+  .clean-topbar .searchline {max-width:1000px;width:100%;gap:11px}
+  .clean-topbar .searchbox input {height:49px;min-height:49px}
+  .clean-content {
+    padding:clamp(14px,1.45vw,25px) clamp(15px,1.45vw,28px) 88px!important;
+  }
+
+  /* Home: real metrics and all twelve existing photographs, never placeholder
+     category data or a second product catalog. */
+  #homeView.dashboard-home {
+    max-width:none!important;width:100%!important;
+    grid-template-columns:minmax(0,1fr)!important;
+    grid-template-areas:"hero" "metrics" "actions" "categories"!important;
+    gap:var(--hizli-desktop-gap)!important;
+    padding:0 0 35px!important;
+  }
+  #homeView .dashboard-hero {
+    min-height:133px!important;
+    max-height:170px;
+    margin:0!important;
+    border-radius:17px!important;
+  }
+  #homeView .dashboard-hero-copy {padding:13px 12px 13px 22px!important}
+  #homeView .dashboard-hero h1 {font-size:clamp(24px,2.4vw,34px)!important;margin-bottom:6px}
+  #homeView .dashboard-hero p {font-size:clamp(12px,1vw,15px)!important}
+  #homeView .dashboard-hero-art {max-height:148px}
+  #homeView .dashboard-metrics {
+    grid-area:metrics;display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    margin:0!important;gap:12px!important;
+  }
+  #homeView .dashboard-metric {
+    min-height:100px!important;padding:11px 14px!important;
+    border-radius:15px!important;
+  }
+  #homeView .dashboard-actions {
+    grid-area:actions;
+    display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;
+    gap:clamp(6px,.75vw,13px)!important;
+    margin:0!important;
+  }
+  #homeView .dashboard-action {
+    display:flex!important;align-items:center;justify-content:center;
+    flex-direction:row!important;min-height:67px!important;
+    padding:9px 7px!important;gap:8px!important;border-radius:12px!important;
+    text-align:left!important;
+  }
+  #homeView .dashboard-action-icon {width:31px!important;height:31px!important;flex:none}
+  #homeView .dashboard-action strong {font-size:clamp(11px,.94vw,15px)!important}
+  #homeView .dashboard-action small {display:none!important}
+  #desktopHomeCategories {
+    display:block!important;grid-area:categories;
+    width:100%;max-width:none!important;min-width:0;
+    margin:0!important;padding:0!important;
+  }
+  #desktopHomeCategories h2 {
+    font-size:clamp(19px,1.55vw,26px)!important;
+    margin:3px 0 12px!important;
+  }
+
+  /* Four columns x three rows, full usable width. Keep image centered and
+     contained — grocery cut-outs are transparent and must not be cropped. */
+  #desktopHomeCategoryGrid.desktop-home-category-grid,
+  #homeCategoryShortcuts.category-photo-grid,
+  #categoryTree.category-grid-page {
+    box-sizing:border-box;width:100%!important;
+    max-width:none!important;margin:0!important;
+    padding:0 0 16px!important;
+    display:grid!important;
+    grid-template-columns:repeat(4,minmax(0,1fr))!important;
+    gap:clamp(10px,.95vw,17px)!important;align-items:stretch!important;
+  }
+  #desktopHomeCategoryGrid .photo-category-tile,
+  #homeCategoryShortcuts .photo-category-tile,
+  #categoryTree .photo-category-tile {
+    box-sizing:border-box!important;width:100%!important;
+    height:clamp(151px,11.9vw,188px)!important;
+    min-height:151px!important;max-height:188px!important;
+    min-width:0;display:flex!important;flex-direction:column!important;
+    align-items:center!important;justify-content:flex-start!important;
+    padding:9px 9px 8px!important;gap:6px!important;
+    border:1px solid #dce6f0!important;border-radius:15px!important;
+    background:#fff!important;text-align:center!important;
+    box-shadow:0 4px 13px #142d4b12!important;
+    transition:transform .15s ease,box-shadow .15s ease;
+  }
+  #desktopHomeCategoryGrid .photo-category-tile:hover,
+  #homeCategoryShortcuts .photo-category-tile:hover,
+  #categoryTree .photo-category-tile:hover {
+    transform:translateY(-2px);
+    box-shadow:0 8px 19px #132e4a23!important;
+  }
+  #desktopHomeCategoryGrid .photo-category-image,
+  #homeCategoryShortcuts .photo-category-image,
+  #categoryTree .photo-category-image {
+    box-sizing:border-box!important;
+    position:relative;display:grid!important;place-items:center;
+    flex:1 1 auto!important;width:100%!important;
+    height:calc(100% - 37px)!important;min-height:0!important;
+    max-height:none!important;aspect-ratio:auto!important;
+    border:0!important;border-radius:11px!important;
+    background:linear-gradient(135deg,#fcfdff,#f3f8ff)!important;
+    box-shadow:none!important;overflow:hidden!important;
+  }
+  #desktopHomeCategoryGrid .photo-category-image img,
+  #homeCategoryShortcuts .photo-category-image img,
+  #categoryTree .photo-category-image img {
+    position:absolute!important;inset:0!important;
+    width:100%!important;height:100%!important;max-height:100%!important;
+    object-fit:contain!important;object-position:center!important;
+    padding:4px!important;background:transparent!important;
+    transform:none!important;
+  }
+  #desktopHomeCategoryGrid .photo-category-name,
+  #homeCategoryShortcuts .photo-category-name,
+  #categoryTree .photo-category-name {
+    display:block!important;box-sizing:border-box;
+    flex:0 0 auto!important;width:100%!important;max-width:none!important;
+    min-height:26px!important;height:auto!important;
+    margin:0!important;padding:0 2px!important;
+    color:#142f4c!important;font-size:clamp(12px,1.13vw,17px)!important;
+    font-weight:900!important;line-height:1.18!important;
+    text-align:center!important;overflow-wrap:anywhere;
+  }
+  #desktopHomeCategoryGrid .desktop-home-chevron,
+  #desktopHomeCategoryGrid .photo-category-badge {display:none!important}
+  #homeCategoryShortcuts .photo-category-badge,
+  #categoryTree .photo-category-badge {width:22px;height:22px;right:6px;bottom:6px}
+
+  /* Products: categories, subcategories and product cards share a wide,
+     tidy workplace rather than a narrow centered column. */
+  #catalogView.clean-catalog,
+  #catalogView .clean-categories,
+  #catalogView #productResults,
+  #catalogView #productCategoryHome,
+  #catalogView #catalogCategoryNavigator {
+    box-sizing:border-box;width:100%!important;max-width:none!important;
+    margin:0!important;min-width:0!important;
+  }
+  #catalogView .clean-page-head {
+    margin:0 0 12px!important;min-height:45px;
+  }
+  #categoryTrailName,#browseHeading {
+    font-size:clamp(21px,1.65vw,28px)!important;
+    line-height:1.2;color:#142c47;
+  }
+  #categorySearch.clean-category-search {
+    height:49px;margin-bottom:13px;
+    border-radius:12px;background:#fff;
+  }
+  #categoryAllProducts {min-height:45px;margin:4px 0 16px}
+  #productList.products.grid-view {
+    grid-template-columns:repeat(4,minmax(0,1fr))!important;
+    gap:clamp(10px,1vw,18px)!important;
+  }
+  #productResults .products.grid-view .product-card {
+    border-radius:15px!important;
+    border:1px solid #dce6f0!important;
+    box-shadow:0 3px 12px #0b2e4a10!important;
+  }
+  #productResults .products.grid-view .product-photo {
+    height:clamp(134px,10vw,176px)!important;
+    background:#f9fbff;
+  }
+  #productResults .products.grid-view .product-title {
+    font-size:clamp(12px,1vw,16px)!important;
+  }
+  #productResults .products.list-view {
+    width:100%;gap:8px!important;
+  }
+  #productResults .products.list-view .product-card {
+    min-height:76px;grid-template-columns:75px minmax(0,1fr) minmax(190px,.42fr);
+    padding:8px 14px;border:1px solid #dce6f0;border-radius:12px;
+    box-shadow:0 2px 8px #1235510a;
+  }
+  #productResults .products.list-view .product-photo {
+    height:65px;min-height:65px;width:70px;
+  }
+  #productResults .products.list-view .product-thumb{height:62px;min-height:0}
+  #productResults .products.list-view .product-title{font-size:14px}
+  #productResults .products.list-view .product-right{
+    flex-direction:row;align-items:center;justify-content:flex-end;
+    gap:16px;min-width:190px;
+  }
+  #productResults .products.list-view .product-stock-details{
+    font-size:12px;white-space:nowrap;color:#446680;
+  }
+
+  /* Sale: full working area, left scanner + scrolling cart, right checkout.
+     The existing barcode/scale/customer/discount/print logic is untouched. */
+  #cartDialog.sale-sheet[open] {
+    box-sizing:border-box!important;
+    position:fixed!important;
+    top:50dvh!important;left:calc(var(--hizli-sidebar) + 17px)!important;
+    right:auto!important;bottom:auto!important;
+    transform:translateY(-50%)!important;
+    margin:0!important;
+    width:calc(100vw - var(--hizli-sidebar) - 34px)!important;
+    max-width:none!important;
+    height:min(900px,calc(100dvh - 30px))!important;
+    max-height:calc(100dvh - 30px)!important;
+    min-height:0!important;
+    padding:0!important;
+    display:grid!important;
+    grid-template-columns:minmax(0,1.65fr) minmax(325px,.87fr);
+    grid-template-rows:auto auto minmax(0,1fr);
+    grid-template-areas:"saleheader saleheader" "salesearch payment" "salelist payment";
+    align-items:stretch;gap:0!important;
+    background:#f6f9fe!important;border-radius:20px!important;
+    overflow:hidden!important;box-shadow:0 28px 70px #0b234460;
+  }
+  #cartDialog.sale-sheet .sale-sheet-header {
+    grid-area:saleheader;
+    position:relative!important;top:auto!important;
+    min-height:66px!important;max-height:none!important;
+    padding:11px 17px!important;
+    background:linear-gradient(105deg,#103e68,#0d294c)!important;
+    border:0!important;box-shadow:none!important;
+  }
+  #cartDialog.sale-sheet .sale-scanner {
+    grid-area:salesearch;position:relative!important;top:auto!important;
+    z-index:1;min-width:0;min-height:75px!important;
+    padding:13px 15px!important;
+    border-right:1px solid #dae6f0!important;
+    border-bottom:1px solid #e4ebf3!important;
+    background:white!important;
+  }
+  #cartDialog.sale-sheet .sale-scanner input {
+    height:48px!important;min-height:48px!important;
+    font-size:15px!important;
+  }
+  #cartDialog.sale-sheet .cart-items {
+    grid-area:salelist;
+    box-sizing:border-box;min-width:0;min-height:0!important;
+    max-height:none!important;height:100%!important;
+    overflow-y:auto!important;
+    padding:15px!important;
+    background:#f5f8fd!important;
+    overscroll-behavior:contain;
+  }
+  #cartDialog.sale-sheet .cart-line {
+    grid-template-columns:clamp(76px,7.5vw,98px) minmax(0,1fr)!important;
+    gap:13px!important;padding:11px 13px!important;
+    margin-bottom:9px!important;border-radius:13px!important;
+  }
+  #cartDialog.sale-sheet .sale-cart-media {
+    height:clamp(76px,7.5vw,98px)!important;
+    min-height:0!important;
+  }
+  #cartDialog.sale-sheet .checkout-area {
+    grid-area:payment;
+    box-sizing:border-box;min-width:0;min-height:0!important;
+    height:100%!important;max-height:none!important;
+    display:flex!important;flex-direction:column;
+    overflow-y:auto!important;
+    gap:9px;
+    padding:18px!important;
+    background:#fff!important;border:0!important;
+    border-left:1px solid #d8e4ee!important;
+    border-radius:0!important;box-shadow:none!important;
+  }
+  #cartDialog.sale-sheet .cart-totals {
+    flex:0 0 auto;
+    margin:0 0 7px!important;
+    padding:14px 12px!important;border-radius:15px;
+    border:1px solid #e1eaf2;background:#f4faff;
+  }
+  #cartDialog.sale-sheet .total-row.grand {font-size:18px!important}
+  #cartDialog.sale-sheet .total-row.grand strong {
+    font-size:clamp(24px,2.25vw,33px)!important;
+    color:#07844a!important;
+  }
+  #cartDialog.sale-sheet .payment-types {
+    flex:0 0 auto;display:grid!important;
+    grid-template-columns:1fr!important;gap:8px!important;
+    padding:0!important;margin:2px 0 9px!important;border:0!important;
+  }
+  #cartDialog.sale-sheet .payment-types label,
+  #cartDialog.sale-sheet .payment-types .payment-shortcut {
+    box-sizing:border-box;grid-column:auto!important;
+    display:block!important;width:100%!important;min-width:0!important;
+    margin:0!important;
+  }
+  #cartDialog.sale-sheet .payment-types label span,
+  #cartDialog.sale-sheet .payment-types .payment-shortcut {
+    box-sizing:border-box;height:58px!important;min-height:58px!important;
+    padding:10px 15px!important;
+    border-radius:12px!important;
+    display:flex!important;flex-direction:row!important;
+    align-items:center!important;justify-content:center!important;
+    gap:12px!important;text-align:center!important;
+  }
+  #cartDialog.sale-sheet .payment-types small {font-size:14px!important;font-weight:850}
+  #cartDialog.sale-sheet .payment-types b {font-size:24px!important}
+  #cartDialog.sale-sheet #completeSale {
+    flex:none;min-height:61px!important;width:100%;
+    margin-top:auto!important;border-radius:13px!important;
+    font-size:17px!important;
+  }
+  #cartDialog.sale-sheet #creditBox,
+  #cartDialog.sale-sheet #basketDiscountPanel,
+  #cartDialog.sale-sheet #bankPaymentNotice {flex:0 0 auto;max-width:100%}
+
+  /* Settings: the eight original operations stay together, with Backup and
+     Settings adjacent. Nested preferences become a three-column control hub. */
+  body.view-settings .settings-view {
+    width:100%!important;max-width:none!important;
+    margin:0!important;padding:18px!important;border-radius:19px!important;
+  }
+  .settings-view #settingsMainMenu.settings-card-grid {
+    grid-template-columns:repeat(4,minmax(0,1fr))!important;
+    width:100%;max-width:none!important;
+    gap:14px!important;margin:0!important;
+  }
+  .settings-view #settingsMainMenu.settings-card-grid>.settings-tile {
+    height:clamp(142px,11vw,170px)!important;
+    min-height:142px!important;padding:13px!important;
+    border-radius:15px!important;
+  }
+  .settings-view #settingsMainMenu.settings-card-grid>.settings-tile strong{
+    font-size:clamp(13px,1.05vw,17px)!important;
+  }
+  .settings-view #settingsPreferences {
+    max-width:none!important;width:100%!important;
+    padding:20px!important;border-radius:16px!important;
+  }
+  .settings-view .settings-inner-list {
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:12px!important;
+  }
+  .settings-view .settings-inner-section {
+    min-width:0;align-self:start;border-radius:13px!important;
+  }
+  .settings-view .settings-inner-section>summary {
+    padding:13px 11px!important;min-height:86px!important;
+    gap:8px!important;
+  }
+  .settings-view .settings-inner-section>summary .settings-section-symbol {
+    width:39px;height:39px;flex:0 0 39px!important;
+    font-size:22px;
+  }
+  .settings-view .settings-section-name strong {
+    font-size:clamp(12px,1vw,16px)!important;
+  }
+  .settings-view .settings-inner-section[open] {grid-column:1/-1}
+  #settingsAdminGroup:not([hidden]) {display:block}
+  #settingsAdminGroup>summary {
+    background:linear-gradient(130deg,#f5f1ff,#edf5ff);
+  }
+
+  /* Actual users, stock and history retain their original data + listeners.
+     Make dialogs comfortable workspaces without fabricating chart values. */
+  #accessUsersDialog[open] {
+    box-sizing:border-box;width:min(1000px,calc(100vw - 80px))!important;
+    max-width:1000px!important;max-height:88dvh!important;
+    display:grid;grid-template-columns:minmax(240px,.86fr) minmax(350px,1.14fr);
+    grid-template-areas:"heading heading" "description description" "accounts editor" "new editor";
+    grid-template-rows:auto auto minmax(0,1fr) auto;
+    column-gap:25px;row-gap:12px;padding:24px!important;align-items:start;
+  }
+  #accessUsersDialog .access-users-heading{grid-area:heading}
+  #accessUsersDialog>p{grid-area:description;margin:0 0 5px}
+  #accessUserList{grid-area:accounts;margin:0!important;max-height:430px!important}
+  #accessNewUser{grid-area:new;justify-self:start}
+  #accessUserForm{grid-area:editor;margin:0!important;padding:17px!important;border:1px solid #dfe8f0;border-radius:14px;background:#f9fbfe}
+  #manageDialog.sheet,#historyDialog.sheet,
+  #pickProductDialog.sheet,#excelDialog.sheet,
+  #categoryImageDialog.sheet,#customerDialog.sheet {
+    box-sizing:border-box;
+    top:50%!important;bottom:auto!important;left:50%!important;right:auto!important;
+    transform:translate(-50%,-50%)!important;
+    margin:0!important;padding-bottom:0!important;
+    width:min(1050px,calc(100vw - var(--hizli-sidebar) - 76px))!important;
+    max-width:1050px!important;max-height:87dvh!important;
+    border-radius:18px!important;box-shadow:0 23px 65px #0e28443b;
+  }
+  #historyDialog.sheet {width:min(1180px,calc(100vw - var(--hizli-sidebar) - 76px))!important;max-width:1180px!important}
+  #historyDialog .history-items {padding:8px 18px 22px}
+  #historyDialog .history-card {border-radius:12px}
+  #historyDialog .history-actions{padding:13px 18px}
+  #historyDialog .history-summary {margin:13px 18px 0!important}
+  #pickProductDialog.product-picker {width:min(1060px,calc(100vw - var(--hizli-sidebar) - 76px))!important}
+  #pickProductDialog .picker-category-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+  #pickProductDialog .picker-category-tile img{height:108px!important}
+  #manageDialog .manage-sheet-body {max-height:75dvh;overflow:auto}
+}
+/* Desktop/phone accessibility: hidden controls remain hidden despite
+   display:flex !important in legacy photo and payment rules. */
+#app .settings-inner-section[hidden],
+#app #accessLogout[hidden],
+#app .sale-line-more[hidden],
+#app #checkoutDiscountToggle[hidden] {display:none!important}
