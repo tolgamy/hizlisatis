@@ -5,7 +5,8 @@ import {runInNewContext} from 'node:vm';
 
 const load=name=>readFileSync(new URL('../public/'+name,import.meta.url),'utf8');
 const app=load('app.js'),html=load('index.html'),css=load('styles.css'),sw=load('sw.js');
-const v64=css.slice(css.indexOf('/* v64 — approved Products workspace:'));
+const v64=css.slice(css.indexOf('/* v64 — approved Products workspace:'),
+  css.indexOf('/* v65 — Native desktop Sale & Reports pages.'));
 const desktop='(min-width:1024px) and (min-height:600px) and (orientation:landscape) and (hover:hover) and (pointer:fine)';
 
 test('Products landing uses six actual main categories across two rows, with the existing images',()=>{
