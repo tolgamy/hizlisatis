@@ -90,7 +90,7 @@ test('stock table/search and counts are computed from actual product records wit
 
 test('Home insights are real and recent sales respect report permission',()=>{
   const begin=app.indexOf('function renderHomeStockInsights(){');
-  const end=app.indexOf('function renderHome(){',begin);
+  const end=app.indexOf('function renderHome() {',begin);
   assert.ok(begin>0&&end>begin);
   const elements=new Map();
   const $=id=>{
