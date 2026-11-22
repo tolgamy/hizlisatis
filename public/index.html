@@ -270,6 +270,11 @@
           <p id="catalogSource" class="settings-catalog-count">Katalog yükleniyor...</p>
         </section>
       </section>
+      <!-- Desktop uses native page sections, exactly like Home/Products/Stock/Settings.
+           The existing sale/history controls move here with their event listeners.
+           On touch devices they return to their original modal dialogs. -->
+      <section id="saleView" class="workspace-page sale-sheet" aria-label="Satış" hidden></section>
+      <section id="reportsView" class="workspace-page reports-page" aria-label="Raporlar" hidden></section>
     </main>
 
     <div class="bottom-shell">
