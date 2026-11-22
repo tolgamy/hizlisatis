@@ -7,15 +7,20 @@ import {receiptAsText,escPosReceipt} from '../public/receipt-share.js';
 const read=name=>readFileSync(new URL('../public/'+name,import.meta.url),'utf8');
 const html=read('index.html'),app=read('app.js'),css=read('styles.css'),sw=read('sw.js');
 
-test('checkout exposes exactly four selectable payment methods with preserved default',()=>{
-  const checkout=html.slice(html.indexOf('<fieldset class="payment-types"'),
-    html.indexOf('</fieldset>',html.indexOf('<fieldset class="payment-types"')));
-  const payments=[...checkout.matchAll(/name="payment" value="([^"]+)"/g)].map(x=>x[1]);
-  assert.deepEqual(payments,['Nakit','Kart','Veresiye','Havale / FAST']);
+test('checkout exposes Nakit and Kart directly, other valid methods through the payment picker',()=>{
+  const checkout=html.slice(html.indexOf('<fieldset class="payment-types checkout-shortcuts"'),
+    html.indexOf('</fieldset>',html.indexOf('<fieldset class="payment-types checkout-shortcuts"')));
+  const direct=[...checkout.matchAll(/name="payment" value="([^"]+)"/g)].map(x=>x[1]);
+  const extras=html.slice(html.indexOf('<div class="payment-hidden-options"'),
+    html.indexOf('</div>',html.indexOf('<div class="payment-hidden-options"')));
+  const otherMethods=[...extras.matchAll(/name="payment" value="([^"]+)"/g)].map(x=>x[1]);
+  assert.deepEqual(direct,['Nakit','Kart']);
+  assert.deepEqual(otherMethods,['Veresiye','Havale / FAST','Yemek Kartı','Diğer']);
   assert.match(checkout,/value="Nakit" checked/);
+  assert.match(checkout,/id="checkoutOtherPayment"/);
+  assert.match(checkout,/id="checkoutDiscountToggle"/);
   assert.match(html,/id="bankPaymentNotice"[^>]*hidden/);
   assert.match(html,/Uygulama banka transferlerini otomatik doğrulamaz/);
-  assert.match(html,/id="customerCollectPayment"><option>Nakit<\/option><option>Kart<\/option><option>Havale \/ FAST<\/option>/);
 });
 
 test('bank notice only appears on Havale or FAST, credit customer search stays separate',()=>{
@@ -23,18 +28,21 @@ test('bank notice only appears on Havale or FAST, credit customer search stays s
   assert.ok(snippet.startsWith('function updatePayment() {'));
   let selection='Havale / FAST';
   const creditBox={hidden:null},bankPaymentNotice={hidden:null};
+  const control=()=>({classList:{toggle(){}},setAttribute(){}});
   const elements={creditBox,bankPaymentNotice,cashPayTotal:{textContent:''},
-    cashConfirm:{disabled:false}};
+    cashConfirm:{disabled:false},checkoutOtherPayment:control(),
+    checkoutOtherLabel:{textContent:''},checkoutDiscountLabel:{textContent:''},
+    checkoutDiscountToggle:control()};
   const sandbox={
     document:{querySelector:()=>({value:selection})},
     $:id=>elements[id],dom:{cash:{value:''},change:{textContent:'',style:{}}},
     totals:()=>({total:98}),round2:x=>Math.round(x*100)/100,
     parseLocaleNumber:(_,fallback)=>fallback,
-    cartCurrency:()=> 'TRY', money:(n)=>'₺'+n, state:{cart:new Map([['p',1]])}
+    cartCurrency:()=> 'TRY', money:(n)=>'₺'+n, state:{cart:new Map([['p',1]]),basketDiscountPct:0,basketDiscountInvalid:false}
   };
   for(const [payment,showBank,showCredit] of [
     ['Havale / FAST',true,false],['Kart',false,false],
-    ['Nakit',false,false],['Veresiye',false,true]
+    ['Nakit',false,false],['Veresiye',false,true],['Yemek Kartı',true,false],['Diğer',true,false]
   ]){
     selection=payment;
     runInNewContext(snippet+'updatePayment()',sandbox);
