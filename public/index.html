@@ -111,6 +111,20 @@
           <a id="settingsTemplate" class="settings-tile settings-tile-template" href="/urun-yukleme-sablonu.xlsx" download="Hizlisatis_Urun_Sablonu.xlsx"><span class="settings-tile-icon" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M15 7h26l12 12v37H15z" stroke="currentColor" stroke-width="3.3" stroke-linejoin="round" fill="none"/><path d="M41 7v13h12M23 30h22M23 39h22M23 48h15" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/><path d="m25 21 7 7 7-7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><strong>Excel Şablonunu İndir</strong><small>Hazır ürün yükleme dosyası</small><b aria-hidden="true">›</b></a>
           <button id="settingsHome" type="button" class="settings-tile settings-tile-home"><span class="settings-tile-icon" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="m8 30 24-20 24 20v26a2 2 0 0 1-2 2H41V39H23v19H10a2 2 0 0 1-2-2z" stroke="currentColor" stroke-width="4.3" stroke-linejoin="round" fill="none"/></svg></span><strong>Ana Sayfaya Git</strong><small>Ana ekrana dön</small><b aria-hidden="true">›</b></button>
         </div>
+        <details id="settingsPickerGroup" class="settings-preference-group" open>
+          <summary>▦ Ürün Görünümü ve Satış Tercihleri</summary>
+          <div class="settings-mode-section">
+            <label for="settingsPickerMode">Ürün Ekle ekranının varsayılan görünümü</label>
+            <select id="settingsPickerMode">
+              <option value="search">Arama</option>
+              <option value="categories">Kategoriler ve Alt Kategoriler</option>
+              <option value="list">Toplu Liste</option>
+            </select>
+            <p id="settingsPickerModeStatus" role="status">Bu cihazın ürün ekleme görünümü.</p>
+          </div>
+        </details>
+        <details id="settingsPrintingGroup" class="settings-preference-group">
+          <summary>▤ Yazdırma ve Paylaşım Ayarları</summary>
         <section class="settings-device-receipt" aria-label="Bu cihazın fiş tercihi">
           <h2>Bu Cihazın Fiş / Paylaşım Tercihi</h2>
           <label for="settingsReceiptAction">Satış tamamlandıktan sonra gösterilecek işlem</label>
@@ -134,6 +148,7 @@
           <button id="settingsReceiptSave" class="primary-button" type="button">Fiş / Firma Bilgilerini Kaydet</button>
           <p id="settingsReceiptStatus" class="receipt-save-status" role="status" aria-live="polite">Kayıtlı fiş ayarları yüklendi.</p>
           </section>
+        </details>
         </details>
         <p id="catalogSource" class="settings-catalog-count">Katalog yükleniyor...</p>
       </section>
@@ -191,12 +206,18 @@
     <div id="cartItems" class="cart-items" aria-label="Sepetteki ürünler"></div>
     <div class="checkout-area">
       <div id="cartTotals" class="cart-totals" aria-live="polite"></div>
-      <fieldset class="payment-types"><legend class="sr-only">Ödeme türü</legend>
+      <fieldset class="payment-types checkout-shortcuts"><legend class="sr-only">Ödeme ve indirim seçenekleri</legend>
         <label class="payment-cash"><input type="radio" name="payment" value="Nakit" checked><span><b aria-hidden="true">▣</b><small>Nakit</small></span></label>
         <label class="payment-card"><input type="radio" name="payment" value="Kart"><span><b aria-hidden="true">▤</b><small>Kart</small></span></label>
-        <label class="payment-credit"><input type="radio" name="payment" value="Veresiye"><span><b aria-hidden="true">◷</b><small>Veresiye</small></span></label>
-        <label class="payment-transfer"><input type="radio" name="payment" value="Havale / FAST"><span><b aria-hidden="true">↗</b><small>Havale / FAST</small></span></label>
+        <button id="checkoutDiscountToggle" class="payment-shortcut payment-discount" type="button" aria-controls="basketDiscountPanel" aria-expanded="false"><b aria-hidden="true">%</b><small id="checkoutDiscountLabel">Sepet İndirimi</small></button>
+        <button id="checkoutOtherPayment" class="payment-shortcut payment-other" type="button" aria-haspopup="dialog" aria-controls="otherPaymentDialog"><b aria-hidden="true">•••</b><small id="checkoutOtherLabel">Diğer Ödeme</small></button>
       </fieldset>
+      <div class="payment-hidden-options" hidden>
+        <input type="radio" name="payment" value="Veresiye">
+        <input type="radio" name="payment" value="Havale / FAST">
+        <input type="radio" name="payment" value="Yemek Kartı">
+        <input type="radio" name="payment" value="Diğer">
+      </div>
       <p id="bankPaymentNotice" class="bank-payment-notice" role="status" hidden>
         Havale / FAST ödemesinin banka hesabınıza geçtiğini kontrol edin. Uygulama banka transferlerini otomatik doğrulamaz.
       </p>
@@ -207,7 +228,7 @@
         <div id="creditCustomerResults" class="credit-customer-results"></div>
         <button id="creditNewCustomer" type="button" class="sale-secondary-button">+ Yeni müşteri</button>
       </div>
-      <div class="basket-discount-control">
+      <div id="basketDiscountPanel" class="basket-discount-control" hidden>
         <label for="basketDiscountPct">Toplam Sepet İskontosu (%)</label>
         <div class="basket-discount-input"><input id="basketDiscountPct" type="text" inputmode="decimal" autocomplete="off" placeholder="0" aria-describedby="basketDiscountHelp basketDiscountError"><strong>%</strong></div>
         <small id="basketDiscountHelp">Ürün iskontolarından sonra tüm sepete uygulanır.</small>
@@ -221,6 +242,16 @@
     </div>
   </dialog>
 
+  <dialog id="otherPaymentDialog" class="modal other-payment-dialog" aria-labelledby="otherPaymentTitle">
+    <div class="sheet-header"><h2 id="otherPaymentTitle">Diğer Ödeme Yöntemleri</h2><button id="otherPaymentClose" type="button" class="closebutton" aria-label="Kapat">×</button></div>
+    <div class="other-payment-options">
+      <button type="button" data-payment-option="Veresiye"><span aria-hidden="true">◷</span><strong>Veresiye</strong><small>Müşteri hesabına kaydet</small></button>
+      <button type="button" data-payment-option="Havale / FAST"><span aria-hidden="true">↗</span><strong>Havale / FAST</strong><small>Bankaya gelen ödemeyi kontrol et</small></button>
+      <button type="button" data-payment-option="Yemek Kartı"><span aria-hidden="true">▤</span><strong>Yemek Kartı</strong><small>Harici POS üzerinden tahsil et</small></button>
+      <button type="button" data-payment-option="Diğer"><span aria-hidden="true">•••</span><strong>Diğer</strong><small>Harici olarak alınan ödeme</small></button>
+    </div>
+    <p class="other-payment-note">Havale, FAST ve diğer harici ödemeler uygulama tarafından otomatik tahsil edilmez. Satışı tamamlamadan önce ödemenin geldiğini kontrol edin.</p>
+  </dialog>
   <dialog id="saleExitDialog" class="modal sale-exit-dialog" aria-labelledby="saleExitTitle" aria-describedby="saleExitDescription">
     <div class="sale-exit-head"><span aria-hidden="true">🛒</span><h2 id="saleExitTitle">Satıştan çıkılsın mı?</h2></div>
     <p id="saleExitDescription">Sepetinizde ürün var. Çıkarsanız satış kaydedilmez; uygulama açıkken sepete daha sonra devam edebilirsiniz.</p>
@@ -520,8 +551,21 @@
 
   <dialog id="pickProductDialog" class="sheet product-picker" aria-labelledby="pickProductTitle">
     <div class="sheet-header"><h2 id="pickProductTitle">Ürün Ekle</h2><button type="button" class="closebutton" data-close="pickProductDialog" aria-label="Kapat">×</button></div>
-    <div class="picker-search"><input id="pickProductSearch" type="search" placeholder="Ürün adı / barkod ara" autocomplete="off" aria-label="Ürün ara"></div>
+    <div class="picker-mode-tabs" role="group" aria-label="Ürün ekleme görünümü">
+      <button type="button" data-picker-mode="search" aria-pressed="true">⌕ Arama</button>
+      <button type="button" data-picker-mode="categories" aria-pressed="false">▦ Kategoriler</button>
+      <button type="button" data-picker-mode="list" aria-pressed="false">☷ Toplu Liste</button>
+    </div>
+    <div id="pickProductSearchWrap" class="picker-search"><input id="pickProductSearch" type="search" placeholder="Ürün adı / barkod ara" autocomplete="off" aria-label="Ürün ara"></div>
+    <div id="pickerCategoryBrowser" class="picker-category-browser" hidden>
+      <div class="picker-category-heading">
+        <button id="pickerCategoryBack" type="button" aria-label="Önceki kategoriye dön" hidden>‹ Geri</button>
+        <strong id="pickerCategoryTitle">Ana Kategoriler</strong>
+      </div>
+      <div id="pickerCategoryGrid" class="picker-category-grid"></div>
+    </div>
     <div id="pickProductResults" class="picker-results"></div>
+    <button id="pickerLoadMore" class="picker-load-more" type="button" hidden>Daha Fazla Ürün Göster</button>
   </dialog>
   <dialog id="receiptActionsDialog" class="sheet receipt-actions-dialog" aria-labelledby="receiptActionsTitle">
     <div class="sheet-header"><h2 id="receiptActionsTitle">Satış Tamamlandı ✓</h2><button type="button" class="closebutton" data-close="receiptActionsDialog" aria-label="Kapat">×</button></div>
