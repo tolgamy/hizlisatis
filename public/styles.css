@@ -2373,3 +2373,30 @@ body.view-settings .settings-view .settings-catalog-count{color:#d3e7f2}
 .device-backup-body>label{font-size:13px;font-weight:800;color:#1f4862}
 .device-backup-body>input{font-size:13px;max-width:100%;border:1px solid #cfdeea;padding:12px;border-radius:10px}
 .device-backup-body>#backupStatus{font-weight:750;color:#146955}
+
+/* v4.8 — Approved dual-action sale footer: return home on an empty cart,
+   complete the sale after an item is added. Keep dimensions and position fixed. */
+.sale-sheet #completeSale{
+  display:flex;align-items:center;justify-content:center;gap:11px;
+  width:100%;min-height:55px;cursor:pointer;
+  transition:background .16s ease,box-shadow .16s ease,color .16s ease;
+}
+.sale-sheet #completeSale svg{
+  width:25px;height:25px;flex:0 0 auto;stroke:currentColor;
+  stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;fill:none;
+}
+.sale-sheet #completeSale .checkout-home-icon{display:none}
+.sale-sheet #completeSale .checkout-complete-icon{display:block}
+.sale-sheet #completeSale.is-empty-cart{
+  background:linear-gradient(140deg,#eef7ff 0%,#c9e2ff 100%);
+  color:#075bae;border:2px solid #1987ed;
+  box-shadow:inset 0 1px 0 #fff,0 4px 14px #1772c02d;
+}
+.sale-sheet #completeSale.is-empty-cart .checkout-home-icon{display:block}
+.sale-sheet #completeSale.is-empty-cart .checkout-complete-icon{display:none}
+.sale-sheet #completeSale.is-empty-cart:not(:disabled):active{
+  background:linear-gradient(140deg,#d4e9ff,#b0d5fc);
+}
+.sale-sheet #completeSale:focus-visible{outline:3px solid #62b4ff;outline-offset:2px}
+.sale-sheet #completeSale:disabled{cursor:wait;opacity:.68}
+@media(prefers-reduced-motion:reduce){.sale-sheet #completeSale{transition:none}}
