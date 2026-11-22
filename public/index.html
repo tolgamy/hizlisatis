@@ -35,7 +35,7 @@
   <div id="app">
     <header class="topbar clean-topbar">
       <div class="brandline"><button id="brandHome" type="button" class="brand-home" aria-label="Hızlı Satış ana sayfasına dön"><span class="brandmark" aria-hidden="true"><img src="/icons/brand-mark.svg" alt=""></span><span><strong>Hızlı<span>Satış</span></strong><small>HIZLI · KOLAY · GÜVENLİ</small></span></button><span id="connectionStatus" class="connection" role="status"></span>
-      <div class="access-identity-actions"><span id="accessIdentity" hidden></span><button id="accessUserButton" type="button" hidden>👥 Kullanıcılar</button><button id="accessLogout" type="button" hidden>Çıkış</button></div></div>
+      <div class="access-identity-actions"><span id="accessIdentity" hidden></span><button id="accessLogout" type="button" hidden>Çıkış</button></div></div>
       <div class="searchline"><label for="search" class="sr-only">Ürün veya barkod ara</label><div class="searchbox"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><input id="search" type="search" placeholder="Ürün veya barkod ara" autocomplete="off" enterkeyhint="search"></div><button id="scanButton" class="iconbutton scanbutton" type="button" aria-label="Barkod okut">⌗</button></div>
       <div id="cartToast" class="cart-confirm-toast" role="status" aria-live="polite" hidden>
         <span class="cart-confirm-check" aria-hidden="true">✓</span>
@@ -204,8 +204,8 @@
           <div class="settings-inner-content"><div class="settings-inner-actions"><button id="settingsCustomers" type="button" class="settings-tile settings-tile-customer"><span class="settings-tile-icon" aria-hidden="true"><svg viewBox="0 0 64 64"><circle cx="32" cy="18" r="10" fill="currentColor"/><circle cx="13" cy="26" r="7" fill="currentColor" opacity=".7"/><circle cx="51" cy="26" r="7" fill="currentColor" opacity=".7"/><path d="M13 57V46q0-12 19-12t19 12v11zM2 55V44q0-10 12-10M62 55V44q0-10-12-10" fill="currentColor" opacity=".85"/></svg></span><strong>Müşteri / Veresiye</strong><small>Borç ve tahsilatlar</small><b aria-hidden="true">›</b></button></div></div>
         </details>
         <details id="settingsAdminGroup" class="settings-inner-section" hidden>
-          <summary><span aria-hidden="true" class="settings-section-symbol">♙</span><span class="settings-section-name"><strong>Admin · Kullanıcı ve Yetkiler</strong><small>Hesaplar, roller ve giriş yetkileri</small></span><span aria-hidden="true" class="settings-section-arrow">⌄</span></summary>
-          <div class="settings-inner-content"><button id="settingsOpenUsers" class="settings-inner-action" type="button">Kullanıcı Yönetimini Aç <span aria-hidden="true">›</span></button></div>
+          <summary><span aria-hidden="true" class="settings-section-symbol">♙</span><span class="settings-section-name"><strong>Kullanıcı Yönetimi</strong><small>Çalışan hesapları, şifreler ve yetkiler</small></span><span aria-hidden="true" class="settings-section-arrow">⌄</span></summary>
+          <div class="settings-inner-content"><button id="settingsOpenUsers" class="settings-inner-action" type="button">Kullanıcıları Görüntüle / Düzenle <span aria-hidden="true">›</span></button></div>
         </details></div>
           <p id="catalogSource" class="settings-catalog-count">Katalog yükleniyor...</p>
         </section>
