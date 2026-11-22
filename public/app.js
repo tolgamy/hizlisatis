@@ -21,6 +21,7 @@ import { checkRemoteProductStates } from './remote-products.js';
 import { createCustomerManager } from './customer-ui.js';
 import { recordCustomerCredit } from './customer-api.js';
 import { readReceiptSettings,saveReceiptSettings,receiptPrintLayout } from './receipt-settings.js';
+import { next200Cash } from './cash-change.js';
 import { writeActiveProductsLocalStorage } from './active-products-cache.js';
 
 const $ = id => document.getElementById(id);
@@ -301,36 +302,46 @@ function selectScannedQuantity(product,sourceInput=null,resumeCamera=false) {
   input.focus({preventScroll:true});
   input.select();
 }
-function barcodeAdd(raw, sourceInput) {
-  const code = String(raw || '').trim();
-  if (!code) return;
-  const product = exactProduct(code);
-  if(!product){announce(code+' barkodlu ürün bulunamadı.','error');return;}
-  if(productManager?.offerSaleActivation(product,active=>selectScannedQuantity(active,sourceInput)))return;
-  selectScannedQuantity(product,sourceInput);
+/** Every decoded barcode is a single deliberate add. Duplicates are ignored,
+ * including the same product reread after the scanner's cooldown. Quantities
+ * can still be changed using the basket's + / - editor.
+ */
+function addBarcodeOnce(product,sourceInput=null){
+  const reset=()=>{
+    if(sourceInput)sourceInput.value='';
+    $('saleBarcode').value='';
+    $('scanManualBarcode').value='';
+    if(dom.scanDialog.open){
+      dom.scanDialog.close();
+      stopScanner();
+    }
+    focusSaleBarcode();
+  };
+  if(state.cart.has(product.id)){
+    announce('Ürün zaten sepette. Adedi sepetten + / − ile artırabilirsiniz.','error');
+    reset();
+    return false;
+  }
+  const added=addToCart(product,1);
+  if(added)reset();
+  return added;
 }
-/** Keyboard-wedge PC barcode readers typically send the code followed by Enter
- * (some use Tab). Unit products must not require a confirmation click each
- * time. Weighted products retain their explicit quantity dialog.
+function barcodeAdd(raw,sourceInput){
+  const code=String(raw??'').trim();
+  if(!code)return false;
+  const product=exactProduct(code);
+  if(!product){announce(code+' barkodlu ürün bulunamadı.','error');return false;}
+  if(state.cart.has(product.id)){addBarcodeOnce(product,sourceInput);return true;}
+  if(productManager?.offerSaleActivation(product,active=>addBarcodeOnce(active,sourceInput)))return true;
+  return addBarcodeOnce(product,sourceInput);
+}
+/** USB/Bluetooth scanners (Enter, Tab or complete numeric code): add one SKU,
+ * never re-increment a line that is already in the basket.
  */
 function addHardwareBarcode(raw,sourceInput){
   const code=String(raw??'').trim();
   if(!code)return false;
-  const product=exactProduct(code);
-  if(!product)return false;
-  if(['kg','g','litre'].includes(product.birim)){
-    barcodeAdd(code,sourceInput);
-    return true;
-  }
-  const insert=active=>{
-    if(addToCart(active)){
-      if(sourceInput)sourceInput.value='';
-      focusSaleBarcode();
-    }
-  };
-  if(productManager?.offerSaleActivation(product,insert))return true;
-  insert(product);
-  return true;
+  return barcodeAdd(code,sourceInput);
 }
 
 function categoryEmoji(path) {
@@ -726,9 +737,15 @@ function updatePayment() {
 function openCashPayment(){
   if(!state.cart.size){announce('Önce sepete ürün ekleyin.','error');return;}
   document.querySelector('input[name="payment"][value="Nakit"]').checked=true;
+  $('cashModeButtons').hidden=false;
+  $('cashManualPanel').hidden=true;
+  dom.cash.value='';
   updatePayment();
+  const total=totals().total, rounded=next200Cash(total);
+  $('cashRoundConfirm').hidden=cartCurrency()!=='TRY';
+  $('cashRoundedAmount').textContent=money(rounded,'TRY');
+  $('cashRoundedChange').textContent=money(round2(rounded-total),'TRY');
   if(!$('cashPaymentDialog').open)$('cashPaymentDialog').showModal();
-  dom.cash.focus({preventScroll:true});
 }
 function adjustScanQuantity(delta) {
   const input=$('scanQuantityInput'),weighted=pendingScanProduct&&
@@ -1294,9 +1311,11 @@ function scanned(raw,{source='camera',format='Barkod',force=false}={}) {
     }
     const product=exactProduct(text);
     if(product){
-      const resumeCamera=source==='camera' && dialogWasOpen;
-      if(productManager?.offerSaleActivation(product,active=>selectScannedQuantity(active,$('scanManualBarcode'),resumeCamera)))return;
-      selectScannedQuantity(product,$('scanManualBarcode'),resumeCamera);
+      // One successful camera read closes the camera. A new read is explicit.
+      // Existing basket lines are never incremented by barcode scanning.
+      if(state.cart.has(product.id)){addBarcodeOnce(product,$('scanManualBarcode'));return;}
+      if(productManager?.offerSaleActivation(product,active=>addBarcodeOnce(active,$('scanManualBarcode'))))return;
+      addBarcodeOnce(product,$('scanManualBarcode'));
     }else{
       $('saleBarcode').value=text;
       dom.scanMessage.textContent='Barkod '+text+' okundu ancak katalogda ürün bulunamadı.';
@@ -1781,17 +1800,35 @@ async function setup() {
     el.addEventListener('change',()=>{
       updatePayment();
       if(el.checked&&el.value==='Veresiye')customerManager.load().catch(()=>{});
-      if(el.checked&&el.value==='Nakit')openCashPayment();
-    });
-    if(el.value==='Nakit')el.addEventListener('click',()=>{
-      if(el.checked)openCashPayment();
     });
     if(el.value==='Veresiye')el.addEventListener('click',()=>{
       if(el.checked)customerManager.load().catch(()=>{});
     });
   });
   dom.cash.addEventListener('input',updatePayment);
+  $('cashDirect').addEventListener('click',()=>{
+    dom.cash.value=totals().total.toFixed(2);
+    completeSale();
+  });
+  $('cashManual').addEventListener('click',()=>{
+    $('cashModeButtons').hidden=true;
+    $('cashManualPanel').hidden=false;
+    dom.cash.value='';
+    updatePayment();
+    dom.cash.focus({preventScroll:true});
+  });
+  $('cashRoundConfirm').addEventListener('click',()=>{
+    if(cartCurrency()!=='TRY')return;
+    dom.cash.value=next200Cash(totals().total).toFixed(2);
+    completeSale();
+  });
   $('cashConfirm').addEventListener('click',completeSale);
+  $('cashBack').addEventListener('click',()=>{
+    $('cashManualPanel').hidden=true;
+    $('cashModeButtons').hidden=false;
+    dom.cash.value='';
+    updatePayment();
+  });
   $('cashCancel').addEventListener('click',()=>$('cashPaymentDialog').close());
   dom.complete.addEventListener('click',()=>{
     if(state.saving)return;
@@ -1800,7 +1837,8 @@ async function setup() {
       setView('home');
       return;
     }
-    completeSale();
+    if(document.querySelector('input[name="payment"]:checked').value==='Nakit')openCashPayment();
+    else completeSale();
   });
   $('scanQuantityMinus').addEventListener('click',()=>adjustScanQuantity(-1));
   $('scanQuantityPlus').addEventListener('click',()=>adjustScanQuantity(1));
