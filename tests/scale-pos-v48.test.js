@@ -94,27 +94,64 @@ test('Untagged frames need two identical values; ST stable frames need one',()=>
 });
 
 
-test('Two weighings from same product use distinct cart rows and stock sum',()=>{
+test('Three weighed packs of one product appear in a single row with sum of grams',()=>{
   const begin=app.indexOf('function addToCart(product, quantity=1,');
   const end=app.indexOf('function updateCart(',begin);
   assert.ok(begin>0&&end>begin);
-  const product={id:'muz',birim:'kg',baslik:'Muz KG',satisFiyati:210,
-    fiyatBelirsiz:false,paraBirimi:'TRY',stokBelirsiz:false,stok:2};
+  const product={id:'barbunya',birim:'kg',baslik:'Barbunya',satisFiyati:65,
+    fiyatBelirsiz:false,paraBirimi:'TRY',stokBelirsiz:false,stok:1};
+  const other={...product,id:'domates',baslik:'Domates',stok:2};
+  const state={centralReadOnly:false,cart:new Map()},sounds=[];
+  const ctx={
+    state,dom:{cartDialog:{open:false}},
+    isActive:()=>true,remaining:p=>p.stok,cartCurrency:()=> 'TRY',
+    renderCartBar(){},renderCart(){},playCartSound:s=>sounds.push(s),
+    showCartConfirmation(){},announce:()=>{}
+  };
+  const add=runInNewContext(app.slice(begin,end)+';addToCart',ctx);
+  for(const grams of [200,300,400])
+    assert.equal(add(product,grams/1000,{separate:true,grams}),true);
+  assert.equal(state.cart.size,1,'three weighed packs appear as one basket row');
+  const combined=[...state.cart.values()][0];
+  assert.equal(combined.grams,900);
+  assert.equal(combined.quantity,.9);
+  assert.equal(combined.weighCount,3);
+  assert.equal(combined.weighed,true);
+  assert.equal(combined.quantity*combined.unitPrice,58.5);
+  assert.deepEqual(sounds,['add','increase','increase']);
+  assert.equal(add(product,.2,{separate:true,grams:200}),false,
+    'stock check uses sum of weighed quantities');
+  assert.equal(combined.grams,900,'rejected weighings cannot alter cart');
+
+  assert.equal(add(other,.2,{separate:true,grams:200}),true);
+  assert.equal(state.cart.size,2,'different products stay separate');
+  assert.equal(add(other,.3,{separate:true,grams:300}),true);
+  assert.equal(state.cart.size,2);
+  assert.equal([...state.cart.values()].find(l=>l.id==='domates').grams,500);
+});
+
+test('Gram-priced repeated weighed products merge and preserve cashier price/discount',()=>{
+  const begin=app.indexOf('function addToCart(product, quantity=1,');
+  const end=app.indexOf('function updateCart(',begin);
+  const product={id:'safran',birim:'g',baslik:'Safran',satisFiyati:2.5,
+    fiyatBelirsiz:false,paraBirimi:'TRY',stok:1000};
   const state={centralReadOnly:false,cart:new Map()};
   const ctx={
     state,dom:{cartDialog:{open:false}},
-    isActive:()=>true,remaining:()=>2,cartCurrency:()=> 'TRY',
+    isActive:()=>true,remaining:()=>1000,cartCurrency:()=> 'TRY',
     renderCartBar(){},renderCart(){},playCartSound(){},showCartConfirmation(){},
     announce:()=>{}
   };
   const add=runInNewContext(app.slice(begin,end)+';addToCart',ctx);
-  assert.equal(add(product,.564,{separate:true,grams:564}),true);
-  assert.equal(add(product,.750,{separate:true,grams:750}),true);
-  assert.equal(state.cart.size,2,'two labels remain separate in the cart');
-  assert.ok([...state.cart.values()].every(l=>l.id==='muz'));
-  assert.equal([...state.cart.values()].reduce((n,l)=>n+l.quantity,0),1.314);
-  // Remaining stock is checked across all existing weighed lines.
-  assert.equal(add(product,.8,{separate:true,grams:800}),false);
+  assert.equal(add(product,200,{separate:true,grams:200}),true);
+  const line=[...state.cart.values()][0];
+  line.unitPrice=2.0;line.discountPct=10;
+  assert.equal(add(product,300,{separate:true,grams:300}),true);
+  assert.equal(state.cart.size,1);
+  assert.equal(line.quantity,500);
+  assert.equal(line.grams,500);
+  assert.equal(line.unitPrice,2.0);
+  assert.equal(line.discountPct,10);
 });
 
 test('Weight modal, receipt and checkout preserve distinct measured line values',()=>{
