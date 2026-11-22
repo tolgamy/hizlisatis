@@ -275,6 +275,9 @@ function applyRoute() {
   else if (fragment==='stock') state.view='stock';
   else state.view='home';
   updateNavigation();renderProducts();
+  // hashchange is asynchronous: focus the scanner only after the native Sale
+  // section has become visible, so a USB barcode reader works immediately.
+  if(state.view==='sale')focusSaleBarcode();
   if(state.view==='stock')renderStockOverview();
   if(state.view==='home'){
     if(typeof renderHomeStockInsights==='function')renderHomeStockInsights();
