@@ -1,0 +1,35 @@
+name: Read-only user-auth diagnostics (safe account probe)
+on:
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/auth-diagnostics.yml']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Check sign-in status and invalid nonexistent username
+        shell: bash
+        run: |
+          node --input-type=module <<'JS'
+          const base='https://hizlisatis.pages.dev';
+          const get=await fetch(base+'/api/auth',{headers:{Accept:'application/json'},signal:AbortSignal.timeout(15000)});
+          const data=await get.json().catch(()=>({}));
+          const result={getStatus:get.status,enabled:data.enabled,configured:data.configured,setupRequired:data.setupRequired,authenticated:data.authenticated};
+          if(get.status===200&&data.enabled===true){
+            // A nonexistent account cannot get access, cannot lock out admin,
+            // and cannot create a user. It checks DB schema and the login route.
+            const post=await fetch(base+'/api/auth',{
+              method:'POST',
+              headers:{'Content-Type':'application/json','Origin':base},
+              body:JSON.stringify({username:'diagnostic-missing-user-2026',password:'NotARealAccountPass!'}),
+              signal:AbortSignal.timeout(15000)
+            });
+            const obj=await post.json().catch(()=>({}));
+            result.probeStatus=post.status;
+            result.probeError=obj.error||null;
+          }
+          console.log('AUTH_DIAGNOSTIC_RESULT='+JSON.stringify(result));
+          JS
