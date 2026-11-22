@@ -3,7 +3,7 @@ import { createDeviceBackup, parseDeviceBackup } from './device-backup.js';
 import { readXlsxRows } from './xlsx-reader.js';
 import { parseExcelProducts } from './excel-products.js';
 import { parseLocaleNumber, safeImageUrl } from './normalize.js';
-import { buildCategoryTree, categoryMatches, showCategoryInBrowse } from './category-menu.js';
+import { buildCategoryTree, categoryMatches, showCategoryInBrowse, productCategoryPath } from './category-menu.js';
 import { categoryArtwork, sortCategoryNodes } from './category-art.js';
 import { subcategoryPhoto } from './subcategory-photos.js';
 import { categoryOverrideUrl } from './category-image-overrides.js';
@@ -22,6 +22,7 @@ import { createCustomerManager } from './customer-ui.js';
 import { recordCustomerCredit } from './customer-api.js';
 import { readReceiptSettings,saveReceiptSettings,receiptPrintLayout,readReceiptAction,saveReceiptAction } from './receipt-settings.js';
 import { parseBasketDiscountPercent,calculateBasketTotals } from './basket-pricing.js';
+import { readPickerMode,savePickerMode } from './picker-preferences.js';
 import { next200Cash } from './cash-change.js';
 import { isWeightProduct,scaleSupported,ScaleSerialConnection,parseManualGrams,scaleGramsToQuantity,calculateWeightTotal } from './scale-serial.js';
 import { writeActiveProductsLocalStorage } from './active-products-cache.js';
@@ -242,6 +243,8 @@ function finishSaleExit({discard=false}={}) {
     dom.cash.value='';
     customerManager?.clearSelection();
     document.querySelector('input[name="payment"][value="Nakit"]').checked=true;
+    $('basketDiscountPanel').hidden=true;
+    $('checkoutDiscountToggle').setAttribute('aria-expanded','false');
     renderCartBar();renderCart();
   }
   if(dom.cartDialog.open)dom.cartDialog.close();
@@ -257,33 +260,84 @@ function requestSaleExit(target='previous') {
   $('saleExitTitle').textContent=target==='cancel'?'Satışı iptal etmek istiyor musunuz?':'Satıştan çıkılsın mı?';
   if(!$('saleExitDialog').open)$('saleExitDialog').showModal();
 }
+let pickerMode='search',pickerCategoryMain='',pickerCategorySub='',pickerVisibleLimit=60;
 function renderProductPicker() {
-  const query = fold($('pickProductSearch').value);
-  const items = state.products.filter(p => isActive(p) && remaining(p) > 0 && !p.fiyatBelirsiz && (!query ||
-    [p.baslik, p.barkod, p.urunKodu, p.marka].some(v => fold(v).includes(query))));
-  const target = $('pickProductResults'); target.replaceChildren();
-  for (const product of items.slice(0, 60)) {
-    const button = document.createElement('button'); button.className = 'picker-product'; button.type = 'button';
+  const mode=pickerMode,query=fold($('pickProductSearch').value);
+  const eligible=state.products.filter(p=>isActive(p)&&remaining(p)>0&&!p.fiyatBelirsiz);
+  const target=$('pickProductResults'),browser=$('pickerCategoryBrowser'),grid=$('pickerCategoryGrid');
+  const more=$('pickerLoadMore');
+  target.replaceChildren();grid.replaceChildren();more.hidden=true;
+  $('pickProductSearchWrap').hidden=mode==='categories';
+  document.querySelectorAll('[data-picker-mode]').forEach(button=>
+    button.setAttribute('aria-pressed',String(button.dataset.pickerMode===mode)));
+  browser.hidden=true;
+  let items=[];
+  if(mode==='categories'){
+    browser.hidden=false;
+    $('pickerCategoryBack').hidden=!pickerCategoryMain;
+    $('pickerCategoryTitle').textContent=pickerCategorySub&&pickerCategorySub!=='*'?
+      pickerCategoryMain+' / '+pickerCategorySub:pickerCategoryMain||'12 Ana Kategori';
+    // Use the very same category projection and illustrations as the catalog.
+    const roots=sortCategoryNodes(buildCategoryTree(eligible));
+    const root=roots.find(node=>node.name===pickerCategoryMain);
+    let choices=[];
+    if(!pickerCategoryMain)choices=roots;
+    else if(!pickerCategorySub){
+      choices=root?.children||[];
+      if(root)choices=[{name:'Tüm '+root.name+' Ürünleri',path:root.path,count:root.count,all:true},...choices];
+    }
+    if(!pickerCategoryMain||!pickerCategorySub){
+      for(const node of choices){
+        const button=document.createElement('button');button.type='button';button.className='picker-category-tile';
+        const art=document.createElement('img');art.alt='';art.loading='lazy';art.decoding='async';
+        art.src=categoryArtwork(node.path);
+        const label=document.createElement('strong');label.textContent=node.name;
+        const count=document.createElement('small');count.textContent=node.count.toLocaleString('tr-TR')+' ürün';
+        button.append(art,label,count);
+        button.addEventListener('click',()=>{
+          if(!pickerCategoryMain)pickerCategoryMain=node.name;
+          else pickerCategorySub=node.all?'*':node.name;
+          if(!node.all&&!pickerCategorySub&&!node.children?.length)pickerCategorySub='*';
+          pickerVisibleLimit=60;renderProductPicker();
+        });
+        grid.append(button);
+      }
+      if(!choices.length)grid.textContent='Bu kategoride ürün bulunamadı.';
+      return;
+    }
+    const path=pickerCategorySub==='*'?pickerCategoryMain:pickerCategoryMain+' > '+pickerCategorySub;
+    items=eligible.filter(p=>categoryMatches(p,path));
+  }else{
+    items=eligible.filter(p=>!query||
+      [p.baslik,p.barkod,p.urunKodu,p.marka].some(v=>fold(v).includes(query)));
+  }
+  for(const product of items.slice(0,pickerVisibleLimit)){
+    const button=document.createElement('button');button.className='picker-product';button.type='button';
     let pic;
-    if(product.gorsel){
-      pic=document.createElement('img'); applyProductImage(pic,product.gorsel,192);
-    }else{pic=document.createElement('span');pic.className='picker-emoji';pic.textContent=productPictureEmoji(product);}
-    const name=document.createElement('span'); name.textContent=product.baslik;
-    const price=document.createElement('strong'); price.textContent=priceLabel(product);
+    if(product.gorsel){pic=document.createElement('img');applyProductImage(pic,product.gorsel,192);}
+    else{pic=document.createElement('span');pic.className='picker-emoji';pic.textContent=productPictureEmoji(product);}
+    const name=document.createElement('span');name.textContent=product.baslik;
+    const price=document.createElement('strong');price.textContent=priceLabel(product);
     button.append(pic,name,price);
-    button.addEventListener('click', () => {
-      if(isWeightProduct(product)){
-        $('pickProductDialog').close();openWeightProduct(product);
-      }else if(addToCart(product)){$('pickProductDialog').close();openSale();}
+    button.addEventListener('click',()=>{
+      if(isWeightProduct(product)){$('pickProductDialog').close();openWeightProduct(product);}
+      else if(addToCart(product)){$('pickProductDialog').close();openSale();}
     });
     target.append(button);
   }
-  if (!items.length) target.textContent='Ürün bulunamadı';
+  if(!items.length)target.textContent='Ürün bulunamadı';
+  more.hidden=items.length<=pickerVisibleLimit;
+  if(!more.hidden)more.textContent='Daha Fazla Ürün Göster ('+
+    (items.length-pickerVisibleLimit).toLocaleString('tr-TR')+' kaldı)';
 }
-function openProductPicker(initialQuery='') {
-  $('pickProductSearch').value=typeof initialQuery==='string'?initialQuery:''; renderProductPicker();
-  if (!$('pickProductDialog').open) $('pickProductDialog').showModal();
-  $('pickProductSearch').focus({preventScroll:true});
+function openProductPicker(initialQuery=''){
+  const query=typeof initialQuery==='string'?initialQuery:'';
+  $('pickProductSearch').value=query;
+  pickerMode=query.trim()?'search':readPickerMode();
+  pickerCategoryMain='';pickerCategorySub='';pickerVisibleLimit=60;
+  renderProductPicker();
+  if(!$('pickProductDialog').open)$('pickProductDialog').showModal();
+  if(pickerMode==='search')$('pickProductSearch').focus({preventScroll:true});
 }
 function openCamera() {
   state.scanPurpose = 'sale';
@@ -875,7 +929,18 @@ function renderCart() {
 function updatePayment() {
   const selected = document.querySelector('input[name="payment"]:checked').value;
   $('creditBox').hidden=selected!=='Veresiye';
-  $('bankPaymentNotice').hidden=selected!=='Havale / FAST';
+  const external=['Havale / FAST','Yemek Kartı','Diğer'].includes(selected);
+  $('bankPaymentNotice').hidden=!external;
+  if(external)$('bankPaymentNotice').textContent=selected==='Havale / FAST'?
+    'Havale / FAST ödemesinin banka hesabınıza geçtiğini kontrol edin. Uygulama banka transferlerini otomatik doğrulamaz.':
+    'Bu yöntem harici olarak tahsil edilir. Satışı tamamlamadan önce ödemenin alındığını kontrol edin.';
+  const other=!['Nakit','Kart'].includes(selected);
+  $('checkoutOtherPayment').classList.toggle('is-selected',other);
+  $('checkoutOtherLabel').textContent=other?selected:'Diğer Ödeme';
+  $('checkoutOtherPayment').setAttribute('aria-label',other?'Diğer Ödeme: '+selected:'Diğer Ödeme');
+  $('checkoutDiscountLabel').textContent=state.basketDiscountPct>0?
+    'İndirim %'+state.basketDiscountPct:'Sepet İndirimi';
+  $('checkoutDiscountToggle').classList.toggle('has-discount',state.basketDiscountPct>0);
   const paid=dom.cash.value.trim()===''?NaN:parseLocaleNumber(dom.cash.value,NaN);
   const total=totals().total;
   const change=Number.isFinite(paid)?round2(paid-total):NaN;
@@ -1062,6 +1127,9 @@ async function completeSale() {
     state.lastSale = record; state.cart.clear();
     state.basketDiscountPct=0;state.basketDiscountInvalid=false;
     $('basketDiscountPct').value='';$('basketDiscountError').hidden=true;
+    $('basketDiscountPanel').hidden=true;
+    $('checkoutDiscountToggle').setAttribute('aria-expanded','false');
+    document.querySelector('input[name="payment"][value="Nakit"]').checked=true;
     dom.cash.value='';customerManager?.clearSelection();
     if($('cashPaymentDialog').open)$('cashPaymentDialog').close();
     dom.cartDialog.close();
@@ -1787,6 +1855,17 @@ async function setup() {
   $('settingsReceiptTitle').value=settings.title;
   $('settingsReceiptPhone').value=settings.phone;
   $('settingsReceiptWebsite').value=settings.website;
+  $('settingsPickerMode').value=readPickerMode();
+  $('settingsPickerMode').addEventListener('change',()=>{
+    const status=$('settingsPickerModeStatus'),previous=readPickerMode();
+    try{
+      savePickerMode($('settingsPickerMode').value);
+      status.textContent='✓ Bu cihazın varsayılan ürün görünümü kaydedildi.';
+    }catch(error){
+      $('settingsPickerMode').value=previous;
+      status.textContent='Tercih kaydedilemedi: '+error.message;
+    }
+  });
   $('settingsReceiptAction').value=readReceiptAction();
   $('settingsReceiptAction').addEventListener('change',()=>{
     const status=$('settingsReceiptActionStatus'),oldValue=readReceiptAction();
@@ -1862,6 +1941,7 @@ async function setup() {
   $('navProducts').addEventListener('click',openProductCategoryHome);
   $('navSale').addEventListener('click',openSale);
   $('navSettings').addEventListener('click',()=>setView('settings'));
+  $('homeSettingsShortcut').addEventListener('click',()=>setView('settings'));
   // The six approved home shortcuts all open an existing, working workflow.
   $('homeQuickCategories').addEventListener('click',openProductCategoryHome);
   $('homeQuickSale').addEventListener('click',openSale);
@@ -1930,7 +2010,26 @@ async function setup() {
       if(exactProduct(barcode))addHardwareBarcode(barcode,$('saleBarcode'));
     },220);
   });
-  $('pickProductSearch').addEventListener('input',renderProductPicker);
+  $('pickProductSearch').addEventListener('input',()=>{
+    pickerVisibleLimit=60;renderProductPicker();
+  });
+  document.querySelectorAll('[data-picker-mode]').forEach(button=>{
+    button.addEventListener('click',()=>{
+      pickerMode=button.dataset.pickerMode;
+      pickerCategoryMain='';pickerCategorySub='';pickerVisibleLimit=60;
+      $('pickProductSearch').value='';
+      renderProductPicker();
+      if(pickerMode==='search')$('pickProductSearch').focus({preventScroll:true});
+    });
+  });
+  $('pickerCategoryBack').addEventListener('click',()=>{
+    if(pickerCategorySub)pickerCategorySub='';
+    else pickerCategoryMain='';
+    pickerVisibleLimit=60;renderProductPicker();
+  });
+  $('pickerLoadMore').addEventListener('click',()=>{
+    pickerVisibleLimit+=60;renderProductPicker();
+  });
   $('saleScanButton').addEventListener('click',openCamera);
   $('scanRetry').addEventListener('click',startScanner);
   $('scanTorch').addEventListener('click',toggleTorch);
@@ -1988,6 +2087,25 @@ async function setup() {
   $('scanButton').addEventListener('click',openCamera);
   $('excelFile').addEventListener('change',()=>selectExcelFile($('excelFile').files[0]));
   $('confirmExcelImport').addEventListener('click',confirmExcelImport);
+  $('checkoutDiscountToggle').addEventListener('click',()=>{
+    const panel=$('basketDiscountPanel');
+    panel.hidden=!panel.hidden;
+    $('checkoutDiscountToggle').setAttribute('aria-expanded',String(!panel.hidden));
+    if(!panel.hidden)$('basketDiscountPct').focus({preventScroll:true});
+  });
+  $('checkoutOtherPayment').addEventListener('click',()=>{
+    if(!$('otherPaymentDialog').open)$('otherPaymentDialog').showModal();
+  });
+  $('otherPaymentClose').addEventListener('click',()=>$('otherPaymentDialog').close());
+  document.querySelectorAll('[data-payment-option]').forEach(button=>{
+    button.addEventListener('click',()=>{
+      const radio=[...document.querySelectorAll('input[name="payment"]')].find(el=>el.value===button.dataset.paymentOption);
+      if(!radio)return;
+      radio.checked=true;
+      $('otherPaymentDialog').close();
+      radio.dispatchEvent(new Event('change',{bubbles:true}));
+    });
+  });
   document.querySelectorAll('input[name="payment"]').forEach(el=>{
     el.addEventListener('change',()=>{
       updatePayment();
@@ -2160,7 +2278,7 @@ async function setup() {
   $('receiptPdfShare').addEventListener('click',()=>{if(state.lastSale)shareReceiptPdf(state.lastSale);});
   $('receiptClose').addEventListener('click',beginNextSaleAfterPrint);
   $('exportSales').addEventListener('click',exportHistory);
-  for(const dialog of [dom.cartDialog,dom.scanDialog,dom.historyDialog,$('backupDialog'),$('saleExitDialog'),$('excelDialog'),$('manageDialog'),$('passiveProductDialog'),$('productDetailDialog'),$('pickProductDialog'),$('receiptActionsDialog'),$('cashPaymentDialog'),$('weightDialog'),$('scanQuantityDialog'),$('manageActivationDialog'),$('customerDialog'),$('categoryImageDialog')]){
+  for(const dialog of [dom.cartDialog,dom.scanDialog,dom.historyDialog,$('backupDialog'),$('otherPaymentDialog'),$('saleExitDialog'),$('excelDialog'),$('manageDialog'),$('passiveProductDialog'),$('productDetailDialog'),$('pickProductDialog'),$('receiptActionsDialog'),$('cashPaymentDialog'),$('weightDialog'),$('scanQuantityDialog'),$('manageActivationDialog'),$('customerDialog'),$('categoryImageDialog')]){
     dialog.addEventListener('click',event=>{
       if(event.target!==dialog)return;
       if(dialog===dom.cartDialog)return; // Avoid accidental outside-tap sale exit.
