@@ -13,7 +13,9 @@ test('minimal checkout has only a compact header, barcode input, cart, total, pa
     assert.match(saleHtml, new RegExp(`id="${id}"`));
   }
   assert.doesNotMatch(saleHtml, /id="cashOption"|id="receiptWidth"|sale-eyebrow|sale-count-strip|Merkezi POS/);
-  assert.match(saleHtml, /<legend class="sr-only">Ödeme türü/);
+  assert.match(saleHtml, /<legend class="sr-only">Ödeme ve indirim seçenekleri/);
+  assert.match(saleHtml, /id="checkoutOtherPayment"/);
+  assert.match(saleHtml, /id="checkoutDiscountToggle"/);
 });
 test('item price and discount remain accessible on demand while stock editing remains', () => {
   assert.match(cartRenderer, /<details class="sale-line-more">/);
@@ -23,7 +25,9 @@ test('item price and discount remain accessible on demand while stock editing re
   assert.match(cartRenderer, /data-step="-1"/);
   assert.match(cartRenderer, /data-step="1"/);
   assert.match(cartRenderer, /data-remove/);
-  assert.doesNotMatch(cartRenderer, /<span>Ara toplam<\/span>|<span>Dahil olan KDV<\/span>|Satır toplamı:/);
+  assert.match(cartRenderer, /<span>Ara toplam<\/span>/);
+  assert.match(cartRenderer, /<span>Ödenecek toplam<\/span>/);
+  assert.doesNotMatch(cartRenderer, /<span>Dahil olan KDV<\/span>|Satır toplamı:/);
   assert.match(styles, /\.sale-sheet\[open\]\{display:flex/);
 });
 test('cash payment is a separate amount-and-change dialog', () => {
