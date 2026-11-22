@@ -2724,11 +2724,10 @@ body.view-settings .settings-view .settings-printer-details .settings-receipt{
   color:#0c6943;font-size:clamp(29px,8vw,42px);
   font-weight:950;font-variant-numeric:tabular-nums;
 }
-.weight-live-panel button{
-  min-height:43px;min-width:85%;border:0;border-radius:11px;
-  background:#0f9160;color:white;font-size:13px;font-weight:900;
+.weight-live-panel .weight-live-help{
+  display:block;text-align:center;font-size:12px;font-weight:850;
+  color:#0c6943;line-height:1.35;
 }
-.weight-live-panel button:disabled{background:#98b4a6}
 .weight-raw{display:block;max-width:100%;font:10px ui-monospace,monospace;color:#53697b;overflow-wrap:anywhere}
 .weight-serial-panel>p{margin:0;font-size:11px;font-weight:750;color:#4c6478;line-height:1.45}
 .weight-manual-panel{display:grid;gap:6px}

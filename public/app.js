@@ -50,6 +50,7 @@ const channel = 'BroadcastChannel' in window ? new BroadcastChannel('cep-pos-cha
 let toastTimer,cartToastTimer;
 let productManager,customerManager,pendingScanProduct=null;
 let weightProduct=null,scaleConnection=null,scaleLatest=null,scaleCapturedAt=0,weightInputMode='manual';
+let weightFreshnessTimer=null;
 let mutationQueue = Promise.resolve();
 function serializeMutation(operation) {
   const next = mutationQueue.then(operation, operation);
@@ -312,6 +313,20 @@ function selectScannedQuantity(product,sourceInput=null,resumeCamera=false) {
 /** Scale product is selected on any device; Windows can choose a COM port,
  * tablets and phones only use manually entered integer grams.
  */
+function clearWeightFreshnessTimer(){
+  if(weightFreshnessTimer!==null)clearTimeout(weightFreshnessTimer);
+  weightFreshnessTimer=null;
+}
+function invalidateAutoWeight(message='Teraziden yeni sabit ağırlık bekleniyor…'){
+  clearWeightFreshnessTimer();
+  scaleLatest=null;scaleCapturedAt=0;
+  $('weightLive').textContent='— kg';
+  if(weightInputMode==='serial'&&$('weightDialog').open){
+    $('weightGrams').value='';
+    renderWeightPreview();
+  }
+  if($('weightDialog').open)$('weightSerialStatus').textContent=message;
+}
 function renderWeightPreview(){
   if(!weightProduct)return;
   const product=weightProduct,unit=product.birim;
@@ -338,13 +353,16 @@ function openWeightProduct(product){
   }
   if(dom.scanDialog.open){dom.scanDialog.close();stopScanner();}
   if($('pickProductDialog').open)$('pickProductDialog').close();
-  weightProduct=product;scaleLatest=null;scaleCapturedAt=0;weightInputMode='manual';
+  clearWeightFreshnessTimer();
+  weightProduct=product;scaleLatest=null;scaleCapturedAt=0;
+  // Windows defaults to automatic live reading, while phones/tablets and
+  // manual edits use the exact grams entered by the cashier.
+  weightInputMode=scaleSupported()?'serial':'manual';
   $('weightProductName').textContent=product.baslik;
   $('weightUnitPrice').textContent=(product.birim==='kg'?'KG':'Gram')+
     ' fiyatı: '+money(product.satisFiyati,product.paraBirimi);
   $('weightGrams').value='';
   $('weightLive').textContent='— kg';
-  $('weightUseLive').disabled=true;
   $('weightError').hidden=true;
   const supported=scaleSupported();
   $('weightSerialPanel').hidden=!supported;
@@ -352,20 +370,28 @@ function openWeightProduct(product){
   $('weightConnect').disabled=Boolean(scaleConnection?.connected);
   $('weightDisconnect').disabled=!scaleConnection?.connected;
   $('weightSerialStatus').textContent=scaleConnection?.connected?
-    'Bağlı: terazinin ağırlık göndermesi bekleniyor.':'COM5 portunu Windows izin penceresinden seçin.';
+    'Bağlı: sabit ağırlık otomatik hesaplanacak. Sepete Ekle yeterli.':
+    'Teraziyi bir kez bağlayın; sonraki tartımlarda ağırlık otomatik gelir.';
+  $('weightHelp').textContent=supported?
+    'Terazi bağlıysa ağırlık otomatik gelir. Gerekirse gramajı elle yazabilirsiniz.':
+    'Örneğin 564 gram = 0,564 kg. Gramajı elle girin.';
   renderWeightPreview();
   if(!$('weightDialog').open)$('weightDialog').showModal();
   if(!supported)$('weightGrams').focus({preventScroll:true});
 }
 function confirmWeight(){
-  if(!weightProduct)return;
+  // A successful click closes the dialog; late/double taps cannot add again.
+  if(!weightProduct||!$('weightDialog').open)return;
   const product=weightProduct;
   let grams,quantity;
   try{
     grams=parseManualGrams($('weightGrams').value);
     quantity=scaleGramsToQuantity(grams,product.birim);
-    if(weightInputMode==='serial'&&(!scaleCapturedAt||Date.now()-scaleCapturedAt>5000))
-      throw Error('Terazi ölçümü eski. Ağırlığı yeniden alın veya gramajı elle girin.');
+    if(weightInputMode==='serial'&&(
+      !scaleConnection?.connected || !scaleLatest || !scaleCapturedAt ||
+      Date.now()-scaleCapturedAt>5000 || scaleLatest.grams!==grams ||
+      scaleLatest.at!==scaleCapturedAt))
+      throw Error('Teraziden güncel sabit ağırlık bekleniyor. Gerekirse gramajı elle girin.');
   }catch(error){
     $('weightError').textContent=error.message;
     $('weightError').hidden=false;
@@ -1931,14 +1957,19 @@ async function setup() {
     updatePayment();
   });
   $('weightGrams').addEventListener('input',()=>{
+    // Deliberate typing wins over the live reader until the next weighing.
     weightInputMode='manual';
+    clearWeightFreshnessTimer();
     scaleCapturedAt=0;
     renderWeightPreview();
+    if(scaleConnection?.connected)
+      $('weightSerialStatus').textContent='Elle girilen gramaj kullanılacak.';
   });
   $('weightAdd').addEventListener('click',confirmWeight);
   $('weightCancel').addEventListener('click',()=>$('weightDialog').close());
   $('weightClose').addEventListener('click',()=>$('weightDialog').close());
   $('weightDialog').addEventListener('close',()=>{
+    clearWeightFreshnessTimer();
     weightProduct=null;scaleLatest=null;scaleCapturedAt=0;weightInputMode='manual';
     focusSaleBarcode();
   });
@@ -1948,22 +1979,38 @@ async function setup() {
     try{
       if(!scaleConnection)scaleConnection=new ScaleSerialConnection({
         onReading:reading=>{
+          // No "Teraziden Ağırlığı Al" click: when CAS reports a stable
+          // frame, fill grams and calculate the kg price immediately.
+          if(!$('weightDialog').open||!weightProduct)return;
           scaleLatest=reading;
           const kg=(reading.grams/1000).toLocaleString('tr-TR',{
             minimumFractionDigits:3,maximumFractionDigits:3})+' kg';
           $('weightLive').textContent=kg;
-          $('weightUseLive').disabled=!$('weightDialog').open;
-          if($('weightDialog').open)
-            $('weightSerialStatus').textContent='Sabit ağırlık okundu: '+kg+'. Teraziden Ağırlığı Al düğmesine basın.';
+          if(weightInputMode==='serial'){
+            scaleCapturedAt=reading.at;
+            $('weightGrams').value=String(reading.grams);
+            renderWeightPreview();
+            clearWeightFreshnessTimer();
+            const capturedAt=reading.at;
+            weightFreshnessTimer=setTimeout(()=>{
+              if(weightInputMode==='serial'&&scaleCapturedAt===capturedAt)
+                invalidateAutoWeight('Ağırlık güncellenmedi. Terazinin sabitlenmesini bekleyin.');
+            },5100);
+            $('weightSerialStatus').textContent='Sabit ağırlık hazır: '+kg+'. Sadece Sepete Ekle düğmesine basın.';
+          }else{
+            $('weightSerialStatus').textContent='Terazi '+kg+' gösteriyor; elle girilen gramaj kullanılacak.';
+          }
         },
         onUnstable:()=>{
-          scaleLatest=null;scaleCapturedAt=0;
-          $('weightLive').textContent='— kg';
-          $('weightUseLive').disabled=true;
           if($('weightDialog').open)
-            $('weightSerialStatus').textContent='Ağırlık sabitleniyor veya terazi boş. Ürünü yerleştirin.';
+            invalidateAutoWeight('Ağırlık sabitleniyor veya terazi boş. Ürünü yerleştirin.');
+          else{scaleLatest=null;scaleCapturedAt=0;clearWeightFreshnessTimer();}
         },
-        onStatus:status=>$('weightSerialStatus').textContent=status,
+        onStatus:status=>{
+          if(/veri akışı durdu|okunamadı|bağlantısı kapalı/i.test(status)){
+            invalidateAutoWeight(status);
+          }else $('weightSerialStatus').textContent=status;
+        },
         onRaw:raw=>$('weightRaw').textContent='Ham veri: '+raw
       });
       await scaleConnection.connect({
@@ -1983,23 +2030,11 @@ async function setup() {
   });
   $('weightDisconnect').addEventListener('click',async()=>{
     if(scaleConnection)await scaleConnection.disconnect();
-    scaleLatest=null;scaleCapturedAt=0;
+    invalidateAutoWeight('Terazi bağlantısı kapatıldı. Gramajı elle girebilirsiniz.');
+    weightInputMode='manual';
     $('weightConnectionState').textContent='Bağlı değil';
     $('weightConnect').disabled=false;
     $('weightDisconnect').disabled=true;
-    $('weightUseLive').disabled=true;
-    $('weightLive').textContent='— kg';
-  });
-  $('weightUseLive').addEventListener('click',()=>{
-    if(!scaleLatest||Date.now()-scaleLatest.at>5000){
-      $('weightError').textContent='Teraziden güncel sabit ağırlık alınamadı. Gramajı elle girin veya yeniden deneyin.';
-      $('weightError').hidden=false;
-      return;
-    }
-    weightInputMode='serial';
-    scaleCapturedAt=scaleLatest.at;
-    $('weightGrams').value=String(scaleLatest.grams);
-    renderWeightPreview();
   });
   $('cashCancel').addEventListener('click',()=>$('cashPaymentDialog').close());
   dom.complete.addEventListener('click',()=>{
