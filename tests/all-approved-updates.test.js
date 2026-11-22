@@ -21,7 +21,7 @@ test('barcode adds one per unique SKU while cart quantities remain adjustable',(
   assert.match(app,/function addBarcodeOnce\(product,sourceInput=null\)/);
   assert.match(app,/if\(state\.cart\.has\(product\.id\)\)/);
   assert.match(app,/const added=addToCart\(product,1\)/);
-  assert.match(app,/function addToCart\(product, quantity=1\)/);
+  assert.match(app,/function addToCart\(product, quantity=1,\{separate=false,grams=null\}=\{\}\)/);
   assert.match(app,/updateCart\(line\.id, 'quantity'/);
   assert.match(app,/active=>addBarcodeOnce/);
 });
