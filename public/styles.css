@@ -4325,57 +4325,7 @@ body.auth-locked #app{display:none!important}
 }
 
 
-/* v63 — Sales and Reports are actual in-page desktop workspaces, not overlays.
-   Keep the established HızlıSatış palette, sidebar, scanner, checkout grid,
-   local-only reports and all mobile/modal behavior intact. */
-@media (min-width:1024px) and (min-height:600px) and (orientation:landscape) and (hover:hover) and (pointer:fine) {
-  body.desktop-workspace #mainContent.clean-content {
-    padding-bottom:18px!important;
-    min-height:calc(100dvh - 72px);
-  }
-  /* Hide the previous page instead of letting it appear behind the workspace. */
-  body.desktop-workspace #mainContent > :not(#cartDialog):not(#historyDialog) {
-    display:none!important;
-  }
-  body.desktop-workspace #mainContent > dialog[open] {
-    box-sizing:border-box!important;
-    position:relative!important;
-    top:auto!important;
-    left:auto!important;
-    right:auto!important;
-    bottom:auto!important;
-    transform:none!important;
-    margin:0!important;
-    width:100%!important;
-    max-width:none!important;
-    height:calc(100dvh - 118px)!important;
-    max-height:none!important;
-    min-height:0!important;
-    border-radius:16px!important;
-    border:1px solid #dce6ef!important;
-    box-shadow:0 7px 22px #15355112!important;
-    overflow:hidden!important;
-  }
-  body.desktop-sale-workspace #mainContent > #cartDialog.sale-sheet[open] {
-    display:grid!important;
-    grid-template-columns:minmax(0,1.65fr) minmax(325px,.87fr)!important;
-    grid-template-rows:auto auto minmax(0,1fr)!important;
-    grid-template-areas:"saleheader saleheader" "salesearch payment" "salelist payment"!important;
-  }
-  body.desktop-reports-workspace #mainContent > #historyDialog.sheet[open] {
-    display:flex!important;
-    flex-direction:column!important;
-  }
-  /* The page itself scrolls only when its content truly exceeds the viewport;
-     receipt items and the cashier's list retain their internal scrolling. */
-  body.desktop-workspace #mainContent > #historyDialog #historyItems,
-  body.desktop-workspace #mainContent > #cartDialog .cart-items,
-  body.desktop-workspace #mainContent > #cartDialog .checkout-area {
-    min-height:0!important;
-    overflow-y:auto!important;
-  }
-}
-
+/* v63 desktop dialog positioning superseded by native v65 workspace pages. */
 
 /* v64 — approved Products workspace: six main categories across × two rows.
    The existing original category photography, palette, main Home design,
@@ -4495,4 +4445,167 @@ body.auth-locked #app{display:none!important}
 }
 @media (prefers-reduced-motion:reduce) {
   #productCategoryHome #homeCategoryShortcuts .photo-category-tile {transition:none!important}
+}
+
+
+/* v65 — Native desktop Sale & Reports pages.
+   Unlike v58-v63 dialog overlays, #saleView and #reportsView are direct
+   siblings of Home, Products, Stock and Settings in #mainContent.
+   Their original controls are MOVED (not cloned) from the mobile dialog.
+   This also keeps the global catalog/connection warning in document flow. */
+#app #mainContent > #saleView[hidden],
+#app #mainContent > #reportsView[hidden] {display:none!important}
+@media (min-width:1024px) and (min-height:600px) and (orientation:landscape) and (hover:hover) and (pointer:fine) {
+  #app #mainContent > #saleView.workspace-page:not([hidden]),
+  #app #mainContent > #reportsView.workspace-page:not([hidden]) {
+    box-sizing:border-box!important;
+    position:relative!important;inset:auto!important;transform:none!important;
+    width:100%!important;max-width:none!important;min-width:0!important;
+    margin:0!important;padding:0!important;
+    color:#173952;background:#fff!important;
+    border:1px solid #dce6ef!important;border-radius:18px!important;
+    box-shadow:0 6px 22px #112d4b12!important;
+    overflow:hidden!important;
+  }
+  /* Same outer canvas and spacing as the other four content sections;
+     this is not fixed to the viewport, so no second window overlays Home. */
+  #app #mainContent > #saleView.sale-sheet:not([hidden]) {
+    display:grid!important;
+    grid-template-columns:minmax(0,1.65fr) minmax(290px,.86fr)!important;
+    grid-template-rows:auto auto minmax(0,1fr)!important;
+    grid-template-areas:"saleheader saleheader" "salesearch payment" "salelist payment"!important;
+    height:calc(100dvh - 121px)!important;
+    min-height:510px!important;
+    max-height:none!important;
+    gap:0!important;align-items:stretch!important;
+  }
+  #saleView .sale-sheet-header {
+    grid-area:saleheader!important;
+    display:flex!important;align-items:center!important;justify-content:space-between!important;
+    flex-wrap:wrap!important;gap:12px!important;
+    min-height:67px!important;height:auto!important;max-height:none!important;
+    position:relative!important;top:auto!important;
+    margin:0!important;padding:11px 18px!important;
+    background:linear-gradient(105deg,#103e68,#0d294c)!important;
+    color:#fff!important;border:0!important;border-radius:0!important;
+    box-shadow:none!important;
+  }
+  #saleView .sale-heading h2 {color:#fff!important}
+  #saleView .sale-scanner {
+    grid-area:salesearch!important;position:relative!important;top:auto!important;
+    display:flex!important;align-items:center!important;gap:11px!important;
+    min-height:75px!important;padding:12px 15px!important;margin:0!important;
+    border-right:1px solid #dae6f0!important;border-bottom:1px solid #e4ebf3!important;
+    background:#fff!important;
+  }
+  #saleView .sale-scanner input {flex:1 1 auto;min-width:0;min-height:47px;font-size:15px}
+  #saleView .cart-items {
+    grid-area:salelist!important;min-width:0!important;min-height:0!important;
+    height:auto!important;max-height:none!important;overflow-y:auto!important;
+    padding:16px!important;margin:0!important;background:#fff!important;
+    overscroll-behavior:contain;
+  }
+  #saleView .sale-empty-premium {
+    display:flex;flex-direction:column;align-items:center;
+    justify-content:center;max-width:min(560px,100%);
+    margin:auto!important;min-height:0;
+  }
+  #saleView .checkout-area {
+    grid-area:payment!important;display:flex!important;flex-direction:column!important;
+    gap:8px!important;min-width:0!important;min-height:0!important;
+    height:auto!important;max-height:none!important;
+    overflow-y:auto!important;overscroll-behavior:contain;
+    margin:0!important;padding:17px!important;
+    border-left:1px solid #dae6f0!important;background:#f3f8ff!important;
+  }
+  #saleView .cart-totals {flex:none!important;width:100%!important}
+  #saleView .payment-types.checkout-shortcuts {
+    display:grid!important;grid-template-columns:1fr!important;
+    gap:8px!important;flex:0 0 auto!important;margin:2px 0 9px!important;
+    padding:0!important;border:0!important;
+  }
+  #saleView .payment-types label,#saleView .payment-types .payment-shortcut {
+    display:block!important;width:100%!important;min-width:0!important;margin:0!important;
+  }
+  #saleView .payment-types label span,
+  #saleView .payment-types .payment-shortcut {
+    box-sizing:border-box!important;
+    height:58px!important;min-height:58px!important;
+    padding:9px 13px!important;
+    border-radius:12px!important;
+    display:flex!important;flex-direction:row!important;
+    align-items:center!important;justify-content:center!important;
+    gap:12px!important;text-align:center!important;
+  }
+  #saleView .payment-types small {font-size:14px!important;font-weight:850!important}
+  #saleView .payment-types b{font-size:24px!important}
+  #saleView #completeSale {
+    flex:none!important;width:100%!important;min-height:61px!important;
+    margin-top:auto!important;border-radius:13px!important;font-size:17px!important;
+  }
+  #saleView #creditBox,#saleView #basketDiscountPanel,#saleView #bankPaymentNotice {
+    flex:0 0 auto!important;max-width:100%;
+  }
+  #app #mainContent > #reportsView.reports-page:not([hidden]) {
+    display:flex!important;flex-direction:column!important;
+    min-height:calc(100dvh - 121px)!important;
+    height:auto!important;max-height:none!important;
+  }
+  #reportsView .sheet-header {
+    flex:0 0 auto!important;display:flex!important;
+    justify-content:space-between!important;align-items:center!important;
+    padding:16px 20px!important;min-height:67px!important;
+    background:linear-gradient(105deg,#103e68,#0d294c)!important;
+    border-radius:0!important;color:#fff!important;
+  }
+  #reportsView .sheet-header h2 {color:#fff!important;font-size:23px!important}
+  #reportsView .sheet-header .closebutton {color:#fff!important}
+  #reportsView .history-actions {
+    display:flex!important;flex:0 0 auto!important;align-items:center!important;
+    justify-content:space-between!important;flex-wrap:wrap!important;
+    gap:10px!important;padding:15px 20px!important;
+    border-bottom:1px solid #e0eaf3!important;background:#f8fbff!important;
+  }
+  #reportsView #historySummary.history-summary:not([hidden]) {
+    display:grid!important;flex:0 0 auto!important;
+    gap:14px!important;margin:0!important;padding:18px 20px!important;
+    background:transparent!important;border:0!important;
+  }
+  #reportsView .history-summary-metrics {
+    display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:clamp(10px,1vw,17px)!important;
+  }
+  #reportsView .history-summary-metrics>div {
+    display:flex;flex-direction:column;gap:8px;
+    min-height:94px!important;padding:15px!important;
+    border-radius:13px!important;background:#eff7ff!important;
+    border:1px solid #dceaf4!important;
+  }
+  #reportsView .history-summary-metrics>div:first-child {background:#eafbf1!important}
+  #reportsView .history-summary-metrics>div:nth-child(3) {background:#f4efff!important}
+  #reportsView .history-summary-metrics strong {font-size:clamp(22px,2.1vw,33px)!important}
+  #reportsView .history-summary h3 {
+    margin:8px 0!important;font-size:17px!important;font-weight:900!important;color:#153b5d!important;
+  }
+  #reportsView .history-summary-chart {
+    display:grid;grid-template-columns:repeat(7,minmax(0,1fr));
+    gap:9px;min-height:140px;padding:12px;
+    border:1px solid #e2eaf4;border-radius:13px;background:#fbfdff;
+  }
+  #reportsView .history-summary-empty {
+    display:grid!important;place-items:center;
+    min-height:clamp(170px,26dvh,285px);
+    padding:24px!important;font-size:clamp(15px,1.25vw,19px)!important;
+  }
+  #reportsView #historyItems.history-items {
+    flex:1 1 auto!important;min-height:0!important;max-height:none!important;
+    margin:0!important;padding:16px 20px 24px!important;
+    overflow-y:auto!important;overscroll-behavior:contain;
+  }
+  #reportsView:has(#historySummaryEmpty:not([hidden])) #historyItems {display:none!important}
+  #reportsView:has(#historySummaryEmpty:not([hidden]))
+  #historySummary.history-summary:not([hidden]) {flex:1 1 auto!important;align-content:start}
+}
+@media print {
+  #saleView,#reportsView {display:none!important}
 }
