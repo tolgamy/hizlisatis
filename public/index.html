@@ -334,11 +334,14 @@
       <div class="sale-heading">
         <span class="sale-heading-icon" aria-hidden="true">🛒</span>
         <h2 id="cartTitle">Satış</h2>
-        <span class="sale-count-pill"><span id="saleLineCount" class="sale-count" aria-label="Sepetteki adet">0</span> Ürün</span>
+        <span class="sale-count-pill" aria-live="polite">
+          <span class="sale-desktop-count"><span id="saleLineCount" class="sale-count" aria-label="Sepetteki adet">0</span> Ürün</span>
+          <span class="sale-mobile-count"><span id="saleVarietyCount">0</span> çeşit · <span id="saleTotalQty">0</span> ürün</span>
+        </span>
       </div>
       <div class="sale-header-actions">
         <button id="saleBack" class="sale-header-back" type="button" aria-label="Önceki ekrana dön">← <span>Geri</span></button>
-        <button id="saleCancel" class="sale-header-cancel" type="button">♲ <span>Satışı İptal Et</span></button>
+        <button id="saleCancel" class="sale-header-cancel" type="button">♲ <span class="sale-cancel-long">Satışı İptal Et</span><span class="sale-cancel-short" aria-hidden="true">İptal</span></button>
         <button id="saleClose" class="sale-header-close" type="button" aria-label="Satış ekranını kapat">× <span>Kapat</span></button>
       </div>
     </div>
