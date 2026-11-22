@@ -91,3 +91,13 @@ test('Existing camera loop, receipt, and checkout confirmations remain connected
   assert.match(app,/function focusSaleBarcode\(\)/);
   assert.match(app,/\$\('receiptNetworkPrint'\)\.addEventListener/);
 });
+
+test('Stale dialog-close events cannot stop the camera of the next product',()=>{
+  const start=app.indexOf("dom.scanDialog.addEventListener('close',()=>");
+  const end=app.indexOf("document.addEventListener('visibilitychange'",start);
+  assert.ok(start>0 && end>start);
+  const closeHandler=app.slice(start,end);
+  assert.match(closeHandler,/if\(dom\.scanDialog\.open\)return/);
+  const qty=app.slice(app.indexOf('function selectScannedQuantity('),app.indexOf('function barcodeAdd(',app.indexOf('function selectScannedQuantity(')));
+  assert.match(qty,/dom\.scanDialog\.close\(\);[\s\S]*?stopScanner\(\)/);
+});
