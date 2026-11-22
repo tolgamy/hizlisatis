@@ -40,33 +40,59 @@ test('Windows PC with serial API can connect, phones without serial remain manua
 
 test('Serial decoder refuses price-weight ambiguity, negative/unstable and incomplete inputs',()=>{
   assert.deepEqual(parseScaleReading('ST,GS,+000.564kg'),{grams:564,stable:true});
+  // Actual CAS ER PLUS-2 serial capture supplied by the user:
+  // raw data: "S 0.562kg"; the weight is exactly 562 grams.
+  assert.deepEqual(parseScaleReading('S 0.562kg'),{grams:562,stable:true});
+  assert.deepEqual(parseScaleReading('S 0,562 kg'),{grams:562,stable:true});
+  assert.deepEqual(parseScaleReading('S 562g'),{grams:562,stable:true});
   assert.deepEqual(parseScaleReading('0.564 kg'),{grams:564,stable:false});
   assert.deepEqual(parseScaleReading('WEIGHT: 0,750 kg'),{grams:750,stable:false});
   assert.deepEqual(parseScaleReading('564 g'),{grams:564,stable:false});
   assert.deepEqual(parseScaleReading('0.564'),{grams:564,stable:false});
   for(const value of [
     'ST,GS,+000.564 210.00 118.44','-0.564 kg','US,GS,+0.564kg',
-    '0.000 kg','Cihaz Hatası','9999.00 kg','0.564 kg 118.44 TRY'
+    '0.000 kg','Cihaz Hatası','9999.00 kg','0.564 kg 118.44 TRY',
+    'U 0.562kg','S -0.562kg','S 0.562kg 36.53','S 0.000kg'
   ])assert.equal(parseScaleReading(value),null,value);
 });
 
-test('Serial stream reads full CRLF frames, requires two matching valid measurements',()=>{
-  const readings=[],raw=[];
+test('CAS S 0.562kg stable frame immediately enables capture; U/zero invalidates',()=>{
+  const readings=[],raw=[],invalid=[];
+  const serial=new ScaleSerialConnection({
+    onReading:value=>readings.push(value),onRaw:value=>raw.push(value),
+    onUnstable:()=>invalid.push(true),nav:{platform:'Win32',serial:{requestPort(){}}}
+  });
+  serial.consume('S 0.');
+  assert.equal(readings.length,0,'a partial packet must not become a weight');
+  serial.consume('562kg\r\n');
+  assert.equal(readings.length,1,'one explicit stable S reading is sufficient');
+  assert.equal(readings[0].grams,562);
+  assert.equal(readings[0].stable,true);
+  assert.deepEqual(raw,['S 0.562kg']);
+  serial.consume('U 0.561kg\r\n');
+  assert.equal(invalid.length,1,'moving scale must invalidate accepted weight');
+  assert.equal(serial.lastGrams,null);
+  serial.consume('S 0.000kg\r\n');
+  assert.equal(invalid.length,2,'empty scale must also clear old weight');
+  serial.consume('S 0.750kg\r\n');
+  assert.equal(readings.length,2,'new stable weight is immediately available');
+  assert.equal(readings[1].grams,750);
+});
+
+test('Untagged frames need two identical values; ST stable frames need one',()=>{
+  const readings=[];
   const serial=new ScaleSerialConnection({onReading:value=>readings.push(value),
-    onRaw:value=>raw.push(value),nav:{platform:'Win32',serial:{requestPort(){}}}});
-  serial.consume('ST,GS,+000.');
-  assert.equal(readings.length,0);
-  serial.consume('564kg\r\n');
-  assert.equal(readings.length,0);
-  serial.consume('ST,GS,+000.564kg\r\n');
+    nav:{platform:'Win32',serial:{requestPort(){}}}});
+  serial.consume('0.564 kg\r\n');
+  assert.equal(readings.length,0,'untagged first reading cannot be trusted alone');
+  serial.consume('0.564 kg\r\n');
   assert.equal(readings.length,1);
-  assert.equal(readings[0].grams,564);
-  serial.consume('ST,GS,+000.700kg\r\n');
-  assert.equal(readings.length,1,'new weight must not be accepted immediately');
   serial.consume('ST,GS,+000.700kg\r\n');
   assert.equal(readings.length,2);
-  assert.deepEqual(raw.slice(0,2),['ST,GS,+000.564kg','ST,GS,+000.564kg']);
+  assert.equal(readings[1].grams,700);
+  assert.equal(readings[1].stable,true);
 });
+
 
 test('Two weighings from same product use distinct cart rows and stock sum',()=>{
   const begin=app.indexOf('function addToCart(product, quantity=1,');
