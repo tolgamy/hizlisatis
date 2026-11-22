@@ -6,6 +6,7 @@ const $=id=>document.getElementById(id);
 const headers={'Content-Type':'application/json','Accept':'application/json'};
 let activeUser=null,enabled=false,initialResolved=false;
 const can=permission=>activeUser?.role==='admin'||activeUser?.permissions?.includes(permission);
+export function userCan(permission){return !enabled||Boolean(can(permission));}
 async function call(url,options={}){
   let response;
   try{
@@ -33,7 +34,8 @@ function applyUser(user){
     'homeQuickBarcode','homeQuickProducts','settingsInnerExcel','settingsInnerManage',
     'settingsInnerCategoryImages'])setPermission(id,'products');
   for(const id of ['settingsHistory','settingsExport','settingsBackup','settingsInnerExport',
-    'settingsInnerBackup','homeQuickReports'])setPermission(id,'reports');
+    'settingsInnerBackup','homeQuickReports','homeTodaySalesButton'])setPermission(id,'reports');
+  setPermission('checkoutDiscountToggle','discounts');
   for(const id of ['settingsCustomers'])setPermission(id,'customers');
   for(const id of ['navSale','homeQuickSale'])setPermission(id,'sales');
   const manageSettings=['products','customers','reports','users'].some(can);
