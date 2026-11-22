@@ -1,4 +1,5 @@
-import { getSnapshot, upsertExcelProducts, installBundledProducts, saveSale, getSales, openDB } from './idb.js';
+import { getSnapshot, getLocalSnapshot, upsertExcelProducts, installBundledProducts, saveSale, getSales, restoreSalesBackup, openDB } from './idb.js';
+import { createDeviceBackup, parseDeviceBackup } from './device-backup.js';
 import { readXlsxRows } from './xlsx-reader.js';
 import { parseExcelProducts } from './excel-products.js';
 import { parseLocaleNumber, safeImageUrl } from './normalize.js';
@@ -617,7 +618,11 @@ function renderCart() {
     const title=String(line.product.baslik||'').trim();
     // The vast majority already start with their brand; do not duplicate it.
     const brandPrefix=brand && fold(title).startsWith(fold(brand));
-    el.innerHTML = `<div class="sale-product-row">
+    el.innerHTML = `<div class="sale-cart-media" aria-hidden="true">
+      <span class="sale-cart-emoji">${productPictureEmoji(line.product)}</span>
+    </div>
+    <div class="sale-cart-info">
+    <div class="sale-product-row">
       <div class="cart-line-name">${brand && !brandPrefix ? `<span class="sale-line-brand">${esc(brand)}</span>` : ''}${esc(title)}</div>
       <strong class="sale-line-price">${esc(amount)}</strong>
     </div>
@@ -634,7 +639,16 @@ function renderCart() {
         </div>
       </details>
       <button class="remove-button" type="button" data-remove aria-label="Ürünü sil" title="Ürünü sil">×</button>
+    </div>
     </div>`;
+    if(line.product.gorsel){
+      const image=document.createElement('img');
+      image.className='sale-cart-product-image';
+      image.alt='';
+      const media=el.querySelector('.sale-cart-media');
+      media.append(image);
+      applyProductImage(image,line.product.gorsel,192,'high');
+    }
     el.querySelector('[data-remove]').addEventListener('click', () => {
       if(!confirm(line.product.baslik+' sepetten silinsin mi?'))return;
       state.cart.delete(line.id); playCartSound('decrease'); renderCart(); renderCartBar();
@@ -1045,6 +1059,57 @@ function exportHistory() {
   a.download = `cep-pos-satislar-${new Date().toISOString().slice(0, 10)}.csv`;
   document.body.append(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(href), 1000);
+}
+
+/** Download only device-local sales and receipt settings: never claim D1 is backed up. */
+async function downloadDeviceBackup(){
+  const button=$('backupDownload'),status=$('backupStatus');
+  button.disabled=true;
+  try{
+    const sales=await getSales();
+    const json=createDeviceBackup(sales,readReceiptSettings());
+    const blob=new Blob([json],{type:'application/json;charset=utf-8'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download='hizlisatis-cihaz-yedegi-'+new Date().toISOString().slice(0,10)+'.json';
+    document.body.append(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),2000);
+    status.textContent='✓ '+sales.length+' satış kaydı ve fiş ayarları yedeklendi. Dosyayı güvenli yerde saklayın.';
+  }catch(error){
+    status.textContent='Yedek oluşturulamadı: '+error.message;
+  }finally{button.disabled=false;}
+}
+async function importDeviceBackup(file){
+  if(!file)return;
+  const status=$('backupStatus'),input=$('backupUpload');
+  status.textContent='Yedek kontrol ediliyor…';
+  try{
+    if(file.size>50*1024*1024)throw Error('Dosya 50 MB sınırını aşıyor.');
+    const data=parseDeviceBackup(await file.text());
+    if(!confirm(data.sales.length+' satış kaydını ve fiş ayarlarını bu cihaza geri yüklemek istiyor musunuz? Mevcut satışlar silinmeyecek.')){
+      status.textContent='Geri yükleme iptal edildi.';return;
+    }
+    const result=await restoreSalesBackup(data.sales);
+    // Sales import commits before settings; do not pretend to undo committed sales.
+    try{
+      const prefs=saveReceiptSettings(data.receiptSettings);
+      $('settingsPrintWidth').value=prefs.width;
+      $('settingsReceiptTitle').value=prefs.title;
+      $('settingsReceiptPhone').value=prefs.phone;
+      $('settingsReceiptWebsite').value=prefs.website;
+    }catch(error){
+      status.textContent=result.added+' satış geri yüklendi, fiş ayarları kaydedilemedi: '+error.message;
+      return;
+    }
+    const snapshot=await getLocalSnapshot();
+    state.sold=new Map(snapshot.adjustments.map(item=>[item.id,item.soldQuantity||0]));
+    renderProducts();renderCart();renderCartBar();
+    refreshHomeSales().catch(()=>{});
+    status.textContent='✓ '+result.added+' satış geri yüklendi; '+result.skipped+
+      ' kayıt zaten vardı. Merkezi ürünler ve müşteri borçları değiştirilmedi.';
+  }catch(error){
+    status.textContent='Yedek geri yüklenemedi: '+error.message;
+  }finally{input.value='';}
 }
 
 let scanSoundContext;
@@ -1547,6 +1612,12 @@ async function setup() {
   $('settingsAdd').addEventListener('click',()=>productManager.openNew());
   $('settingsHistory').addEventListener('click',showHistory);
   $('settingsExport').addEventListener('click',exportHistory);
+  $('settingsBackup').addEventListener('click',()=>{
+    $('backupStatus').textContent='';
+    if(!$('backupDialog').open)$('backupDialog').showModal();
+  });
+  $('backupDownload').addEventListener('click',downloadDeviceBackup);
+  $('backupUpload').addEventListener('change',event=>importDeviceBackup(event.target.files?.[0]));
   // Receipt width/title/contact info are persisted in settings above, not in checkout.
   $('saleBarcodeForm').addEventListener('submit',event=>{
     event.preventDefault();
@@ -1620,12 +1691,6 @@ async function setup() {
   $('cashConfirm').addEventListener('click',completeSale);
   $('cashCancel').addEventListener('click',()=>$('cashPaymentDialog').close());
   dom.complete.addEventListener('click',completeSale);
-  for(const [id,view] of [['saleQuickHome','home'],['saleQuickProducts','catalog'],['saleQuickSettings','settings']]) {
-    $(id).addEventListener('click',()=>{
-      dom.cartDialog.close();
-      setView(view);
-    });
-  }
   $('scanQuantityMinus').addEventListener('click',()=>adjustScanQuantity(-1));
   $('scanQuantityPlus').addEventListener('click',()=>adjustScanQuantity(1));
   $('scanQuantityConfirm').addEventListener('click',confirmScannedQuantity);
@@ -1644,7 +1709,7 @@ async function setup() {
   $('receiptPdfShare').addEventListener('click',()=>{if(state.lastSale)shareReceiptPdf(state.lastSale);});
   $('receiptClose').addEventListener('click',()=>{$('receiptActionsDialog').close();openSale();});
   $('exportSales').addEventListener('click',exportHistory);
-  for(const dialog of [dom.cartDialog,dom.scanDialog,dom.historyDialog,$('saleExitDialog'),$('excelDialog'),$('manageDialog'),$('passiveProductDialog'),$('productDetailDialog'),$('pickProductDialog'),$('receiptActionsDialog'),$('cashPaymentDialog'),$('scanQuantityDialog'),$('manageActivationDialog'),$('customerDialog'),$('categoryImageDialog')]){
+  for(const dialog of [dom.cartDialog,dom.scanDialog,dom.historyDialog,$('backupDialog'),$('saleExitDialog'),$('excelDialog'),$('manageDialog'),$('passiveProductDialog'),$('productDetailDialog'),$('pickProductDialog'),$('receiptActionsDialog'),$('cashPaymentDialog'),$('scanQuantityDialog'),$('manageActivationDialog'),$('customerDialog'),$('categoryImageDialog')]){
     dialog.addEventListener('click',event=>{
       if(event.target!==dialog)return;
       if(dialog===dom.cartDialog)return; // Avoid accidental outside-tap sale exit.
