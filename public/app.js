@@ -1941,6 +1941,7 @@ async function setup() {
   $('navProducts').addEventListener('click',openProductCategoryHome);
   $('navSale').addEventListener('click',openSale);
   $('navSettings').addEventListener('click',()=>setView('settings'));
+  $('homeSettingsShortcut').addEventListener('click',()=>setView('settings'));
   // The six approved home shortcuts all open an existing, working workflow.
   $('homeQuickCategories').addEventListener('click',openProductCategoryHome);
   $('homeQuickSale').addEventListener('click',openSale);
