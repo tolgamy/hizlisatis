@@ -119,9 +119,10 @@ test('Two weighings from same product use distinct cart rows and stock sum',()=>
 
 test('Weight modal, receipt and checkout preserve distinct measured line values',()=>{
   for(const id of ['weightDialog','weightSerialPanel','weightBaud','weightDataBits','weightParity',
-    'weightStopBits','weightConnect','weightDisconnect','weightLive','weightUseLive','weightRaw',
+    'weightStopBits','weightConnect','weightDisconnect','weightLive','weightRaw',
     'weightGrams','weightQuantityPreview','weightTotalPreview','weightAdd'])
     assert.match(html,new RegExp('id="'+id+'"'));
+  assert.doesNotMatch(html,/id="weightUseLive"/);
   assert.match(app,/function openWeightProduct\(product\)/);
   assert.match(app,/function confirmWeight\(\)/);
   assert.match(app,/addToCart\(product,quantity,\{separate:true,grams\}\)/);
@@ -134,7 +135,7 @@ test('Weight modal, receipt and checkout preserve distinct measured line values'
   assert.match(app,/birim:line\.product\.birim,grams:line\.weighed\?line\.grams:null/);
   assert.match(pdf,/item\.birim==='kg'/);
   assert.match(css,/\.weight-dialog/);
-  assert.match(sw,/cep-pos-shell-v49-cas-stable-frame/);
+  assert.match(sw,/cep-pos-shell-v50-one-tap-live-scale/);
   assert.match(sw,/\/scale-serial\.js/);
   const sale={id:'scale-test',createdAt:new Date().toISOString(),items:[
     {baslik:'Muz KG',birim:'kg',quantity:.564,unitPrice:210,total:118.44}
