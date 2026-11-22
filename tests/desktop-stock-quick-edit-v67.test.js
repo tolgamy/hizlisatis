@@ -81,5 +81,6 @@ test('stock editor DOM is accessible and no mass 99 mutation exists',()=>{
   assert.match(html,/name="|stockEditMessage/);
   assert.doesNotMatch(app,/bulk-stock-99|set-all-stocks-to-99/);
   assert.match(sw,/stock-quick-edit-v67/);
+  assert.match(sw,/\/stock-editor\.js/);
   assert.equal((css.match(/{/g)||[]).length,(css.match(/}/g)||[]).length);
 });
