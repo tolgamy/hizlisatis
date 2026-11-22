@@ -5,28 +5,21 @@ import {runInNewContext} from 'node:vm';
 const read=name=>readFileSync(new URL('../public/'+name,import.meta.url),'utf8');
 const app=read('app.js'),sw=read('sw.js');
 
-test('PC numeric and named product barcodes add directly with no quantity dialog',()=>{
+test('PC barcode reading routes a matched SKU through the single-add guard',()=>{
   const a=app.indexOf('function addHardwareBarcode(');
   const b=app.indexOf('function categoryEmoji(',a);
-  assert.ok(a>=0 && b>a);
-  const snippet=app.slice(a,b);
+  assert.ok(a>=0&&b>a);
+  let calls=0,seen='';
   const selected={id:'box',birim:'adet'};
-  const weighted={id:'fruit',birim:'kg'};
-  let chosen=selected,added=0,focused=0,dialogs=0;
-  const picker={value:'8691234567890'};
+  const field={value:'8691234567890'};
   const sandbox={
-    exactProduct:()=>chosen,addToCart:()=>{added++;return true;},
-    barcodeAdd:()=>dialogs++,productManager:null,
-    focusSaleBarcode:()=>focused++
+    exactProduct:()=>selected,
+    barcodeAdd:(code,source)=>{calls++;seen=code;assert.equal(source,field);return true;}
   };
-  const fn=runInNewContext(snippet+';addHardwareBarcode',sandbox);
-  assert.equal(fn(picker.value,picker),true);
-  assert.equal(added,1);assert.equal(focused,1);
-  assert.equal(dialogs,0);assert.equal(picker.value,'');
-  chosen=weighted;picker.value='8695555555555';
-  assert.equal(fn(picker.value,picker),true);
-  assert.equal(dialogs,1);
-  assert.equal(added,1);
+  const fn=runInNewContext(app.slice(a,b)+';addHardwareBarcode',sandbox);
+  assert.equal(fn(field.value,field),true);
+  assert.equal(seen,'8691234567890');
+  assert.equal(calls,1);
 });
 
 test('PC barcode with no Enter/Tab is recognized by exact SKU after input pause',()=>{
@@ -36,7 +29,7 @@ test('PC barcode with no Enter/Tab is recognized by exact SKU after input pause'
   assert.match(app,/barcodeInputIdle=setTimeout\(\(\)=>\{/);
   assert.match(app,/if\(!\/\^\(\?:\\d\{8\}\|\\d\{12,14\}\)\$\/\.test\(barcode\)\)return/);
   assert.match(app,/if\(exactProduct\(barcode\)\)addHardwareBarcode\(barcode,\$\('saleBarcode'\)\)/);
-  assert.match(sw,/cep-pos-shell-v45-camera-pc-decoder/);
+  assert.match(sw,/cep-pos-shell-v46-one-scan-cash-modes/);
 });
 
 test('Camera decoder scans the full video area, with native/ZXing hybrid',()=>{
@@ -86,7 +79,8 @@ test('Scanner restart awaits old async stop even when state session was already 
 
 test('Existing camera loop, receipt, and checkout confirmations remain connected',()=>{
   assert.match(app,/function confirmScannedQuantity\(\)/);
-  assert.match(app,/if\(resumeCamera\)\{[\s\S]*?openCamera\(\)/);
+  assert.match(app,/function addBarcodeOnce\(/);
+  assert.match(app,/addToCart\(product,1\)/);
   assert.match(app,/function printSale\(sale\)/);
   assert.match(app,/function focusSaleBarcode\(\)/);
   assert.match(app,/\$\('receiptNetworkPrint'\)\.addEventListener/);
