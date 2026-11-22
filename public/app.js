@@ -214,7 +214,10 @@ function applyRoute() {
   else state.view='home';
   updateNavigation();renderProducts();
   if(state.view==='stock')renderStockOverview();
-  if(state.view==='home') refreshHomeSales().catch(()=>{});
+  if(state.view==='home'){
+    renderHomeStockInsights();
+    refreshHomeSales().catch(()=>{});
+  }
   window.scrollTo({top:0,behavior:'auto'});
 }
 function setView(view,showAll=false) {
@@ -576,6 +579,7 @@ function categoryTile(node, hasChildren = false) {
   return button;
 }
 function renderHomeStockInsights(){
+  $('homeRecentSalesCard').hidden=!userCan('reports');
   const stock=state.products.filter(isActive).map(p=>({p,...stockState(p)}))
     .filter(item=>item.status==='empty'||item.status==='low')
     .sort((a,b)=>a.stock-b.stock||a.p.baslik.localeCompare(b.p.baslik,'tr'));
@@ -638,8 +642,6 @@ function renderHome() {
   // A deleted record should not inflate the central catalogue count.
   $('homeTotalProducts').textContent=state.products.length?
     state.products.filter(product=>productStatus(product)!=='deleted').length.toLocaleString('tr-TR'):'—';
-  renderHomeStockInsights();
-  $('homeRecentSalesCard').hidden=!userCan('reports');
 }
 let homeSalesReadId=0;
 async function refreshHomeSales() {
@@ -1118,7 +1120,7 @@ function confirmScannedQuantity() {
     focusSaleBarcode();
   }
 }
-function renderAll() { renderHome(); renderFilters(); renderProducts(); if(state.view==='stock')renderStockOverview(); renderCartBar(); setSyncStatus(); updateNavigation(); if (dom.cartDialog.open) renderCart(); }
+function renderAll() { renderHome(); renderHomeStockInsights(); renderFilters(); renderProducts(); if(state.view==='stock')renderStockOverview(); renderCartBar(); setSyncStatus(); updateNavigation(); if (dom.cartDialog.open) renderCart(); }
 function exactProduct(raw) {
   const code = String(raw ?? '').trim();
   return findBarcodeProduct(state.byBarcode, code) || state.products.find(p => p.urunKodu && fold(p.urunKodu) === fold(code));
