@@ -1,7 +1,16 @@
 name: Publish HızlıSatış to Cloudflare Pages
-# Production deployment is a separate, operator-authorized action.
-# An ordinary green CI run never implies a completed Cloudflare publication.
+# Pushes to main are authorized release candidates. The deploy job uses
+# the repository's existing Cloudflare secrets and fails visibly if missing.
+# Ordinary green CI still never implies a completed Cloudflare publication.
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'public/**'
+      - 'functions/**'
+      - 'package*.json'
+      - 'scripts/**'
+      - '.github/workflows/publish-cloudflare-pages.yml'
   workflow_dispatch:
     inputs:
       production_approved:
@@ -16,7 +25,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   deploy:
-    if: ${{ inputs.production_approved == true }}
+    if: ${{ github.event_name == 'push' || inputs.production_approved == true }}
     name: Test, publish, verify
     runs-on: ubuntu-latest
     timeout-minutes: 20
