@@ -1095,6 +1095,10 @@ function renderCartBar() {
   dom.cartTotal.textContent = money(totals().total, cartCurrency());
   document.querySelector('.cart-label strong').textContent = count ? 'Satışa Devam Et' : 'Yeni Satış';
   $('saleLineCount').textContent = String(count);
+  $('saleVarietyCount').textContent = String(new Set(
+    [...state.cart.values()].map(line=>line.id)
+  ).size);
+  $('saleTotalQty').textContent = String(count);
 }
 function addToCart(product, quantity=1,{separate=false,grams=null}={}) {
   if(state.centralReadOnly) { announce('Merkezi ürün bağlantısı yok. Satış için yeniden bağlanın.','error'); return false; }

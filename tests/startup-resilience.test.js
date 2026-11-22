@@ -14,20 +14,24 @@ test('empty cart summary is hidden at first paint and changes with quantity',()=
   assert.ok(snippet.startsWith('function renderCartBar()'));
   let count=0;
   const bar={hidden:false,classList:{toggle(){}}};
-  const fields={openCart:bar,saleLineCount:{},cartCount:{},cartItemLabel:{},cartTotal:{}};
+  const fields={openCart:bar,saleLineCount:{},saleVarietyCount:{},saleTotalQty:{},cartCount:{},cartItemLabel:{},cartTotal:{}};
   const title={textContent:''};
+  const state={cart:new Map()};
   const ctx={
-    $:id=>fields[id],dom:fields,document:{querySelector:()=>title},
+    state,$:id=>fields[id],dom:fields,document:{querySelector:()=>title},
     cartQty:()=>count,money:()=> '₺0,00',totals:()=>({total:0}),cartCurrency:()=> 'TRY'
   };
   runInNewContext(snippet+';renderCartBar()',ctx);
   assert.equal(bar.hidden,true);
   assert.equal(title.textContent,'Yeni Satış');
   count=2;
+  state.cart.set('p1',{id:'p1',quantity:2});
   runInNewContext(snippet+';renderCartBar()',ctx);
   assert.equal(bar.hidden,false);
   assert.equal(title.textContent,'Satışa Devam Et');
   assert.equal(fields.cartItemLabel.textContent,'2 adet ürün');
+  assert.equal(fields.saleVarietyCount.textContent,'1');
+  assert.equal(fields.saleTotalQty.textContent,'2');
 });
 
 test('D1 outage loads bundled read-only catalog without presenting it as authoritative',()=>{
