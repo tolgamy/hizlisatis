@@ -8,7 +8,7 @@ const html=read('index.html'),app=read('app.js'),css=read('styles.css'),sw=read(
 test('approved layout keeps 3 real top exit actions and a distinct custom confirmation',()=>{
   const sale=html.slice(html.indexOf('<dialog id="cartDialog"'),html.indexOf('</dialog>',html.indexOf('<dialog id="cartDialog"')));
   for(const id of ['saleBack','saleClose','saleCancel','saleBarcode','saleScanButton',
-    'cartItems','completeSale','saleQuickHome','saleQuickProducts','saleQuickSettings'])
+    'cartItems','completeSale'])
     assert.match(sale,new RegExp('id="'+id+'"'));
   for(const id of ['saleExitDialog','saleExitKeep','saleExitStay','saleExitDiscard'])
     assert.match(html,new RegExp('id="'+id+'"'));
@@ -86,6 +86,6 @@ test('sales functionality is kept: real save path, unchanged barcode and custome
   assert.match(app,/if\(payment==='Veresiye'\)await recordCustomerCredit/);
   assert.match(app,/const cash = payment === 'Nakit'/);
   assert.match(app,/\$\('saleScanButton'\)\.addEventListener\('click',openCamera\)/);
-  assert.match(app,/\['saleQuickHome','home'\]/);
+  assert.doesNotMatch(html,/id="saleQuickHome"/);
   assert.match(app,/renderCartBar\(\);renderCart\(\)/);
 });
