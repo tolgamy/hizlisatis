@@ -3229,3 +3229,11 @@ body.auth-locked #app{display:none!important}
 .access-users-dialog #accessUserFormStatus{font-size:13px;color:#246548}
 .access-users-dialog .access-active-label{display:flex!important;flex-direction:row!important;align-items:center;gap:10px!important}
 
+
+/* A hidden, unauthorized control must remain hidden even when the responsive
+   tiles/sidebar define display:flex!important. Server checks remain primary. */
+#app .settings-view #settingsMainMenu.settings-card-grid > .settings-tile[hidden],
+#app .settings-view .settings-inner-actions > [hidden],
+#app .dashboard-actions > .dashboard-action[hidden],
+#app .bottom-shell .bottom-nav .nav-item[hidden],
+#app .access-identity-actions > [hidden]{display:none!important}
