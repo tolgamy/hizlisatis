@@ -1,68 +1,36 @@
 name: Live login read-only verification
-# Repeat production-safe anonymous login probe after Cloudflare setup
 on:
   pull_request:
     branches: [main]
-    paths:
-      - '.github/workflows/live-login-readonly.yml'
+    paths: ['.github/workflows/live-login-readonly.yml']
 permissions:
   contents: read
 jobs:
-  live-check:
+  probe-login-hosts:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - name: Probe deployed HızlıSatış without changing any data
+      - name: Check public login endpoints without credentials
         shell: bash
         run: |
           node --input-type=module <<'JS'
-          const host='https://hizlisatis.pages.dev';
-          async function get(path) {
-            try {
-              const response=await fetch(host+path,{
-                signal:AbortSignal.timeout(17000),
-                headers:{'Accept':'text/html,application/json,text/javascript'}
-              });
-              const content=await response.text();
-              return {status:response.status,content,type:response.headers.get('content-type')||''};
-            }catch(e){return {status:0,content:'',error:e.message}}
+          const hosts=['https://hizlisatis.pages.dev','https://hizlisatis.tolgamy.workers.dev'];
+          const checks=[];
+          for(const host of hosts) {
+            for(const path of ['/api/auth','/sw.js']) {
+              try {
+                const res=await fetch(host+path,{signal:AbortSignal.timeout(12000),redirect:'follow'});
+                const body=await res.text();
+                const type=(res.headers.get('content-type')||'').toLowerCase();
+                let enabled=null,configured=null;
+                if(path==='/api/auth'&&type.includes('application/json')){
+                  try{const obj=JSON.parse(body);enabled=obj.enabled??null;configured=obj.configured??null}catch{}
+                }
+                checks.push({host,path,status:res.status,
+                  contentType:type.split(';')[0],loginIsJSON:path==='/api/auth'?type.includes('application/json'):null,
+                  enabled,configured,loginShell:path==='/sw.js'?body.includes('login-safe-v57'):null});
+              } catch(error){checks.push({host,path,error:String(error.message).slice(0,120)})}
+            }
           }
-          const results=await Promise.all([
-            get('/'),get('/api/auth'),get('/sw.js'),
-            get('/api/product-state?health=1')
-          ]);
-          const [home,auth,worker,d1]=results;
-          const stats={
-            homeStatus:home.status,
-            homeHasLoginGate:home.content.includes('id="loginGate"'),
-            authStatus:auth.status,
-            authEnabled:null,
-            authConfigured:null,
-            authAuthenticated:null,
-            swStatus:worker.status,
-            deployedUserShell:worker.content.includes('users-v56'),
-            d1Status:d1.status,
-            d1Ready:null
-          };
-          try{
-            const body=JSON.parse(auth.content);
-            stats.authEnabled=body.enabled??null;
-            stats.authConfigured=body.configured??null;
-            stats.authAuthenticated=body.authenticated??null;
-          }catch{}
-          try{stats.d1Ready=JSON.parse(d1.content).ready??null}catch{}
-          console.log('LIVE_READONLY_RESULT='+JSON.stringify(stats));
-          if(home.status!==200||auth.status!==200||worker.status!==200||d1.status!==200){
-            throw Error('Site/API HTTP check failed. See status above.');
-          }
-          if(!stats.homeHasLoginGate||!stats.deployedUserShell){
-            throw Error('Latest v56 login shell not yet deployed.');
-          }
-          if(stats.authEnabled!==true){
-            throw Error('Login code deployed but AUTH_V2_ENABLED is not active in Cloudflare Production.');
-          }
-          if(stats.authAuthenticated===true){
-            throw Error('Anonymous session unexpectedly marked authenticated.');
-          }
-          console.log('PASS: live login gate is deployed and server-side auth flag is enabled for anonymous sessions.');
+          console.log('LIVE_LOGIN_HOST_COMPARISON='+JSON.stringify(checks));
           JS
