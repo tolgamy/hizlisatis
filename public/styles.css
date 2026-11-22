@@ -2790,3 +2790,9 @@ body.view-settings .settings-view .settings-printer-details .settings-receipt{
 }
 .settings-view .settings-device-receipt small{font-size:11px;color:#4e687b;line-height:1.45}
 .settings-view #settingsReceiptActionStatus{margin:0;font-size:12px;font-weight:800;color:#18714e}
+
+/* Active and passive management cards share the exact approved layout.
+   Only the active status badge has a distinct color. */
+#manageResults .manage-product-badge.is-active{
+  background:#d8f3e5;color:#126340;
+}

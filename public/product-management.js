@@ -67,10 +67,13 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
       : 'İlk toplu pasife alma henüz yapılmadı. Ürünler silinmez.';
   }
   const isPassiveList=()=>filter==='initial-inactive'||filter==='later-inactive';
+  // Share the approved passive category flow with active products. No
+  // product lifecycle or category data is changed by browsing.
+  const hasCategoryNavigation=()=>filter==='active'||isPassiveList();
   function countsView() { counts();renderResults(); }
   function drawCategoryNavigation(products) {
     const browser=$('manageCategoryBrowser'),grid=$('manageCategoryGrid');
-    const active=isPassiveList()&&!search.value.trim()&&
+    const active=hasCategoryNavigation()&&!search.value.trim()&&
       !state.catalogLoading&&!state.catalogError&&state.products.length>0;
     browser.hidden=!active;
     if(!active)return false;
@@ -85,6 +88,9 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
     };
     const heading=$('manageCategoryTitle');
     heading.textContent=manageCategorySub||manageCategoryRoot||'12 Ana Kategori';
+    $('manageCategoryHelp').textContent=filter==='active'?
+      'Kategoriyi seçin, aktif ürüne dokunun ve düzenleyin.':
+      'Kategoriyi seçin, pasif ürüne dokunun ve satışa açın.';
     grid.replaceChildren();
     const listing=Boolean(manageCategorySub);
     if(listing){
@@ -114,7 +120,7 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
       illustration.src=categoryArtwork(choice.path);
       const name=document.createElement('strong');name.textContent=choice.name;
       const count=document.createElement('small');
-      count.textContent=choice.count.toLocaleString('tr-TR')+' pasif ürün';
+      count.textContent=choice.count.toLocaleString('tr-TR')+(filter==='active'?' aktif ürün':' pasif ürün');
       item.append(illustration,name,count);
       item.disabled=!choice.count;
       item.addEventListener('click',()=>{
@@ -125,7 +131,7 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
       });
       grid.append(item);
     }
-    if(!choices.length)grid.textContent='Bu kategoride pasif alt kategori bulunamadı.';
+    if(!choices.length)grid.textContent='Bu kategoride alt kategori bulunamadı.';
     return true;
   }
   function renderResults() {
@@ -144,21 +150,22 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
     const inStatus=state.products.filter(p=>productStatus(p)===filter);
     const browsing=drawCategoryNavigation(inStatus);
     if(browsing){
-      $('manageResultCount').textContent=inStatus.length.toLocaleString('tr-TR')+' pasif ürün · Kategori seçiniz';
+      $('manageResultCount').textContent=inStatus.length.toLocaleString('tr-TR')+
+        (filter==='active'?' aktif ürün · Kategori seçiniz':' pasif ürün · Kategori seçiniz');
       return;
     }
     const matching=inStatus.filter(p=>{
       if(q)return [p.baslik,p.barkod,p.urunKodu,p.marka].some(v=>text(v).toLocaleLowerCase('tr-TR').includes(q));
-      if(isPassiveList()&&manageCategoryRoot){
+      if(hasCategoryNavigation()&&manageCategoryRoot){
         const [main,sub]=productCategoryPath(p);
         return main===manageCategoryRoot&&sub===manageCategorySub;
       }
       return true;
     });
     $('manageResultCount').textContent=matching.length.toLocaleString('tr-TR')+' ürün';
-    // Only the selected passive subcategory becomes the approved four-across
-    // photo grid. Management overview, category tiles and other statuses stay as-is.
-    const photoGrid=isPassiveList()&&Boolean(manageCategorySub)&&!q;
+    // Use the same approved four-across photo cards for active and passive
+    // subcategories. Search results and other status lists remain unchanged.
+    const photoGrid=hasCategoryNavigation()&&Boolean(manageCategorySub)&&!q;
     results.classList.toggle('manage-photo-grid',photoGrid);
     for(const product of matching.slice(0,manageVisibleLimit)) {
       const button=document.createElement('button');button.type='button';
@@ -182,8 +189,8 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
           media.append(picture);
         }
         const status=document.createElement('span');
-        status.className='manage-product-badge';
-        status.textContent='Pasif';
+        status.className='manage-product-badge'+(filter==='active'?' is-active':'');
+        status.textContent=filter==='active'?'Aktif':'Pasif';
         media.append(status);
         const name=document.createElement('strong');
         name.className='manage-product-name';name.textContent=product.baslik;
