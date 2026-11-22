@@ -9,7 +9,11 @@ export function receiptAsText(sale) {
  const rows=[clean(settings.title)||'CEP HIZLI SATIŞ','MALI DEGERI YOKTUR',
  'Fis: '+clean(sale.id).slice(0,12)+' '+when,'Odeme: '+clean(sale.payment),'--------------------'];
  for (const item of sale.items) {
-   rows.push(clean(item.baslik),String(item.quantity)+' x '+fmt(item.unitPrice)+' = '+fmt(item.total)+' '+(clean(sale.currency)||'TRY'));
+   const qty=item.birim==='kg'?
+     new Intl.NumberFormat('tr-TR',{minimumFractionDigits:3,maximumFractionDigits:3}).format(Number(item.quantity))+' kg':
+     item.birim==='g'?String(item.quantity)+' g':String(item.quantity);
+   const per=item.birim==='kg'?'/kg':item.birim==='g'?'/g':'';
+   rows.push(clean(item.baslik),qty+' x '+fmt(item.unitPrice)+per+' = '+fmt(item.total)+' '+(clean(sale.currency)||'TRY'));
  }
  rows.push('--------------------','TOPLAM: '+fmt(sale.total)+' '+(clean(sale.currency)||'TRY'));
  if (sale.payment==='Nakit') rows.push('Para ustu: '+fmt(sale.change)+' '+(clean(sale.currency)||'TRY'));
