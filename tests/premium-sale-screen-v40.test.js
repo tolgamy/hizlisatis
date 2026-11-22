@@ -65,7 +65,7 @@ test('empty state has basket artwork and working search, scan and add handlers',
     assert.match(cart,new RegExp("\\$\\('"+id+"'\\)\\.addEventListener"));
   }
   assert.match(app,/function openProductPicker\(initialQuery=''\)/);
-  assert.match(app,/else if\(exactProduct\(value\)\)barcodeAdd/);
+  assert.match(app,/else if\(!addHardwareBarcode\(value,\$\('saleBarcode'\)\)\)openProductPicker\(value\)/);
   assert.match(app,/else openProductPicker\(value\)/);
 });
 
@@ -78,7 +78,7 @@ test('all four payment tiles are one row, with premium palette and readable smal
   assert.match(styles,/--pay-strong:/);
   assert.match(styles,/max-width:420px/);
   assert.match(styles,/\.sale-exit-dialog\{/);
-  assert.match(sw,/v44-scan-print-fix/);
+  assert.match(sw,/v45-camera-pc-decoder/);
 });
 
 test('sales functionality is kept: real save path, unchanged barcode and customer flows',()=>{
