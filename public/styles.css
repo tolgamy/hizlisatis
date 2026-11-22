@@ -2750,3 +2750,43 @@ body.view-settings .settings-view .settings-printer-details .settings-receipt{
   outline:3px solid #52b8d6;outline-offset:2px;
 }
 .cart-weight-badge{display:block;font-size:11px;color:#177d66;font-weight:820;margin:3px 0 4px}
+
+/* v52 — Cashier-visible per-line price edit, cart discount and per-device receipt preference */
+.sale-sheet .sale-price-actions{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex:none}
+.sale-sheet .sale-edit-price{
+  border:1px solid #bfd9ea;background:#eff8ff;color:#14577d;border-radius:8px;
+  font-size:11px;font-weight:850;padding:5px 8px;min-height:29px;
+  white-space:nowrap;cursor:pointer;
+}
+.sale-sheet .basket-discount-control{
+  margin:8px 0 10px;padding:10px 12px;border:1px solid #cfe2ed;
+  border-radius:12px;background:#f6fbff;
+}
+.sale-sheet .basket-discount-control label{display:block;font-size:13px;font-weight:850;color:#173c55;margin-bottom:6px}
+.sale-sheet .basket-discount-input{display:flex;align-items:center;gap:10px}
+.sale-sheet .basket-discount-input input{
+  width:100%;min-width:0;max-width:170px;height:42px;
+  border:1px solid #b9d3e4;border-radius:9px;padding:8px 11px;
+  font-size:18px;font-weight:800;background:white;color:#11334e;
+}
+.sale-sheet .basket-discount-input strong{font-size:17px;color:#176b55}
+.sale-sheet .basket-discount-control small{display:block;margin-top:5px;font-size:11px;color:#607487}
+.sale-sheet #basketDiscountError{color:#b43c46;font-size:12px;font-weight:700;margin:5px 0 0}
+.sale-sheet .basket-discount-input input[aria-invalid="true"]{border-color:#cb4d57}
+.sale-sheet .total-row.summary{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:#466077;margin-bottom:4px}
+.sale-sheet .total-row.summary strong{font-size:13px;color:#2b4e62}
+.receipt-actions-grid.single-action{grid-template-columns:minmax(0,1fr)}
+.receipt-actions-grid button[hidden]{display:none!important}
+.receipt-actions-grid.single-action button{min-height:110px;max-width:100%;font-size:30px}
+.settings-view .settings-device-receipt{
+  background:#fff;border:1px solid #d5e3ee;border-radius:15px;
+  padding:15px;margin:14px 0;color:#173851;display:grid;gap:8px;
+}
+.settings-view .settings-device-receipt h2{font-size:16px;margin:0}
+.settings-view .settings-device-receipt label{font-size:12px;font-weight:850}
+.settings-view .settings-device-receipt select{
+  width:100%;min-height:45px;padding:9px 12px;border:1px solid #c0d4e3;
+  border-radius:9px;font-size:15px;background:#fff;color:#173851;
+}
+.settings-view .settings-device-receipt small{font-size:11px;color:#4e687b;line-height:1.45}
+.settings-view #settingsReceiptActionStatus{margin:0;font-size:12px;font-weight:800;color:#18714e}
