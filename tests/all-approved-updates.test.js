@@ -17,13 +17,13 @@ test('twelve named main categories in three columns and custom artwork for child
   assert.match(app,/return categoryOverrideUrl\(path\)\|\|originalCategoryCover\(path\);/);
   assert.match(app,/sortCategoryNodes\(state\.categoryTreeData\)/);
 });
-test('barcode scan prompts for one quantity; no repeated scanning for quantities',()=>{
-  assert.match(html,/id="scanQuantityDialog"/);
-  assert.match(html,/Kaç adet sepete eklensin/);
-  assert.match(app,/function selectScannedQuantity\(/);
+test('barcode adds one per unique SKU while cart quantities remain adjustable',()=>{
+  assert.match(app,/function addBarcodeOnce\(product,sourceInput=null\)/);
+  assert.match(app,/if\(state\.cart\.has\(product\.id\)\)/);
+  assert.match(app,/const added=addToCart\(product,1\)/);
   assert.match(app,/function addToCart\(product, quantity=1\)/);
-  assert.match(app,/addToCart\(product,qty\)/);
-  assert.match(app,/active=>selectScannedQuantity/);
+  assert.match(app,/updateCart\(line\.id, 'quantity'/);
+  assert.match(app,/active=>addBarcodeOnce/);
 });
 test('cart adjustments play sound on increase and decrease, confirm deletion, leave discount blank',()=>{
   assert.match(app,/if\(num!==line.quantity\)playCartSound\(num>line.quantity\?'increase':'decrease'\)/);
