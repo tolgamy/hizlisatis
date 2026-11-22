@@ -601,6 +601,7 @@ function renderHomeRecentSales(sales){
   if(card.hidden)return;
   const list=$('homeRecentSalesList');list.replaceChildren();
   const recent=sales.filter(s=>s&&s.createdAt&&
+    Number.isFinite(Number(s.total))&&
     Number.isFinite(new Date(s.createdAt).getTime()))
     .sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))).slice(0,5);
   if(!recent.length){
@@ -612,7 +613,7 @@ function renderHomeRecentSales(sales){
     const row=document.createElement('li');
     const date=document.createElement('span');date.textContent=fmtDate(sale.createdAt);
     const price=document.createElement('strong');
-    price.textContent=money(Number(sale.total)||0,sale.currency||'TRY');
+    price.textContent=money(Number(sale.total),sale.currency||'TRY');
     row.append(date,price);list.append(row);
   }
 }
@@ -798,6 +799,7 @@ function renderProducts() {
 function stockState(product){
   if(product.stokBelirsiz)return {stock:Infinity,status:'unknown',label:'Belirtilmemiş'};
   const value=remaining(product);
+  if(!Number.isFinite(value))return {stock:Infinity,status:'unknown',label:'Belirtilmemiş'};
   const formatted=value.toLocaleString('tr-TR',{maximumFractionDigits:3})+' '+(product.birim||'adet');
   return {stock:value,status:value<=0?'empty':value<=5?'low':'ok',label:formatted};
 }
