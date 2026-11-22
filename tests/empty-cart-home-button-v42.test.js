@@ -36,7 +36,7 @@ test('cart renderer switches label/icon and enabled state without moving footer'
   const label={textContent:''};
   const state={saving:false,cart:new Map()};
   const ctx={state,dom:{complete:button},$:id=>id==='checkoutActionLabel'?label:null};
-  function render(){runInNewContext(source,ctx);}
+  function render(){runInNewContext('{\n'+source+'\n}',ctx);}
   render();
   assert.equal(button.disabled,false);
   assert.equal(label.textContent,'Ana Sayfaya Dön');
