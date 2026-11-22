@@ -763,13 +763,9 @@ function confirmScannedQuantity() {
     pendingScanProduct=null;
     $('scanQuantityDialog').close();
     chirp();
-    if(!dom.cartDialog.open)openSale({preferCamera:resumeCamera});
-    if(resumeCamera){
-      // A quantity confirmation is a deliberate new scan, including when the
-      // same EAN is scanned again. Video-frame debounce still runs normally.
-      lastScanText='';lastScanTime=0;
-      openCamera();
-    } else focusSaleBarcode();
+    if(!dom.cartDialog.open)openSale();
+    // Even the legacy quantity editor must never automatically restart camera.
+    focusSaleBarcode();
   }
 }
 function renderAll() { renderHome(); renderFilters(); renderProducts(); renderCartBar(); setSyncStatus(); updateNavigation(); if (dom.cartDialog.open) renderCart(); }
