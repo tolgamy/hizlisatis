@@ -176,11 +176,36 @@ function setCatalog(products, adjustments, meta, excelCount = 0, bundleCount = 0
   renderAll();
 }
 
+/** Desktop workspace screens reuse the existing sale/report controls in the
+ * normal content flow. Touch devices keep the original modal sheets. */
+const desktopWorkspaceMedia = '(min-width:1024px) and (min-height:600px) and (orientation:landscape) and (hover:hover) and (pointer:fine)';
+function useDesktopWorkspace() {
+  return window.matchMedia(desktopWorkspaceMedia).matches;
+}
+function placeDesktopWorkspace(dialog) {
+  if(!useDesktopWorkspace()) return;
+  const main=$('mainContent');
+  if(dialog.parentElement!==main) main.append(dialog);
+}
+function closeDesktopWorkspaceForNavigation() {
+  if(!useDesktopWorkspace()) return;
+  if(dom.cartDialog.open) dom.cartDialog.close(); // Keep the unsaved basket.
+  if(dom.historyDialog.open) dom.historyDialog.close();
+}
+
 /** Navigation and home dashboard never replace IndexedDB records. */
 function updateNavigation() {
   document.body.classList.toggle('view-home', state.view === 'home');
   document.body.classList.toggle('view-settings', state.view === 'settings');
   document.body.classList.toggle('view-stock', state.view === 'stock');
+  const desktopSale=useDesktopWorkspace() && dom.cartDialog.open;
+  const desktopReports=useDesktopWorkspace() && dom.historyDialog.open;
+  document.body.classList.toggle('desktop-workspace', desktopSale||desktopReports);
+  document.body.classList.toggle('desktop-sale-workspace', desktopSale);
+  document.body.classList.toggle('desktop-reports-workspace', desktopReports);
+  $('sidebarReports').classList.toggle('active',desktopReports);
+  if(desktopReports) $('sidebarReports').setAttribute('aria-current','page');
+  else $('sidebarReports').removeAttribute('aria-current');
   $('homeView').hidden = state.view !== 'home';
   $('catalogView').hidden = state.view !== 'catalog';
   $('settingsView').hidden = state.view !== 'settings';
@@ -199,6 +224,7 @@ function updateNavigation() {
 }
 function navigate(hash) { if(location.hash!==hash) location.hash=hash; else applyRoute(); }
 function applyRoute() {
+  closeDesktopWorkspaceForNavigation();
   const fragment=decodeURIComponent(location.hash.slice(1));
   if(fragment==='product-categories'){
     state.view='catalog';state.catalogMode='category-home';state.catalogEntry='products';state.categoryPage='';
@@ -237,7 +263,12 @@ function focusSaleBarcode(){
 }
 function openSale({preferCamera=false}={}) {
   renderCart();
-  if (!dom.cartDialog.open) dom.cartDialog.showModal();
+  if(useDesktopWorkspace() && dom.historyDialog.open) dom.historyDialog.close();
+  placeDesktopWorkspace(dom.cartDialog);
+  if (!dom.cartDialog.open) {
+    if(useDesktopWorkspace()) dom.cartDialog.show();
+    else dom.cartDialog.showModal();
+  }
   $('saleBarcode').value='';
   updateNavigation();
   if(!preferCamera)focusSaleBarcode();
@@ -1531,7 +1562,13 @@ async function showHistory() {
       item.querySelector('button').addEventListener('click', () => printSale(sale));
       dom.historyItems.append(item);
     }
-    dom.historyDialog.showModal();
+    if(useDesktopWorkspace() && dom.cartDialog.open) dom.cartDialog.close();
+    placeDesktopWorkspace(dom.historyDialog);
+    if(!dom.historyDialog.open) {
+      if(useDesktopWorkspace()) dom.historyDialog.show();
+      else dom.historyDialog.showModal();
+    }
+    updateNavigation();
   } catch (error) { announce(`Satış geçmişi açılamadı: ${error.message}`, 'error'); }
 }
 function csvCell(value) {
@@ -2309,6 +2346,19 @@ async function setup() {
   });
   window.addEventListener('pagehide',()=>{stopScanner();scaleConnection?.disconnect();});
   dom.cartDialog.addEventListener('close',updateNavigation);
+  dom.historyDialog.addEventListener('close',updateNavigation);
+  // If the browser switches between desktop and touch layouts, preserve the
+  // active basket/report while changing only the dialog presentation mode.
+  window.matchMedia(desktopWorkspaceMedia).addEventListener('change',()=>{
+    const active=dom.cartDialog.open?dom.cartDialog:
+      dom.historyDialog.open?dom.historyDialog:null;
+    if(!active) {updateNavigation();return;}
+    active.close();
+    placeDesktopWorkspace(active);
+    if(useDesktopWorkspace())active.show();
+    else active.showModal();
+    updateNavigation();
+  });
   // iOS swipe-back / Android back / Escape must not silently lose an active sale.
   dom.cartDialog.addEventListener('cancel',event=>{
     event.preventDefault();requestSaleExit('previous');
