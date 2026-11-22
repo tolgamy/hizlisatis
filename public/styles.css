@@ -5267,7 +5267,7 @@ body.auth-locked #app{display:none!important}
     line-height:1.05!important;
   }
 
-  /* Keep four normal rows visible on iPhone 15 by reducing needless padding.
+  /* Keep four normal rows visible in a compact phone viewport by reducing needless padding.
      Expanded per-product details remain in document flow and can be scrolled. */
   #cartDialog.sale-sheet .cart-items {
     flex:1 1 auto!important;min-height:0!important;
