@@ -861,7 +861,9 @@ async function completeSale() {
   const payment = document.querySelector('input[name="payment"]:checked').value;
   const cash = payment === 'Nakit' ? round2(parseLocaleNumber(dom.cash.value, NaN)) : null;
   if (payment === 'Nakit' && (!Number.isFinite(cash) || cash + 0.009 < sum.total)) {
-    openCashPayment();return;
+    if($('cashPaymentDialog').open)announce('Alınan para toplam tutarı karşılamıyor.','error');
+    else openCashPayment();
+    return;
   }
   const creditCustomer=payment==='Veresiye'?customerManager?.getSelected():null;
   if(payment==='Veresiye'&&!creditCustomer) {
