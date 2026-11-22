@@ -710,13 +710,20 @@ function renderProducts() {
     $(id).setAttribute('aria-pressed',String(state.productLayout===mode));$(id).classList.toggle('active',state.productLayout===mode);
   }
   $('onlyInStock').setAttribute('aria-pressed',String(state.stockOnly));
+  const isDesktopStockList=state.sort==='stock'&&state.productLayout==='list';
+  $('desktopStockHint').hidden=!isDesktopStockList;
   dom.productList.className=`products ${state.productLayout==='grid'?'grid-view':'list-view'}`;
   const frag=document.createDocumentFragment();
   for(const p of items.slice(0,state.visibleLimit)) {
     const available=!state.centralReadOnly&&remaining(p)>0&&!p.fiyatBelirsiz;
     const row=document.createElement('article');row.className='product-card';
+    const stockDetail=isDesktopStockList
+      ? '<small class="product-stock-details">'+esc(p.kategori||'Ürün')+
+        ' · Stok: '+(p.stokBelirsiz?'Belirtilmemiş':
+          esc(Number(remaining(p)).toLocaleString('tr-TR')+' '+(p.birim||'adet')))+'</small>'
+      : '';
     row.innerHTML=`<div class="product-photo"><span class="product-emoji" aria-hidden="true">${productPictureEmoji(p)}</span></div>
-      <div class="product-info"><div class="product-title">${esc(p.baslik)}</div></div>
+      <div class="product-info"><div class="product-title">${esc(p.baslik)}</div>${stockDetail}</div>
       <div class="product-right"><span class="price">${esc(priceLabel(p))}</span><button class="add-button" type="button" aria-label="${esc(p.baslik)} sepete ekle" ${available?'':'disabled'}>+</button></div>`;
     const pic=row.querySelector('.product-photo');
     if(p.gorsel){
@@ -1339,9 +1346,50 @@ async function shareReceiptPdf(sale) {
     button.disabled=false;
   }
 }
+/** Compact read-only report from THIS device's real local sales only.
+ * Never claim company-wide turnover or invent KPI values from mockups.
+ * Non-TRY currencies are excluded from sums, not converted or combined.
+ */
+function renderHistorySummary(sales){
+  const localTrySales=sales.filter(s=>
+    (!s.currency||s.currency==='TRY')&&Number.isFinite(Number(s.total))&&
+    s.createdAt&&Number.isFinite(new Date(s.createdAt).getTime()));
+  const amount=round2(localTrySales.reduce((sum,s)=>sum+Number(s.total),0));
+  $('historySummaryTotal').textContent=money(amount,'TRY');
+  $('historySummaryCount').textContent=localTrySales.length.toLocaleString('tr-TR');
+  $('historySummaryAverage').textContent=money(
+    localTrySales.length?round2(amount/localTrySales.length):0,'TRY');
+  const dayStart=new Date();dayStart.setHours(0,0,0,0);
+  const days=Array.from({length:7},(_,i)=>{
+    const date=new Date(dayStart);
+    date.setDate(dayStart.getDate()-(6-i));
+    return {date,key:date.toDateString(),total:0};
+  });
+  const byDay=new Map(days.map(day=>[day.key,day]));
+  for(const sale of localTrySales){
+    const day=byDay.get(new Date(sale.createdAt).toDateString());
+    if(day)day.total+=Number(sale.total);
+  }
+  const chart=$('historySummaryChart');chart.replaceChildren();
+  const highest=Math.max(1,...days.map(day=>day.total));
+  for(const day of days){
+    const column=document.createElement('div');column.className='history-summary-day';
+    const value=document.createElement('strong');value.className='history-summary-value';
+    value.textContent=day.total?money(round2(day.total),'TRY'):'—';
+    const track=document.createElement('div');track.className='history-summary-track';
+    const bar=document.createElement('span');bar.className='history-summary-bar';
+    bar.style.height=day.total?Math.max(5,Math.round(day.total/highest*100))+'%':'3px';
+    track.append(bar);
+    const caption=document.createElement('small');
+    caption.textContent=day.date.toLocaleDateString('tr-TR',{day:'2-digit',month:'2-digit'});
+    column.append(value,track,caption);chart.append(column);
+  }
+  $('historySummary').hidden=false;
+}
 async function showHistory() {
   try {
     state.sales = (await getSales()).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    renderHistorySummary(state.sales);
     $('historyCount').textContent = `${state.sales.length} satış`;
     dom.historyItems.replaceChildren();
     if (!state.sales.length) dom.historyItems.innerHTML =
@@ -1988,6 +2036,10 @@ async function setup() {
   $('homeQuickBarcode').addEventListener('click',()=>productManager.openNew());
   $('homeQuickStock').addEventListener('click',()=>{
     state.stockOnly=false;state.sort='stock';$('sortProducts').value='stock';
+    // Desktop stock overview uses the existing real catalog in a readable list;
+    // the handheld product gallery and all mutations stay unchanged.
+    if(window.matchMedia('(min-width:1024px) and (hover:hover) and (pointer:fine)').matches)
+      state.productLayout='list';
     state.catalogEntry='products';showAllProducts();
   });
   $('homeQuickReports').addEventListener('click',showHistory);
