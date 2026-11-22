@@ -66,7 +66,7 @@ test('approved cart confirmation is beneath the sticky search, never above botto
 test('every successful cart add, increase and decrease plays a distinct short sound',()=>{
   assert.match(app,/function playCartSound\(action='add'\)/);
   assert.match(app,/action==='decrease'\?\[670,490\]:action==='increase'\?\[920,1190\]:\[870,1100\]/);
-  assert.match(app,/playCartSound\(current\?'increase':'add'\)/);
+  assert.match(app,/playCartSound\(current&&!separate\?'increase':'add'\)/);
   assert.match(app,/if\(num!==line\.quantity\)playCartSound\(num>line\.quantity\?'increase':'decrease'\)/);
   assert.match(app,/state\.cart\.delete\(id\);playCartSound\('decrease'\)/);
   assert.match(app,/state\.cart\.delete\(line\.id\); playCartSound\('decrease'\)/);
