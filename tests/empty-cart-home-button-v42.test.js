@@ -20,7 +20,7 @@ test('initial empty cart action is active, clearly labeled Ana Sayfaya Dön and 
   assert.match(styles,/color:#075bae/);
   assert.match(styles,/#completeSale\.is-empty-cart \.checkout-home-icon\{display:block\}/);
   assert.match(styles,/#completeSale\.is-empty-cart \.checkout-complete-icon\{display:none\}/);
-  assert.match(sw,/v47-product-photo-upload/);
+  assert.match(sw,/v48-windows-scale-manual-grams/);
 });
 
 test('cart renderer switches label/icon and enabled state without moving footer',()=>{

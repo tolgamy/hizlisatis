@@ -22,6 +22,7 @@ import { createCustomerManager } from './customer-ui.js';
 import { recordCustomerCredit } from './customer-api.js';
 import { readReceiptSettings,saveReceiptSettings,receiptPrintLayout } from './receipt-settings.js';
 import { next200Cash } from './cash-change.js';
+import { isWeightProduct,scaleSupported,ScaleSerialConnection,parseManualGrams,scaleGramsToQuantity,calculateWeightTotal } from './scale-serial.js';
 import { writeActiveProductsLocalStorage } from './active-products-cache.js';
 
 const $ = id => document.getElementById(id);
@@ -48,6 +49,7 @@ const dom = {
 const channel = 'BroadcastChannel' in window ? new BroadcastChannel('cep-pos-changes') : null;
 let toastTimer,cartToastTimer;
 let productManager,customerManager,pendingScanProduct=null;
+let weightProduct=null,scaleConnection=null,scaleLatest=null,scaleCapturedAt=0,weightInputMode='manual';
 let mutationQueue = Promise.resolve();
 function serializeMutation(operation) {
   const next = mutationQueue.then(operation, operation);
@@ -108,7 +110,7 @@ function fold(text) {
 function remaining(product) { return product.stokBelirsiz ? Infinity : Math.max(0, product.stok - (state.sold.get(product.id) || 0)); }
 function stockLabel(product) { return product.stokBelirsiz ? 'Stok takip edilmiyor' : (remaining(product) ? `Stok ${remaining(product)}` : 'Tükendi'); }
 function priceLabel(product) { return product.fiyatBelirsiz ? 'Fiyat girilmedi' : money(product.satisFiyati, product.paraBirimi); }
-function cartQty() { return [...state.cart.values()].reduce((sum, line) => sum + line.quantity, 0); }
+function cartQty() { return [...state.cart.values()].reduce((sum, line) => sum + (line.weighed ? 1 : line.quantity), 0); }
 function cartCurrency() { return state.cart.values().next().value?.product.paraBirimi || 'TRY'; }
 function lineTotals(line) {
   const base = round2(line.quantity * line.unitPrice);
@@ -216,7 +218,8 @@ function setView(view,showAll=false) {
  */
 function focusSaleBarcode(){
   if(!dom.cartDialog.open || $('receiptActionsDialog').open ||
-     $('scanQuantityDialog').open || dom.scanDialog.open || $('pickProductDialog').open) return;
+     $('scanQuantityDialog').open || dom.scanDialog.open || $('pickProductDialog').open ||
+     $('weightDialog').open) return;
   $('saleBarcode').focus({preventScroll:true});
 }
 function openSale({preferCamera=false}={}) {
@@ -266,7 +269,11 @@ function renderProductPicker() {
     const name=document.createElement('span'); name.textContent=product.baslik;
     const price=document.createElement('strong'); price.textContent=priceLabel(product);
     button.append(pic,name,price);
-    button.addEventListener('click', () => { if (addToCart(product)) { $('pickProductDialog').close(); openSale(); } });
+    button.addEventListener('click', () => {
+      if(isWeightProduct(product)){
+        $('pickProductDialog').close();openWeightProduct(product);
+      }else if(addToCart(product)){$('pickProductDialog').close();openSale();}
+    });
     target.append(button);
   }
   if (!items.length) target.textContent='Ürün bulunamadı';
@@ -302,6 +309,72 @@ function selectScannedQuantity(product,sourceInput=null,resumeCamera=false) {
   input.focus({preventScroll:true});
   input.select();
 }
+/** Scale product is selected on any device; Windows can choose a COM port,
+ * tablets and phones only use manually entered integer grams.
+ */
+function renderWeightPreview(){
+  if(!weightProduct)return;
+  const product=weightProduct,unit=product.birim;
+  const val=$('weightGrams').value;
+  try{
+    const grams=parseManualGrams(val);
+    const qty=scaleGramsToQuantity(grams,unit);
+    const total=calculateWeightTotal(grams,product.satisFiyati,unit);
+    $('weightQuantityPreview').textContent=
+      unit==='kg'?qty.toLocaleString('tr-TR',{minimumFractionDigits:3,maximumFractionDigits:3})+' kg':grams+' g';
+    $('weightTotalPreview').textContent=money(total,product.paraBirimi);
+    $('weightAdd').disabled=false;
+    $('weightError').hidden=true;
+  }catch{
+    $('weightQuantityPreview').textContent='—';
+    $('weightTotalPreview').textContent='—';
+    $('weightAdd').disabled=true;
+  }
+}
+function openWeightProduct(product){
+  if(!product||!isWeightProduct(product))return;
+  if(state.centralReadOnly||!isActive(product)||product.fiyatBelirsiz||remaining(product)<=0){
+    announce('Tartılı ürün şu an satışa uygun değil.','error');return;
+  }
+  if(dom.scanDialog.open){dom.scanDialog.close();stopScanner();}
+  if($('pickProductDialog').open)$('pickProductDialog').close();
+  weightProduct=product;scaleLatest=null;scaleCapturedAt=0;weightInputMode='manual';
+  $('weightProductName').textContent=product.baslik;
+  $('weightUnitPrice').textContent=(product.birim==='kg'?'KG':'Gram')+
+    ' fiyatı: '+money(product.satisFiyati,product.paraBirimi);
+  $('weightGrams').value='';
+  $('weightLive').textContent='— kg';
+  $('weightUseLive').disabled=true;
+  $('weightError').hidden=true;
+  const supported=scaleSupported();
+  $('weightSerialPanel').hidden=!supported;
+  $('weightConnectionState').textContent=scaleConnection?.connected?'Bağlı':'Bağlı değil';
+  $('weightConnect').disabled=Boolean(scaleConnection?.connected);
+  $('weightDisconnect').disabled=!scaleConnection?.connected;
+  $('weightSerialStatus').textContent=scaleConnection?.connected?
+    'Bağlı: terazinin ağırlık göndermesi bekleniyor.':'COM5 portunu Windows izin penceresinden seçin.';
+  renderWeightPreview();
+  if(!$('weightDialog').open)$('weightDialog').showModal();
+  if(!supported)$('weightGrams').focus({preventScroll:true});
+}
+function confirmWeight(){
+  if(!weightProduct)return;
+  const product=weightProduct;
+  let grams,quantity;
+  try{
+    grams=parseManualGrams($('weightGrams').value);
+    quantity=scaleGramsToQuantity(grams,product.birim);
+    if(weightInputMode==='serial'&&(!scaleCapturedAt||Date.now()-scaleCapturedAt>5000))
+      throw Error('Terazi ölçümü eski. Ağırlığı yeniden alın veya gramajı elle girin.');
+  }catch(error){
+    $('weightError').textContent=error.message;
+    $('weightError').hidden=false;
+    return;
+  }
+  if(!addToCart(product,quantity,{separate:true,grams}))return;
+  $('weightDialog').close();
+  openSale();
+}
 /** Every decoded barcode is a single deliberate add. Duplicates are ignored,
  * including the same product reread after the scanner's cooldown. Quantities
  * can still be changed using the basket's + / - editor.
@@ -317,6 +390,11 @@ function addBarcodeOnce(product,sourceInput=null){
     }
     focusSaleBarcode();
   };
+  if(isWeightProduct(product)){
+    reset();
+    openWeightProduct(product);
+    return true;
+  }
   if(state.cart.has(product.id)){
     announce('Ürün zaten sepette. Adedi sepetten + / − ile artırabilirsiniz.','error');
     reset();
@@ -565,7 +643,7 @@ function renderProducts() {
     }
     row.querySelector('.product-title').addEventListener('click',()=>openProductDetail(p));
     pic.addEventListener('click',()=>openProductDetail(p));
-    row.querySelector('.add-button').addEventListener('click',()=>addToCart(p));
+    row.querySelector('.add-button').addEventListener('click',()=>isWeightProduct(p)?openWeightProduct(p):addToCart(p));
     frag.append(row);
   }
   dom.productList.replaceChildren(frag);
@@ -583,7 +661,7 @@ function renderCartBar() {
   document.querySelector('.cart-label strong').textContent = count ? 'Satışa Devam Et' : 'Yeni Satış';
   $('saleLineCount').textContent = String(count);
 }
-function addToCart(product, quantity=1) {
+function addToCart(product, quantity=1,{separate=false,grams=null}={}) {
   if(state.centralReadOnly) { announce('Merkezi ürün bağlantısı yok. Satış için yeniden bağlanın.','error'); return false; }
   const weighted=['kg','g','litre'].includes(product.birim);
   if(!Number.isFinite(quantity)||quantity<=0||(!weighted&&!Number.isInteger(quantity))) {
@@ -591,19 +669,26 @@ function addToCart(product, quantity=1) {
   }
   if(!isActive(product)) { announce('Ürün pasif. Satış için önce aktifleştirin.','error'); return false; }
   const current = state.cart.get(product.id);
+  const already=[...state.cart.values()].filter(line=>line.id===product.id)
+    .reduce((sum,line)=>sum+line.quantity,0);
   if (product.fiyatBelirsiz) { announce('Bu ürünün satış fiyatı girilmemiş. Ayarlar’dan fiyatı düzenleyin.', 'error'); return false; }
   if (state.cart.size && product.paraBirimi !== cartCurrency()) {
     announce('Farklı para birimleri tek sepette birleştirilemez.', 'error'); return false;
   }
-  if (remaining(product) + 0.000001 < (current?.quantity ?? 0)+quantity) {
+  if (remaining(product) + 0.000001 < already+quantity) {
     announce('Bu ürün için yeterli yerel stok yok.', 'error'); return false;
   }
-  if (current) current.quantity=Math.round((current.quantity+quantity)*1000)/1000;
-  else state.cart.set(product.id, { id: product.id, product: { ...product },
-    quantity, unitPrice: product.satisFiyati, discountPct: 0 });
+  if (current&&!separate) current.quantity=Math.round((current.quantity+quantity)*1000)/1000;
+  else {
+    const cartKey=separate?'weight::'+product.id+'::'+(globalThis.crypto?.randomUUID?.()||
+      (Date.now().toString(36)+'-'+Math.random().toString(36).slice(2))):product.id;
+    state.cart.set(cartKey,{id:product.id,cartKey,product:{...product},
+      quantity,grams:separate?grams:null,weighed:separate,
+      unitPrice:product.satisFiyati,discountPct:0});
+  }
   renderCartBar();
   if (dom.cartDialog.open) renderCart();
-  playCartSound(current?'increase':'add');
+  playCartSound(current&&!separate?'increase':'add');
   showCartConfirmation(product);
   return true;
 }
@@ -618,11 +703,14 @@ function updateCart(id, field, value) {
       if(!confirm(line.product.baslik+' sepetten silinsin mi?')){renderCart();return;}
       state.cart.delete(id);playCartSound('decrease');renderCartBar();renderCart();return;
     }
-    if (num > remaining(state.byId.get(id) || line.product)) {
+    const otherQuantity=[...state.cart.entries()].filter(([key,entry])=>key!==id&&entry.id===line.id)
+      .reduce((total,[,entry])=>total+entry.quantity,0);
+    if (num+otherQuantity>remaining(state.byId.get(line.id) || line.product)+0.000001) {
       announce('İstenen adet kullanılabilir stoğu aşıyor.', 'error'); renderCart(); return;
     }
     if(num!==line.quantity)playCartSound(num>line.quantity?'increase':'decrease');
     line.quantity = num;
+    if(line.weighed)line.grams=line.product.birim==='g'?Math.round(num):Math.round(num*1000);
   } else if (field === 'price') {
     const num = parseLocaleNumber(value, NaN);
     if (!Number.isFinite(num) || num < 0) { announce('Geçerli bir birim fiyat girin.', 'error'); renderCart(); return; }
@@ -676,10 +764,13 @@ function renderCart() {
       <div class="cart-line-name">${brand && !brandPrefix ? `<span class="sale-line-brand">${esc(brand)}</span>` : ''}${esc(title)}</div>
       <strong class="sale-line-price">${esc(amount)}</strong>
     </div>
+    ${line.weighed?'<small class="cart-weight-badge">⚖ '+esc(
+      line.product.birim==='kg'?line.quantity.toFixed(3)+' kg':line.quantity+' g'
+    )+' · Ayrı tartım</small>':''}
     <div class="sale-line-actions">
       <div class="stepper">
         <button type="button" data-step="-1" aria-label="Adedi azalt">−</button>
-        <input type="number" min="${['kg','g','litre'].includes(line.product.birim)?'0.001':'1'}" step="${['kg','g','litre'].includes(line.product.birim)?'0.001':'1'}" inputmode="${['kg','g','litre'].includes(line.product.birim)?'decimal':'numeric'}" value="${line.quantity}" data-field="quantity" aria-label="Miktar (${esc(line.product.birim||'adet')})">
+        <input type="number" min="${line.product.birim==='kg'?'0.001':'1'}" step="${line.product.birim==='kg'?'0.001':line.product.birim==='litre'?'0.1':'1'}" inputmode="${['kg','g','litre'].includes(line.product.birim)?'decimal':'numeric'}" value="${line.quantity}" data-field="quantity" aria-label="Miktar (${esc(line.product.birim||'adet')})">
         <button type="button" data-step="1" aria-label="Adedi artır">+</button>
       </div>
       <details class="sale-line-more"><summary aria-label="Fiyat ve iskonto düzenle" title="Fiyat / iskonto">⋯</summary>
@@ -701,14 +792,16 @@ function renderCart() {
     }
     el.querySelector('[data-remove]').addEventListener('click', () => {
       if(!confirm(line.product.baslik+' sepetten silinsin mi?'))return;
-      state.cart.delete(line.id); playCartSound('decrease'); renderCart(); renderCartBar();
+      state.cart.delete(line.cartKey||line.id); playCartSound('decrease'); renderCart(); renderCartBar();
     });
     for (const step of el.querySelectorAll('[data-step]')) step.addEventListener('click', () => {
-      const delta=['kg','g','litre'].includes(line.product.birim)?0.1:1;
-      updateCart(line.id, 'quantity', Math.round((line.quantity + Number(step.dataset.step)*delta)*1000)/1000);
+      const delta=line.product.birim==='kg'?0.001:line.product.birim==='g'?1:
+        line.product.birim==='litre'?0.1:1;
+      updateCart(line.cartKey||line.id, 'quantity',
+        Math.round((line.quantity + Number(step.dataset.step)*delta)*1000)/1000);
     });
     for (const input of el.querySelectorAll('[data-field]')) input.addEventListener('change', () => {
-      updateCart(line.id, input.dataset.field, input.value);
+      updateCart(line.cartKey||line.id, input.dataset.field, input.value);
     });
     dom.cartItems.append(el);
   }
@@ -866,10 +959,13 @@ async function completeSale() {
     announce('Veresiye satış için kayıtlı bir müşteri seçmelisiniz.','error');return;
   }
   const creditName=creditCustomer?.name||'';
-  for (const line of state.cart.values()) {
-    const current = state.byId.get(line.id) || line.product;
-    if (line.quantity > remaining(current)) {
-      announce(`${line.product.baslik} için yeterli stok yok.`, 'error'); return;
+  const requested=new Map();
+  for(const line of state.cart.values())
+    requested.set(line.id,(requested.get(line.id)||0)+line.quantity);
+  for(const [id,quantity] of requested){
+    const current=state.byId.get(id)||[...state.cart.values()].find(line=>line.id===id)?.product;
+    if(!current||quantity>remaining(current)+0.000001){
+      announce((current?.baslik||'Ürün')+' için yeterli stok yok.','error');return;
     }
   }
   // Keep the same id if a central credit write succeeded but local storage failed;
@@ -891,6 +987,7 @@ async function completeSale() {
       id: line.id, urunKodu: line.product.urunKodu, barkod: line.product.barkod,
       baslik: line.product.baslik, marka: line.product.marka, beden: line.product.beden, renk: line.product.renk,
       quantity: line.quantity, unitPrice: line.unitPrice, discountPct: line.discountPct,
+      birim:line.product.birim,grams:line.weighed?line.grams:null,
       kdv: line.product.kdv, ...lineTotals(line)
     }))
   };
@@ -938,7 +1035,7 @@ function renderReceipt(sale) {
     <div class="receipt-rule"></div>
     ${sale.items.map(item => `<div class="receipt-product">${esc(item.marka && !fold(item.baslik).startsWith(fold(item.marka)) ? `${item.marka} · ${item.baslik}` : item.baslik)}
       ${esc([item.beden, item.renk].filter(Boolean).join(' / '))}
-      <div class="receipt-row"><span>${item.quantity} × ${esc(money(item.unitPrice, sale.currency))}
+      <div class="receipt-row"><span>${item.birim==='kg'?Number(item.quantity).toFixed(3)+' kg':item.birim==='g'?item.quantity+' g':item.quantity} × ${esc(money(item.unitPrice, sale.currency))}${item.birim==='kg'?'/kg':item.birim==='g'?'/g':''}
       ${item.discountPct ? `(-%${item.discountPct})` : ''}</span>
       <span>${esc(money(item.total, sale.currency))}</span></div></div>`).join('')}
     <div class="receipt-rule"></div>
@@ -1753,7 +1850,13 @@ async function setup() {
     scanned($('scanManualBarcode').value,{source:'manual',format:'Elle Girildi',force:true});
   });
   $('scanPhotoFile').addEventListener('change',event=>{scanBarcodePhoto(event.target.files?.[0]);event.target.value='';});
-  $('detailAdd').addEventListener('click',()=>{if(state.detailProduct&&addToCart(state.detailProduct))$('productDetailDialog').close();});
+  $('detailAdd').addEventListener('click',()=>{
+    const product=state.detailProduct;
+    if(!product)return;
+    if(isWeightProduct(product)){
+      $('productDetailDialog').close();openWeightProduct(product);
+    }else if(addToCart(product))$('productDetailDialog').close();
+  });
   $('detailImage').addEventListener('click',()=>{if(state.detailProduct?.gorsel)window.open(state.detailProduct.gorsel,'_blank','noopener,noreferrer');});
   dom.search.addEventListener('keydown',event=>{
     if(event.key!=='Enter')return;event.preventDefault();const found=exactProduct(dom.search.value);
@@ -1779,7 +1882,7 @@ async function setup() {
   document.addEventListener('visibilitychange',()=>{
     if(document.hidden&&dom.scanDialog.open)stopScanner();
   });
-  window.addEventListener('pagehide',()=>stopScanner());
+  window.addEventListener('pagehide',()=>{stopScanner();scaleConnection?.disconnect();});
   dom.cartDialog.addEventListener('close',updateNavigation);
   // iOS swipe-back / Android back / Escape must not silently lose an active sale.
   dom.cartDialog.addEventListener('cancel',event=>{
@@ -1827,6 +1930,67 @@ async function setup() {
     dom.cash.value='';
     updatePayment();
   });
+  $('weightGrams').addEventListener('input',()=>{
+    weightInputMode='manual';
+    scaleCapturedAt=0;
+    renderWeightPreview();
+  });
+  $('weightAdd').addEventListener('click',confirmWeight);
+  $('weightCancel').addEventListener('click',()=>$('weightDialog').close());
+  $('weightClose').addEventListener('click',()=>$('weightDialog').close());
+  $('weightDialog').addEventListener('close',()=>{
+    weightProduct=null;scaleLatest=null;scaleCapturedAt=0;weightInputMode='manual';
+    focusSaleBarcode();
+  });
+  $('weightConnect').addEventListener('click',async()=>{
+    const button=$('weightConnect');
+    button.disabled=true;
+    try{
+      if(!scaleConnection)scaleConnection=new ScaleSerialConnection({
+        onReading:reading=>{
+          scaleLatest=reading;
+          $('weightLive').textContent=(reading.grams/1000).toLocaleString('tr-TR',{
+            minimumFractionDigits:3,maximumFractionDigits:3})+' kg';
+          $('weightUseLive').disabled=!$('weightDialog').open;
+        },
+        onStatus:status=>$('weightSerialStatus').textContent=status,
+        onRaw:raw=>$('weightRaw').textContent='Ham veri: '+raw
+      });
+      await scaleConnection.connect({
+        baudRate:Number($('weightBaud').value),
+        dataBits:Number($('weightDataBits').value),
+        parity:$('weightParity').value,
+        stopBits:Number($('weightStopBits').value)
+      });
+      $('weightConnectionState').textContent='Bağlı';
+      $('weightDisconnect').disabled=false;
+    }catch(error){
+      $('weightSerialStatus').textContent=error.message||
+        'COM portu seçilemedi. Terazi başka bir programda açık olabilir.';
+    }finally{
+      button.disabled=Boolean(scaleConnection?.connected);
+    }
+  });
+  $('weightDisconnect').addEventListener('click',async()=>{
+    if(scaleConnection)await scaleConnection.disconnect();
+    scaleLatest=null;scaleCapturedAt=0;
+    $('weightConnectionState').textContent='Bağlı değil';
+    $('weightConnect').disabled=false;
+    $('weightDisconnect').disabled=true;
+    $('weightUseLive').disabled=true;
+    $('weightLive').textContent='— kg';
+  });
+  $('weightUseLive').addEventListener('click',()=>{
+    if(!scaleLatest||Date.now()-scaleLatest.at>5000){
+      $('weightError').textContent='Teraziden güncel sabit ağırlık alınamadı. Gramajı elle girin veya yeniden deneyin.';
+      $('weightError').hidden=false;
+      return;
+    }
+    weightInputMode='serial';
+    scaleCapturedAt=scaleLatest.at;
+    $('weightGrams').value=String(scaleLatest.grams);
+    renderWeightPreview();
+  });
   $('cashCancel').addEventListener('click',()=>$('cashPaymentDialog').close());
   dom.complete.addEventListener('click',()=>{
     if(state.saving)return;
@@ -1868,7 +2032,7 @@ async function setup() {
   $('receiptPdfShare').addEventListener('click',()=>{if(state.lastSale)shareReceiptPdf(state.lastSale);});
   $('receiptClose').addEventListener('click',beginNextSaleAfterPrint);
   $('exportSales').addEventListener('click',exportHistory);
-  for(const dialog of [dom.cartDialog,dom.scanDialog,dom.historyDialog,$('backupDialog'),$('saleExitDialog'),$('excelDialog'),$('manageDialog'),$('passiveProductDialog'),$('productDetailDialog'),$('pickProductDialog'),$('receiptActionsDialog'),$('cashPaymentDialog'),$('scanQuantityDialog'),$('manageActivationDialog'),$('customerDialog'),$('categoryImageDialog')]){
+  for(const dialog of [dom.cartDialog,dom.scanDialog,dom.historyDialog,$('backupDialog'),$('saleExitDialog'),$('excelDialog'),$('manageDialog'),$('passiveProductDialog'),$('productDetailDialog'),$('pickProductDialog'),$('receiptActionsDialog'),$('cashPaymentDialog'),$('weightDialog'),$('scanQuantityDialog'),$('manageActivationDialog'),$('customerDialog'),$('categoryImageDialog')]){
     dialog.addEventListener('click',event=>{
       if(event.target!==dialog)return;
       if(dialog===dom.cartDialog)return; // Avoid accidental outside-tap sale exit.

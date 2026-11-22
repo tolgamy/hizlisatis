@@ -224,7 +224,15 @@ export async function upsertExcelProducts(products, filename) {
 export async function saveSale(record) {
   // Refresh server state before sale. Local lifecycle flags may be stale on a
   // second phone and must not override D1.
-  const current=await checkRemoteProductStates(record.items.map(item=>item.id));
+  const totalByProduct=new Map();
+  for(const item of record.items){
+    if(!Number.isFinite(item.quantity)||item.quantity<=0)
+      throw Error('Geçersiz ürün gramajı veya miktarı.');
+    totalByProduct.set(item.id,(totalByProduct.get(item.id)||0)+item.quantity);
+  }
+  // Individual weighted packs have distinct basket lines but share the same
+  // D1 product ID. Query and update stock exactly once per product.
+  const current=await checkRemoteProductStates([...totalByProduct.keys()]);
   for(const item of record.items) {
     const product=current.products.get(item.id);
     if(!product)throw Error('Ürün merkezi veritabanında bulunamadı. Listeyi yenileyin.');
@@ -239,17 +247,19 @@ export async function saveSale(record) {
     tx.objectStore('sales').add(record);
     const stock=tx.objectStore('adjustments');
     const catalog=tx.objectStore('excelProducts');
-    for(const item of record.items) {
-      const productReq=catalog.get(item.id);
+    for(const [productId,quantity] of totalByProduct){
+      const productReq=catalog.get(productId);
       productReq.onsuccess=()=>{
-        const product=current.products.get(item.id)||productReq.result;
-        if(!product) {tx.abort();return;}
+        const product=current.products.get(productId)||productReq.result;
+        if(!product){tx.abort();return;}
         if(!productReq.result)catalog.put(product);
-        const stockReq=stock.get(item.id);
+        const stockReq=stock.get(productId);
         stockReq.onsuccess=()=>{
           const sold=stockReq.result?.soldQuantity||0;
-          if(!product.stokBelirsiz && sold+item.quantity>product.stok) {tx.abort();return;}
-          stock.put({id:item.id,soldQuantity:sold+item.quantity});
+          if(!product.stokBelirsiz&&sold+quantity>product.stok+0.000001){
+            tx.abort();return;
+          }
+          stock.put({id:productId,soldQuantity:Math.round((sold+quantity)*1000)/1000});
         };
       };
     }

@@ -62,7 +62,7 @@ test('receipt title phone website and printer width require visible Save confirm
 });
 test('new PWA shell includes category icons and revokes old version cache',()=>{
   const sw=read('sw.js');
-  assert.match(sw,/v47-product-photo-upload/);
+  assert.match(sw,/v48-windows-scale-manual-grams/);
   assert.match(sw,/\/subcategory-icons\.js/);
 });
 

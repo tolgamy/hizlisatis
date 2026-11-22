@@ -29,7 +29,7 @@ test('PC barcode with no Enter/Tab is recognized by exact SKU after input pause'
   assert.match(app,/barcodeInputIdle=setTimeout\(\(\)=>\{/);
   assert.match(app,/if\(!\/\^\(\?:\\d\{8\}\|\\d\{12,14\}\)\$\/\.test\(barcode\)\)return/);
   assert.match(app,/if\(exactProduct\(barcode\)\)addHardwareBarcode\(barcode,\$\('saleBarcode'\)\)/);
-  assert.match(sw,/cep-pos-shell-v47-product-photo-upload/);
+  assert.match(sw,/cep-pos-shell-v48-windows-scale-manual-grams/);
 });
 
 test('Camera decoder scans the full video area, with native/ZXing hybrid',()=>{
