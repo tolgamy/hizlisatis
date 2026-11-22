@@ -34,7 +34,7 @@ test('cart renderer switches label/icon and enabled state without moving footer'
     setAttribute(name,value){this.attributes[name]=value;}
   };
   const label={textContent:''};
-  const state={saving:false,cart:new Map()};
+  const state={saving:false,basketDiscountInvalid:false,cart:new Map()};
   const ctx={state,dom:{complete:button},$:id=>id==='checkoutActionLabel'?label:null};
   function render(){runInNewContext('{\n'+source+'\n}',ctx);}
   render();
@@ -49,7 +49,9 @@ test('cart renderer switches label/icon and enabled state without moving footer'
   assert.ok(!button.classes.has('is-empty-cart'));
   assert.equal(button.attributes['aria-label'],'Satışı Tamamla');
   state.saving=true;render();assert.equal(button.disabled,true);
-  state.cart.clear();state.saving=false;render();
+  state.saving=false;state.basketDiscountInvalid=true;render();
+  assert.equal(button.disabled,true,'invalid discount must disable checkout');
+  state.cart.clear();state.basketDiscountInvalid=false;render();
   assert.equal(label.textContent,'Ana Sayfaya Dön');
   assert.equal(button.disabled,false);
 });
