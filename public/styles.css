@@ -5335,7 +5335,7 @@ body.auth-locked #app{display:none!important}
     flex:0 0 auto!important;
     box-sizing:border-box!important;
     width:calc(100% - 10px)!important;
-    max-height:min(205px,33dvh)!important;
+    max-height:min(190px,30dvh)!important;
     min-height:0!important;
     margin:0 5px 5px!important;
     padding:7px 8px calc(7px + env(safe-area-inset-bottom))!important;
