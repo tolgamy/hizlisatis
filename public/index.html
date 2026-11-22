@@ -120,6 +120,24 @@
           </div>
           <section id="productCategoryHome" hidden aria-label="12 ana kategori">
             <div id="homeCategoryShortcuts" class="home-category-shortcuts category-photo-grid" aria-label="12 ana kategori"></div>
+            <div class="product-category-quickbar">
+              <p>Kategori seçerek alt kategorileri açın veya tüm ürünlere göz atın.</p>
+              <div class="product-category-quick-actions">
+                <button id="productCategoryBrowseAll" type="button">Tüm Ürünleri Gör ›</button>
+                <button id="productCategoryBrowseCategories" type="button">Kategori Ara</button>
+              </div>
+            </div>
+            <section id="productSubcategoriesPanel" class="product-inline-subcategories" aria-labelledby="productSubcategoriesTitle" hidden>
+              <div class="product-inline-subcategories-head">
+                <div>
+                  <h2 id="productSubcategoriesTitle">Alt Kategoriler</h2>
+                  <p id="productSubcategoriesCount"></p>
+                </div>
+                <button id="productSubcategoriesClose" class="product-inline-close" type="button" aria-label="Alt kategorileri kapat">×</button>
+              </div>
+              <div id="productSubcategoryList" class="product-inline-subcategory-grid" aria-label="Alt kategoriler"></div>
+              <button id="productSubcategoriesAll" class="product-inline-all" type="button">Tüm Ürünleri Gör</button>
+            </section>
           </section>
         </section>
         <section id="productResults" hidden>
