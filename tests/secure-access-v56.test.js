@@ -22,7 +22,11 @@ class MemoryD1 {
         if(sql.includes('WHERE id=?'))return db.users.get(args[0])||null;
         throw Error('Unexpected SELECT: '+sql);
       },
-      async all(){return {results:[...db.users.values()]};},
+      async all(){
+        if(sql.includes('FROM product_changes'))
+          return {results:args.map(id=>({id,payload:JSON.stringify({id,satisFiyati:120})}))};
+        return {results:[...db.users.values()]};
+      },
       async run(){
         if(sql.includes('CREATE TABLE'))return {success:true};
         if(sql.includes('INSERT OR IGNORE INTO app_users')){
@@ -94,12 +98,15 @@ test('cashier can sell, but cannot edit products, users or make discounts',async
   const cashier=await signIn(env,'cashier1','CashierPass2026!');
   const c=session(cashier);
   assert.equal(await authorizedAdmin(request('/api/product-state','POST',null,c),env),false);
-  const record={id:'test1',total:120,payment:'Nakit',basketDiscountPct:0,items:[{id:'a',quantity:1,discountPct:0}]};
+  const record={id:'test1',total:120,payment:'Nakit',basketDiscountPct:0,items:[{id:'a',quantity:1,unitPrice:120,discountPct:0}]};
   const sale=await saleAccess({env,request:request('/api/sale-access','POST',{record},c)});
   assert.equal(sale.status,200);
   const discount=await saleAccess({env,request:request('/api/sale-access','POST',
     {record:{...record,basketDiscountPct:10}},c)});
   assert.equal(discount.status,403);
+  const priceOverride=await saleAccess({env,request:request('/api/sale-access','POST',
+    {record:{...record,items:[{...record.items[0],unitPrice:10}]}},c)});
+  assert.equal(priceOverride.status,403);
   assert.equal((await changeUsers({env,request:request('/api/users','POST',
     {action:'create',username:'other',password:'OtherPass2026!',role:'admin'},c)})).status,403);
 });
