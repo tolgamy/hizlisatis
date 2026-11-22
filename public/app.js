@@ -37,7 +37,8 @@ const state = {
   saving: false, scanner: null, scanPurpose: 'sale',
   excelCount: 0, bundleCount: 0, bundleLoading: false, categoryPage: '', excelPreview: null, excelUploading: false, browseAll: false,
   view: 'home', catalogMode: 'categories', catalogEntry: 'categories', categoryTreeData: [],
-  productLayout: 'grid', stockOnly: false, sort: 'name', visibleLimit: 48, detailProduct: null, manageSelection: null
+  productLayout: 'grid', stockOnly: false, sort: 'name', visibleLimit: 48, detailProduct: null, manageSelection: null,
+  stockOverviewFilter:'all',stockOverviewLimit:60
 };
 const dom = {
   search: $('search'), productList: $('productList'), count: $('resultCount'),
@@ -179,9 +180,14 @@ function setCatalog(products, adjustments, meta, excelCount = 0, bundleCount = 0
 function updateNavigation() {
   document.body.classList.toggle('view-home', state.view === 'home');
   document.body.classList.toggle('view-settings', state.view === 'settings');
+  document.body.classList.toggle('view-stock', state.view === 'stock');
   $('homeView').hidden = state.view !== 'home';
   $('catalogView').hidden = state.view !== 'catalog';
   $('settingsView').hidden = state.view !== 'settings';
+  $('stockView').hidden = state.view !== 'stock';
+  $('sidebarStock').classList.toggle('active',state.view==='stock');
+  if(state.view==='stock')$('sidebarStock').setAttribute('aria-current','page');
+  else $('sidebarStock').removeAttribute('aria-current');
   // The approved mobile navigation has four destinations only; all category
   // levels remain inside Products, and desktop uses the same routes.
   const active = dom.cartDialog.open ? 'sale' :
@@ -204,8 +210,10 @@ function applyRoute() {
     state.view='catalog';state.catalogMode='products';state.browseAll=true;
     state.category=fragment.startsWith('products/') ? fragment.slice('products/'.length) : '';
   } else if (fragment==='settings') state.view='settings';
+  else if (fragment==='stock') state.view='stock';
   else state.view='home';
   updateNavigation();renderProducts();
+  if(state.view==='stock')renderStockOverview();
   if(state.view==='home') refreshHomeSales().catch(()=>{});
   window.scrollTo({top:0,behavior:'auto'});
 }
@@ -996,7 +1004,7 @@ function confirmScannedQuantity() {
     focusSaleBarcode();
   }
 }
-function renderAll() { renderHome(); renderFilters(); renderProducts(); renderCartBar(); setSyncStatus(); updateNavigation(); if (dom.cartDialog.open) renderCart(); }
+function renderAll() { renderHome(); renderFilters(); renderProducts(); if(state.view==='stock')renderStockOverview(); renderCartBar(); setSyncStatus(); updateNavigation(); if (dom.cartDialog.open) renderCart(); }
 function exactProduct(raw) {
   const code = String(raw ?? '').trim();
   return findBarcodeProduct(state.byBarcode, code) || state.products.find(p => p.urunKodu && fold(p.urunKodu) === fold(code));
@@ -1384,6 +1392,9 @@ function renderHistorySummary(sales){
     caption.textContent=day.date.toLocaleDateString('tr-TR',{day:'2-digit',month:'2-digit'});
     column.append(value,track,caption);chart.append(column);
   }
+  const empty=!localTrySales.length;
+  $('historySummaryEmpty').hidden=!empty;
+  $('historySummaryPlot').hidden=empty;
   $('historySummary').hidden=false;
 }
 async function showHistory() {
@@ -2035,13 +2046,31 @@ async function setup() {
   $('homeQuickProducts').addEventListener('click',()=>productManager.openManage());
   $('homeQuickBarcode').addEventListener('click',()=>productManager.openNew());
   $('homeQuickStock').addEventListener('click',()=>{
+    // Mouse/keyboard desktop gets a dedicated, read-only stock workspace.
+    // On phones and touch tablets preserve the existing product listing.
+    if(window.matchMedia('(min-width:1024px) and (hover:hover) and (pointer:fine)').matches){
+      state.stockOverviewFilter='all';state.stockOverviewLimit=60;
+      $('stockOverviewSearch').value='';navigate('#stock');
+      return;
+    }
     state.stockOnly=false;state.sort='stock';$('sortProducts').value='stock';
-    // Desktop stock overview uses the existing real catalog in a readable list;
-    // the handheld product gallery and all mutations stay unchanged.
-    if(window.matchMedia('(min-width:1024px) and (hover:hover) and (pointer:fine)').matches)
-      state.productLayout='list';
     state.catalogEntry='products';showAllProducts();
   });
+  $('stockBackToProducts').addEventListener('click',showAllProducts);
+  $('stockOverviewSearch').addEventListener('input',()=>{
+    state.stockOverviewLimit=60;renderStockOverview();
+  });
+  for(const button of document.querySelectorAll('#stockOverviewFilters [data-stock-filter]')){
+    button.addEventListener('click',()=>{
+      state.stockOverviewFilter=button.dataset.stockFilter;
+      state.stockOverviewLimit=60;renderStockOverview();
+    });
+  }
+  $('stockOverviewMore').addEventListener('click',()=>{
+    state.stockOverviewLimit+=60;renderStockOverview();
+  });
+  $('homeStockInsightOpen').addEventListener('click',()=>$('homeQuickStock').click());
+  $('homeRecentSalesOpen').addEventListener('click',showHistory);
   $('homeQuickReports').addEventListener('click',showHistory);
   $('homeTodaySalesButton').addEventListener('click',showHistory);
   $('homeTotalProductsButton').addEventListener('click',openProductCategoryHome);
