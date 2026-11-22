@@ -43,8 +43,15 @@ async function call(method='GET',body=null,query='') {
   return data;
 }
 export async function logoutAdminSession() {
-  const result=await fetch('/api/admin-session',{method:'DELETE',credentials:'same-origin',cache:'no-store'});
+  // Legacy product-management logout must also terminate the NEW signed user
+  // session; otherwise this misleading button would leave the admin logged in.
+  const response=await fetch('/api/auth',{credentials:'same-origin',cache:'no-store'});
+  const status=await response.json().catch(()=>null);
+  if(!response.ok||!status)throw Error('Giriş durumu doğrulanamadı; oturum kapatma başarısız.');
+  const path=status.enabled?'/api/auth':'/api/admin-session';
+  const result=await fetch(path,{method:'DELETE',credentials:'same-origin',cache:'no-store'});
   if(!result.ok)throw Error('Yönetim oturumu kapatılamadı.');
+  if(status.enabled)location.reload();
 }
 
 export async function fetchRemoteProducts(onProgress) {
