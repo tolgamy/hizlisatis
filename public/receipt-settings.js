@@ -17,3 +17,17 @@ export function saveReceiptSettings(settings,store=globalThis.localStorage) {
   store.setItem('hizlisatis-receipt-settings',JSON.stringify(normalized));
   return normalized;
 }
+
+/** Thermal rolls have unprintable margins and driver offsets. Keep prices within
+ * a centered-safe text block, narrower than the nominal physical page size.
+ * The print dialog must still use matching 58/80 mm media for full protection.
+ */
+export function receiptPrintLayout(width='80'){
+  const paperMm=String(width)==='58'?58:80;
+  return {
+    paperMm,
+    contentMm:paperMm===58?48:70,
+    leftInsetMm:2,
+    innerPaddingMm:2
+  };
+}
