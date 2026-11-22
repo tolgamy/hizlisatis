@@ -78,7 +78,7 @@ test('all four payment tiles are one row, with premium palette and readable smal
   assert.match(styles,/--pay-strong:/);
   assert.match(styles,/max-width:420px/);
   assert.match(styles,/\.sale-exit-dialog\{/);
-  assert.match(sw,/v46-one-scan-cash-modes/);
+  assert.match(sw,/v47-product-photo-upload/);
 });
 
 test('sales functionality is kept: real save path, unchanged barcode and customer flows',()=>{
