@@ -214,7 +214,7 @@ function closeDesktopWorkspaceForNavigation() {
 function updateNavigation() {
   const sale=isSaleActive(),reports=isReportsActive();
   document.body.classList.toggle('view-home', state.view==='home');
-  document.body.classList.toggle('view-settings', state.view==='settings');
+  document.body.classList.toggle('view-settings', state.view === 'settings');
   document.body.classList.toggle('view-stock', state.view==='stock');
   document.body.classList.toggle('view-sale', sale);
   document.body.classList.toggle('view-reports', reports);
@@ -223,10 +223,10 @@ function updateNavigation() {
   document.body.classList.toggle('desktop-workspace', useDesktopWorkspace()&&(sale||reports));
   document.body.classList.toggle('desktop-sale-workspace', useDesktopWorkspace()&&sale);
   document.body.classList.toggle('desktop-reports-workspace', useDesktopWorkspace()&&reports);
-  $('homeView').hidden=state.view!=='home';
-  $('catalogView').hidden=state.view!=='catalog';
-  $('settingsView').hidden=state.view!=='settings';
-  $('stockView').hidden=state.view!=='stock';
+  $('homeView').hidden = state.view !== 'home';
+  $('catalogView').hidden = state.view !== 'catalog';
+  $('settingsView').hidden = state.view !== 'settings';
+  $('stockView').hidden = state.view !== 'stock';
   $('saleView').hidden=!useDesktopWorkspace()||state.view!=='sale';
   $('reportsView').hidden=!useDesktopWorkspace()||state.view!=='reports';
   $('sidebarStock').classList.toggle('active',state.view==='stock');
@@ -235,7 +235,8 @@ function updateNavigation() {
   $('sidebarReports').classList.toggle('active',reports);
   if(reports)$('sidebarReports').setAttribute('aria-current','page');
   else $('sidebarReports').removeAttribute('aria-current');
-  const active=sale?'sale':reports?'reports':state.view==='catalog'?'products':state.view;
+  const standardView = state.view==='catalog' ? 'products' : state.view;
+  const active=sale?'sale':reports?'reports':standardView;
   for (const [id,value] of [['navHome','home'],['navSale','sale'],['navProducts','products'],['navSettings','settings']]) {
     const el=$(id),yes=active===value;
     el.classList.toggle('active',yes);
@@ -246,18 +247,19 @@ function navigate(hash) { if(location.hash!==hash) location.hash=hash; else appl
 function applyRoute() {
   if(typeof closeDesktopWorkspaceForNavigation==='function')
     closeDesktopWorkspaceForNavigation();
-  placeNativeWorkspacePages();
+  if(typeof placeNativeWorkspacePages==='function')placeNativeWorkspacePages();
+  const desktop=typeof useDesktopWorkspace==='function' && useDesktopWorkspace();
   const fragment=decodeURIComponent(location.hash.slice(1));
-  if(fragment==='sale' && useDesktopWorkspace()){
+  if(fragment==='sale' && desktop){
     state.view='sale';
     renderCart();
-  } else if(fragment==='reports' && useDesktopWorkspace()){
+  } else if(fragment==='reports' && desktop){
     state.view='reports';
     if(!reportsPageLoaded)showHistory().catch(error=>announce('Rapor yüklenemedi: '+error.message,'error'));
-  } else if(fragment==='sale' && !useDesktopWorkspace()){
+  } else if(fragment==='sale' && !desktop){
     state.view='home';
     if(!dom.cartDialog.open)dom.cartDialog.showModal();
-  } else if(fragment==='reports' && !useDesktopWorkspace()){
+  } else if(fragment==='reports' && !desktop){
     state.view='home';
     if(!dom.historyDialog.open)showHistory().catch(error=>announce('Rapor yüklenemedi: '+error.message,'error'));
   } else if(fragment==='product-categories'){
@@ -290,21 +292,22 @@ function setView(view,showAll=false) {
  * EAN/UPC immediately, without a second tap. Do not steal focus from overlays.
  */
 function focusSaleBarcode(){
-  if(!isSaleActive() || $('receiptActionsDialog').open ||
+  if(!(typeof isSaleActive==='function' ? isSaleActive() : dom.cartDialog.open) || $('receiptActionsDialog').open ||
      $('scanQuantityDialog').open || dom.scanDialog.open || $('pickProductDialog').open ||
      $('weightDialog').open) return;
   $('saleBarcode').focus({preventScroll:true});
 }
 function openSale({preferCamera=false}={}) {
   renderCart();
-  if(useDesktopWorkspace()){
+  const desktop=typeof useDesktopWorkspace==='function' && useDesktopWorkspace();
+  if(desktop){
     placeNativeWorkspacePages();
     if(state.view!=='sale'){
       if(!['#sale','#reports'].includes(location.hash))state.previousWorkspaceHash=location.hash||'#home';
       navigate('#sale');
     }else updateNavigation();
   }else{
-    placeNativeWorkspacePages();
+    if(typeof placeNativeWorkspacePages==='function')placeNativeWorkspacePages();
     if(!dom.cartDialog.open)dom.cartDialog.showModal();
     updateNavigation();
   }
@@ -1031,7 +1034,7 @@ function addToCart(product, quantity=1,{separate=false,grams=null}={}) {
       unitPrice:product.satisFiyati,discountPct:0});
   }
   renderCartBar();
-  if(isSaleActive())renderCart();
+  if((typeof isSaleActive==='function'?isSaleActive():dom.cartDialog.open))renderCart();
   playCartSound(existingWeighed||(current&&!separate)?'increase':'add');
   showCartConfirmation(product);
   return true;
