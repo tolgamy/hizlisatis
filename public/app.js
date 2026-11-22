@@ -1706,6 +1706,20 @@ async function setup() {
     event.preventDefault();
     addHardwareBarcode($('saleBarcode').value,$('saleBarcode'));
   });
+  // Many USB readers do not append Enter/Tab. Recognize complete numeric
+  // retail codes after a brief input pause, but only when an exact SKU exists.
+  // Incomplete codes and text searches are never automatically added.
+  let barcodeInputIdle=null;
+  $('saleBarcode').addEventListener('input',()=>{
+    clearTimeout(barcodeInputIdle);
+    const barcode=$('saleBarcode').value.trim();
+    if(!/^(?:\\d{8}|\\d{12,14})$/.test(barcode))return;
+    barcodeInputIdle=setTimeout(()=>{
+      if(!dom.cartDialog.open || $('saleBarcode').value.trim()!==barcode ||
+        $('scanQuantityDialog').open || dom.scanDialog.open)return;
+      if(exactProduct(barcode))addHardwareBarcode(barcode,$('saleBarcode'));
+    },220);
+  });
   $('pickProductSearch').addEventListener('input',renderProductPicker);
   $('saleScanButton').addEventListener('click',openCamera);
   $('scanRetry').addEventListener('click',startScanner);
