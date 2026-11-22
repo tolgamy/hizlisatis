@@ -4212,3 +4212,114 @@ body.auth-locked #app{display:none!important}
 }
 /* Never override the auth module's permission and visibility decisions. */
 #app .topbar-account-panel [hidden] { display:none!important; }
+
+
+/* v62: Give Sales and Reports the full *desktop working height*.
+   Keep the existing cashier/payment flow and history API unchanged.
+   The old centered-dialog max-height/margin rules left wide dead space on
+   16:9 PC monitors; these two overlays now use the area beside the sidebar. */
+@media (min-width:1024px) and (min-height:600px) and (orientation:landscape) and (hover:hover) and (pointer:fine) {
+  /* Main sale panel spans from the blue title bar down to the bottom edge,
+     with a small safety margin above the Windows taskbar/browser viewport. */
+  #cartDialog.sale-sheet[open] {
+    position:fixed!important;
+    top:9px!important;
+    right:auto!important;
+    bottom:9px!important;
+    left:calc(var(--hizli-sidebar) + 9px)!important;
+    transform:none!important;
+    margin:0!important;
+    box-sizing:border-box!important;
+    width:calc(100vw - var(--hizli-sidebar) - 18px)!important;
+    max-width:none!important;
+    height:calc(100dvh - 18px)!important;
+    max-height:none!important;
+    min-height:0!important;
+    border-radius:16px!important;
+    grid-template-rows:auto auto minmax(0,1fr)!important;
+    overflow:hidden!important;
+  }
+  #cartDialog.sale-sheet .cart-items {
+    min-height:0!important;
+    max-height:none!important;
+    height:100%!important;
+    overflow-y:auto!important;
+    overscroll-behavior:contain;
+  }
+  #cartDialog.sale-sheet .checkout-area {
+    box-sizing:border-box!important;
+    min-height:0!important;
+    max-height:none!important;
+    overflow-y:auto!important;
+    overscroll-behavior:contain;
+  }
+  #cartDialog.sale-sheet .sale-empty-premium {
+    max-width:min(580px,94%)!important;
+    margin:auto!important;
+  }
+
+  /* Reports/History occupies the same desktop canvas as Sales.
+     The receipt list scrolls independently; the blue header, totals,
+     CSV export and seven-day chart remain visible at the top. */
+  #historyDialog.sheet[open] {
+    position:fixed!important;
+    top:10px!important;
+    right:auto!important;
+    bottom:10px!important;
+    left:calc(var(--hizli-sidebar) + 11px)!important;
+    transform:none!important;
+    margin:0!important;
+    box-sizing:border-box!important;
+    width:calc(100vw - var(--hizli-sidebar) - 22px)!important;
+    max-width:none!important;
+    height:calc(100dvh - 20px)!important;
+    max-height:none!important;
+    min-height:0!important;
+    border-radius:16px!important;
+    overflow:hidden!important;
+    display:flex!important;
+    flex-direction:column!important;
+  }
+  #historyDialog .sheet-header,
+  #historyDialog .history-actions {flex:0 0 auto!important}
+  #historyDialog #historySummary.history-summary:not([hidden]) {
+    flex:0 0 auto!important;
+    padding:clamp(14px,1.35vw,22px)!important;
+  }
+  #historyDialog .history-summary-metrics {
+    display:grid!important;
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:clamp(10px,1vw,17px)!important;
+  }
+  #historyDialog .history-summary-metrics>div {
+    min-height:96px!important;
+    padding:clamp(13px,1.2vw,20px)!important;
+    border-radius:14px!important;
+  }
+  #historyDialog .history-summary-metrics strong {
+    font-size:clamp(23px,2.3vw,35px)!important;
+  }
+  #historyDialog #historyItems.history-items {
+    flex:1 1 auto!important;
+    min-height:0!important;
+    max-height:none!important;
+    overflow-y:auto!important;
+    overscroll-behavior:contain;
+  }
+  #historyDialog .history-summary-empty {
+    display:grid;place-items:center;
+    min-height:clamp(170px,28dvh,300px);
+    padding:22px!important;
+    font-size:clamp(15px,1.25vw,19px)!important;
+  }
+  /* A register with no sales gets one useful empty state, not a duplicate
+     second empty-state panel below it. This only affects desktop display. */
+  #historyDialog:has(#historySummaryEmpty:not([hidden])) #historyItems {
+    display:none!important;
+  }
+  #historyDialog:has(#historySummaryEmpty:not([hidden]))
+  #historySummary.history-summary:not([hidden]) {
+    flex:1 1 auto!important;
+    align-content:start;
+  }
+}
