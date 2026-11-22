@@ -39,10 +39,13 @@ export function parseScaleReading(frame){
   let text=String(frame??'').replace(/[\x02\x03\x00]/g,'').trim();
   if(!text||text.length>120)return null;
   if(/\b(?:US|UNSTABLE|MOTION|OL|OVER|ERROR|ERR)\b/i.test(text))return null;
-  // Stable-tagged CAS-like: "ST,GS,+000.564kg" or "ST,NT,0.564"
-  const stable=/\bST\b/i.test(text);
+  // CAS units vary by configuration: the user's ER PLUS-2 actually emits
+  // "S 0.562kg" (stable) while other CAS devices use "ST,GS,+000.564kg".
+  // Anchor the S format and require units to avoid reading a price as weight.
+  const stable=/^(?:ST(?:[\s,;]|$)|S[\s,;]+)/i.test(text);
   let match=text.match(/\b(?:WEIGHT|NET|GROSS|AGIRLIK|AĞIRLIK|KG)\s*[:=]\s*([+-]?\d{1,5}(?:[.,]\d{1,3})?)\s*(kg|g)?\b/i);
   if(!match)match=text.match(/^ST[\s,;]+(?:GS|NT|NET|GROSS)?[\s,;]*([+-]?\d{1,5}(?:[.,]\d{1,3})?)\s*(kg|g)?\s*$/i);
+  if(!match)match=text.match(/^S[\s,;]+([+]?\d{1,5}(?:[.,]\d{1,3})?)\s*(kg|g)\s*$/i);
   if(!match)match=text.match(/^\s*([+]?\d{1,5}(?:[.,]\d{1,3})?)\s*(kg|g)\s*$/i);
   if(!match)match=text.match(/^\s*([+]?\d{1,5}[.,]\d{1,3})\s*$/);
   if(!match)return null;
@@ -56,8 +59,9 @@ export function parseScaleReading(frame){
 }
 
 export class ScaleSerialConnection {
-  constructor({onReading=()=>{},onStatus=()=>{},onRaw=()=>{},nav=globalThis.navigator}={}){
+  constructor({onReading=()=>{},onStatus=()=>{},onRaw=()=>{},onUnstable=()=>{},nav=globalThis.navigator}={}){
     this.nav=nav;this.onReading=onReading;this.onStatus=onStatus;this.onRaw=onRaw;
+    this.onUnstable=onUnstable;
     this.port=null;this.reader=null;this.readTask=null;this.connected=false;
     this.active=false;this.lastGrams=null;this.matches=0;this.lastAt=0;
     this.buffer='';
@@ -89,12 +93,23 @@ export class ScaleSerialConnection {
       if(!text)continue;
       this.onRaw(text.slice(0,140));
       const parsed=parseScaleReading(text);
-      if(!parsed)continue;
+      if(!parsed){
+        // Clear stale captured weights when the scale says it is moving,
+        // overloaded, or empty, but retain diagnostic raw frames on screen.
+        if(/^(?:U|US|OL|OVER)(?:[\s,;]|$)/i.test(text) ||
+           /^(?:S[\s,;]+)?0(?:[.,]0+)?\s*(?:kg|g)\s*$/i.test(text)){
+          this.matches=0;this.lastGrams=null;this.lastAt=0;
+          this.onUnstable();
+        }
+        continue;
+      }
       const now=Date.now();
       if(this.lastGrams===parsed.grams && now-this.lastAt<3500)this.matches++;
       else this.matches=1;
       this.lastGrams=parsed.grams;this.lastAt=now;
-      if(this.matches>=2)this.onReading({...parsed,at:now});
+      // S/ST is an explicit stable flag from the device, so a single frame
+      // is sufficient. Untagged weight readings still require two matches.
+      if(parsed.stable||this.matches>=2)this.onReading({...parsed,at:now});
     }
   }
   async readLoop(port){
