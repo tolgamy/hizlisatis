@@ -291,7 +291,12 @@ function selectScannedQuantity(product,sourceInput=null,resumeCamera=false) {
   $('scanQuantityProduct').textContent=product.baslik+' · '+money(product.satisFiyati,product.paraBirimi);
   const input=$('scanQuantityInput');
   input.min=weighted?'0.001':'1';input.step=weighted?'0.1':'1';input.value='1';
-  if(dom.scanDialog.open)dom.scanDialog.close();
+  if(dom.scanDialog.open){
+    dom.scanDialog.close();
+    // Immediately invalidate the old camera session. The dialog 'close' event
+    // can fire later, after the next camera has already opened.
+    stopScanner();
+  }
   if(!$('scanQuantityDialog').open)$('scanQuantityDialog').showModal();
   input.focus({preventScroll:true});
   input.select();
@@ -303,6 +308,29 @@ function barcodeAdd(raw, sourceInput) {
   if(!product){announce(code+' barkodlu ürün bulunamadı.','error');return;}
   if(productManager?.offerSaleActivation(product,active=>selectScannedQuantity(active,sourceInput)))return;
   selectScannedQuantity(product,sourceInput);
+}
+/** Keyboard-wedge PC barcode readers typically send the code followed by Enter
+ * (some use Tab). Unit products must not require a confirmation click each
+ * time. Weighted products retain their explicit quantity dialog.
+ */
+function addHardwareBarcode(raw,sourceInput){
+  const code=String(raw??'').trim();
+  if(!code)return false;
+  const product=exactProduct(code);
+  if(!product)return false;
+  if(['kg','g','litre'].includes(product.birim)){
+    barcodeAdd(code,sourceInput);
+    return true;
+  }
+  const insert=active=>{
+    if(addToCart(active)){
+      if(sourceInput)sourceInput.value='';
+      focusSaleBarcode();
+    }
+  };
+  if(productManager?.offerSaleActivation(product,insert))return true;
+  insert(product);
+  return true;
 }
 
 function categoryEmoji(path) {
@@ -1325,22 +1353,30 @@ async function toggleTorch() {
   try { await torch.apply(next); session.torchOn=next; updateTorchButton(true,next); }
   catch { dom.scanMessage.textContent='Flaş açılamadı. Cihazın kamera desteğini kontrol edin.'; updateTorchButton(); }
 }
-async function stopScanner() {
+let scannerStopPromise=Promise.resolve();
+function stopScanner() {
   updateTorchButton();
-  const session = state.scanner;
-  if (!session) return;
-  // Mark invalid immediately, before waiting for the camera to release.
-  session.active = false;
-  state.scanner = null;
-  if (session.timer) clearTimeout(session.timer);
-  if (session.fallbackTimer) clearTimeout(session.fallbackTimer);
-  if (session.stream) session.stream.getTracks().forEach(track => track.stop());
-  if (session.lib) {
-    try { await session.lib.stop(); } catch { /* may be a photo-only scanner or not started */ }
-    try { session.lib.clear(); } catch { /* may have already been cleared */ }
-  }
-  const video = $('scanVideo');
-  video.pause(); video.srcObject = null;
+  const session=state.scanner;
+  // Even when the old session is already marked inactive, do not start the
+  // next camera until the previous decoder has stopped and cleared its DOM.
+  if(!session)return scannerStopPromise;
+  session.active=false;
+  state.scanner=null;
+  if(session.timer)clearTimeout(session.timer);
+  if(session.fallbackTimer)clearTimeout(session.fallbackTimer);
+  scannerStopPromise=scannerStopPromise.catch(()=>{}).then(async()=>{
+    if(session.stream)session.stream.getTracks().forEach(track=>track.stop());
+    if(session.lib){
+      try{await session.lib.stop();}catch{/* A stream can already be stopped. */}
+      try{session.lib.clear();}catch{/* A decoder can already be cleared. */}
+    }
+    // Never stop the video element belonging to a freshly opened session.
+    if(!state.scanner){
+      const video=$('scanVideo');
+      video.pause();video.srcObject=null;
+    }
+  });
+  return scannerStopPromise;
 }
 let qrLibraryPromise;
 function ensureQrLibrary() {
@@ -1426,18 +1462,20 @@ async function startScanner() {
     if (!formats.length) throw new Error('Barkod biçimleri yüklenemedi.');
     const { Reader } = getBarcodeLibrary(window);
     if (!Reader) throw new Error('Barkod okuyucu yüklenemedi.');
-    const options = { verbose: false, formatsToSupport: formats,
-      useBarCodeDetectorIfSupported: false };
-    const config = {
-      fps: 12, disableFlip: true,
-      qrbox: (viewWidth,viewHeight) => {
-        const width=Math.max(120,Math.min(Math.floor(viewWidth*.86),460,viewWidth-10));
-        return {width,height:Math.max(90,Math.min(Math.floor(width*.48),viewHeight-10))};
-      }
-    };
-    const onSuccess = (decoded, details) => {
-      if(session.active&&!session.decoded&&acceptsBarcodeResult(details))
-        scanned(decoded,{format:details?.result?.format?.formatName||'Barkod'});
+    const options={verbose:false,formatsToSupport:formats,
+      // Chromium may use native BarcodeDetector; ZXing remains the fallback
+      // including iOS Safari. html5-qrcode alternates when available.
+      useBarCodeDetectorIfSupported:true};
+    // No qrbox: read the entire video frame. A narrow preview crop can hide
+    // EAN/UPC bars and make the camera look as if it cannot decode products.
+    // The premium neon rectangle remains only a visual positioning guide.
+    const config={fps:12,disableFlip:true};
+    const onSuccess=(decoded,details)=>{
+      if(!session.active||session.decoded)return;
+      // The library can return formats in different result shapes. Its own
+      // configured list already restricts symbologies; ignore missing metadata.
+      if(!acceptsBarcodeResult(details))return;
+      scanned(decoded,{source:'camera',format:details?.result?.format?.formatName||'Barkod'});
     };
     let scanner = new Reader('html5-reader', options);
     session.lib = scanner;
@@ -1664,8 +1702,28 @@ async function setup() {
     event.preventDefault();
     const value=$('saleBarcode').value.trim();
     if(!value)openProductPicker();
-    else if(exactProduct(value))barcodeAdd(value,$('saleBarcode'));
-    else openProductPicker(value);
+    else if(!addHardwareBarcode(value,$('saleBarcode')))openProductPicker(value);
+  });
+  // Barcode readers with a Tab terminator work like Enter-based readers.
+  $('saleBarcode').addEventListener('keydown',event=>{
+    if(event.key!=='Tab'||!$('saleBarcode').value.trim())return;
+    if(!exactProduct($('saleBarcode').value))return;
+    event.preventDefault();
+    addHardwareBarcode($('saleBarcode').value,$('saleBarcode'));
+  });
+  // Many USB readers do not append Enter/Tab. Recognize complete numeric
+  // retail codes after a brief input pause, but only when an exact SKU exists.
+  // Incomplete codes and text searches are never automatically added.
+  let barcodeInputIdle=null;
+  $('saleBarcode').addEventListener('input',()=>{
+    clearTimeout(barcodeInputIdle);
+    const barcode=$('saleBarcode').value.trim();
+    if(!/^(?:\d{8}|\d{12,14})$/.test(barcode))return;
+    barcodeInputIdle=setTimeout(()=>{
+      if(!dom.cartDialog.open || $('saleBarcode').value.trim()!==barcode ||
+        $('scanQuantityDialog').open || dom.scanDialog.open)return;
+      if(exactProduct(barcode))addHardwareBarcode(barcode,$('saleBarcode'));
+    },220);
   });
   $('pickProductSearch').addEventListener('input',renderProductPicker);
   $('saleScanButton').addEventListener('click',openCamera);
@@ -1694,6 +1752,9 @@ async function setup() {
   });
   document.querySelectorAll('[data-close]').forEach(button=>button.addEventListener('click',()=>$(button.dataset.close).close()));
   dom.scanDialog.addEventListener('close',()=>{
+    // A queued close event from a previous scan must not stop the camera
+    // already reopened for the next barcode.
+    if(dom.scanDialog.open)return;
     dom.scanDialog.classList.remove('is-success');
     stopScanner();
     focusSaleBarcode();

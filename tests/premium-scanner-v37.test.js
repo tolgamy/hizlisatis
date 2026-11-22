@@ -51,8 +51,8 @@ test('premium reader is a functioning full-screen dialog connected to existing s
   assert.match(css,/@keyframes premium-laser/);
   assert.match(css,/#scanDialog\.is-success \.scan-corner/);
   assert.match(app,/await scanner\.start\(\{ facingMode: 'environment' \}/);
-  assert.match(app,/onSuccess = \(decoded, details\) =>/);
-  assert.match(app,/scanned\(decoded,\{format:/);
+  assert.match(app,/const onSuccess=\(decoded,details\)=>/);
+  assert.match(app,/scanned\(decoded,\{source:'camera',format:/);
   assert.match(app,/await optimizeScannerFocus\(session\)/);
   assert.match(app,/function torchFeature\(session\)/);
   assert.match(app,/function showScanHistory\(/);
@@ -61,7 +61,7 @@ test('premium reader is a functioning full-screen dialog connected to existing s
   assert.match(app,/active=>selectScannedQuantity/);
   assert.match(app,/document\.addEventListener\('visibilitychange'/);
   assert.match(app,/window\.addEventListener\('pagehide'/);
-  assert.match(sw,/cep-pos-shell-v44-scan-print-fix/);
+  assert.match(sw,/cep-pos-shell-v45-camera-pc-decoder/);
 });
 
 test('bottom nav retains four routes with vivid real sales cart icon, desktop remains sidebar',()=>{

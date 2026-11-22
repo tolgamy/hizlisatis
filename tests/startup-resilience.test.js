@@ -45,5 +45,5 @@ test('D1 outage loads bundled read-only catalog without presenting it as authori
   assert.match(app,/const available=!state\.centralReadOnly/);
   assert.match(app,/if \(state\.centralReadOnly\) \{ announce\('Merkezi ürün bağlantısı yok\. Satış kaydedilemez\./);
   assert.match(app,/\$\('catalogRetry'\)\.addEventListener\('click',async/);
-  assert.match(read('sw.js'),/cep-pos-shell-v44-scan-print-fix/);
+  assert.match(read('sw.js'),/cep-pos-shell-v45-camera-pc-decoder/);
 });

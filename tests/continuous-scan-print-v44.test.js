@@ -16,7 +16,7 @@ test('58/80 mm rolls reserve enough right-hand space for full price and change',
       'printer needs at least 5 mm clear at the right');
     assert.ok(plan.innerPaddingMm>=2);
   }
-  assert.match(sw,/cep-pos-shell-v44-scan-print-fix/);
+  assert.match(sw,/cep-pos-shell-v45-camera-pc-decoder/);
   const print=app.slice(app.indexOf('function printSale(sale)'),app.indexOf('async function printBluetoothReceipt(sale)'));
   assert.match(print,/const printableMm=layout.contentMm/);
   assert.match(print,/const leftInsetMm=layout.leftInsetMm/);
