@@ -1048,7 +1048,12 @@ async function saveStockEditor(event){
     const priceText=$('stockEditPrice').value.trim();
     if(!priceText&&!stockEditOriginal.fiyatBelirsiz)
       throw Error('Satış fiyatı boş bırakılamaz.');
-    const price=priceText?parseLocaleNumber(priceText,NaN):null;
+    const enteredPrice=priceText?parseLocaleNumber(priceText,NaN):null;
+    // A stock-only replenishment must not rewrite legacy tax/net price fields.
+    const price=enteredPrice!==null&&(
+      stockEditOriginal.fiyatBelirsiz||
+      round2(enteredPrice)!==round2(Number(stockEditOriginal.satisFiyati))
+    )?enteredPrice:null;
     const amountText=$('stockEditAmount').value.trim();
     const amount=amountText?Number(amountText):0;
     const remote=await checkRemoteProductStates([stockEditProductId]);
