@@ -391,7 +391,7 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
       const url=$('manageImage').value.trim();
       if(url&&!safeImageUrl(url)){announce('Geçerli HTTPS görsel adresi giriniz.','error');return;}
       const old=selection,finalStatus=activate?'active':old?.lifecycleStatus||'active';
-      const updated={...(old||{}),id:old?.id||newId(),barkod,baslik,
+      const updated={...(old||{}),id:old?.id||newId(),barkod:barcode,baslik,
         marka:$('manageBrand').value.trim(),alisFiyati:purchase,
         satisFiyati:priceWithVat(entered,vat,excluded).gross,
         girisFiyati:entered,kdv:vat,kdvBelirsiz:false,kdvExcluded:excluded,
