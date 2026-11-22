@@ -575,6 +575,47 @@ function categoryTile(node, hasChildren = false) {
   button.addEventListener('click', () => hasChildren ? openCategoryMenu(node.path) : selectCategory(node.path));
   return button;
 }
+function renderHomeStockInsights(){
+  const stock=state.products.filter(isActive).map(p=>({p,...stockState(p)}))
+    .filter(item=>item.status==='empty'||item.status==='low')
+    .sort((a,b)=>a.stock-b.stock||a.p.baslik.localeCompare(b.p.baslik,'tr'));
+  $('homeStockInsightCount').textContent=stock.length.toLocaleString('tr-TR')+
+    ' üründe stok az veya bitmiş';
+  const list=$('homeStockInsightList');list.replaceChildren();
+  if(!stock.length){
+    const item=document.createElement('li');
+    item.textContent=state.products.length?
+      'Stoku 5 ve altında ürün bulunmuyor.':'Ürün ve stok verileri henüz yüklenmedi.';
+    list.append(item);return;
+  }
+  for(const entry of stock.slice(0,5)){
+    const li=document.createElement('li');
+    const title=document.createElement('span');title.textContent=entry.p.baslik;
+    const value=document.createElement('strong');value.textContent=entry.label;
+    li.append(title,value);list.append(li);
+  }
+}
+function renderHomeRecentSales(sales){
+  const card=$('homeRecentSalesCard');
+  card.hidden=!userCan('reports');
+  if(card.hidden)return;
+  const list=$('homeRecentSalesList');list.replaceChildren();
+  const recent=sales.filter(s=>s&&s.createdAt&&
+    Number.isFinite(new Date(s.createdAt).getTime()))
+    .sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))).slice(0,5);
+  if(!recent.length){
+    const li=document.createElement('li');
+    li.textContent='Bu cihazda henüz tamamlanmış satış yok.';
+    list.append(li);return;
+  }
+  for(const sale of recent){
+    const row=document.createElement('li');
+    const date=document.createElement('span');date.textContent=fmtDate(sale.createdAt);
+    const price=document.createElement('strong');
+    price.textContent=money(Number(sale.total)||0,sale.currency||'TRY');
+    row.append(date,price);list.append(row);
+  }
+}
 function renderHome() {
   // Both devices display the SAME twelve categories from the one D1-backed
   // category tree. CSS switches from mobile Products to desktop Home; no
@@ -596,6 +637,8 @@ function renderHome() {
   // A deleted record should not inflate the central catalogue count.
   $('homeTotalProducts').textContent=state.products.length?
     state.products.filter(product=>productStatus(product)!=='deleted').length.toLocaleString('tr-TR'):'—';
+  renderHomeStockInsights();
+  $('homeRecentSalesCard').hidden=!userCan('reports');
 }
 let homeSalesReadId=0;
 async function refreshHomeSales() {
@@ -614,6 +657,7 @@ async function refreshHomeSales() {
         ? sum+Number(sale.total):sum;
     },0);
     $('homeTodaySales').textContent=money(round2(amount),'TRY');
+    renderHomeRecentSales(sales);
   } catch {
     if(requestId===homeSalesReadId)$('homeTodaySales').textContent='—';
   }
@@ -747,6 +791,74 @@ function renderProducts() {
   if(!items.length)dom.productList.innerHTML='<p class="clean-empty">Ürün bulunamadı</p>';
   $('loadMoreProducts').hidden=items.length<=state.visibleLimit;
   $('productLimit').hidden=true;
+}
+/** Read-only stock state derived from the products and this device's sold ledger.
+ * No stock quantities or product statuses are changed by this view.
+ */
+function stockState(product){
+  if(product.stokBelirsiz)return {stock:Infinity,status:'unknown',label:'Belirtilmemiş'};
+  const value=remaining(product);
+  const formatted=value.toLocaleString('tr-TR',{maximumFractionDigits:3})+' '+(product.birim||'adet');
+  return {stock:value,status:value<=0?'empty':value<=5?'low':'ok',label:formatted};
+}
+function renderStockOverview(){
+  const products=state.products.filter(isActive);
+  const inventory=products.map(p=>({product:p,...stockState(p)}));
+  const tracked=inventory.filter(item=>item.status!=='unknown');
+  const empty=tracked.filter(item=>item.status==='empty');
+  const low=tracked.filter(item=>item.status==='low');
+  $('stockOverviewTracked').textContent=tracked.length.toLocaleString('tr-TR');
+  $('stockOverviewEmpty').textContent=empty.length.toLocaleString('tr-TR');
+  $('stockOverviewLow').textContent=low.length.toLocaleString('tr-TR');
+  const search=fold($('stockOverviewSearch').value);
+  const filter=state.stockOverviewFilter;
+  for(const button of document.querySelectorAll('#stockOverviewFilters [data-stock-filter]')){
+    const selected=button.dataset.stockFilter===filter;
+    button.setAttribute('aria-pressed',String(selected));
+    button.classList.toggle('active',selected);
+  }
+  const statusOrder={empty:0,low:1,ok:2,unknown:3};
+  const matches=inventory.filter(item=>{
+    if(filter==='low' && item.status!=='low')return false;
+    if(filter==='empty' && item.status!=='empty')return false;
+    if(search&&!fold([item.product.baslik,item.product.barkod,item.product.urunKodu,
+      item.product.kategori,item.product.marka].join(' ')).includes(search))return false;
+    return true;
+  }).sort((a,b)=>statusOrder[a.status]-statusOrder[b.status]||
+    a.stock-b.stock||a.product.baslik.localeCompare(b.product.baslik,'tr'));
+  const shown=matches.slice(0,state.stockOverviewLimit);
+  const tbody=$('stockOverviewRows');tbody.replaceChildren();
+  for(const item of shown){
+    const row=document.createElement('tr');
+    const product=document.createElement('td');
+    const name=document.createElement('strong');name.textContent=item.product.baslik;
+    const barcode=document.createElement('small');
+    barcode.textContent=item.product.barkod||item.product.urunKodu||'Barkod belirtilmemiş';
+    product.append(name,barcode);
+    const category=document.createElement('td');
+    category.textContent=item.product.kategori||'—';
+    const quantity=document.createElement('td');
+    quantity.textContent=item.label;
+    quantity.className='stock-quantity';
+    const price=document.createElement('td');
+    price.textContent=priceLabel(item.product);
+    const status=document.createElement('td');
+    const tag=document.createElement('span');
+    tag.className='stock-status stock-status-'+item.status;
+    tag.textContent={empty:'Stok bitti',low:'Azalan',ok:'Yeterli',unknown:'Belirsiz'}[item.status];
+    status.append(tag);
+    row.append(product,category,quantity,price,status);tbody.append(row);
+  }
+  if(!matches.length){
+    const row=document.createElement('tr');const cell=document.createElement('td');
+    cell.colSpan=5;cell.className='stock-overview-no-results';
+    cell.textContent=search||filter!=='all'?
+      'Aramanıza uygun stok kaydı bulunamadı.':'Henüz görüntülenecek stok kaydı yok.';
+    row.append(cell);tbody.append(row);
+  }
+  $('stockOverviewCount').textContent=matches.length.toLocaleString('tr-TR')+
+    ' ürün · '+shown.length.toLocaleString('tr-TR')+' gösteriliyor';
+  $('stockOverviewMore').hidden=matches.length<=state.stockOverviewLimit;
 }
 function renderCartBar() {
   const count = cartQty();
