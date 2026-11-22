@@ -213,6 +213,32 @@ function openSale() {
   if (!dom.cartDialog.open) dom.cartDialog.showModal();
   updateNavigation();
 }
+// A closed sale never destroys the cart unless the operator explicitly
+// chooses to cancel the sale and clear it in the confirmation dialog.
+let pendingSaleExitTarget='previous';
+function finishSaleExit({discard=false}={}) {
+  $('saleExitDialog').close();
+  if(discard) {
+    state.cart.clear();
+    state.pendingCreditSale=null;
+    dom.cash.value='';
+    customerManager?.clearSelection();
+    document.querySelector('input[name="payment"][value="Nakit"]').checked=true;
+    renderCartBar();renderCart();
+  }
+  if(dom.cartDialog.open)dom.cartDialog.close();
+  if(pendingSaleExitTarget==='home')setView('home');
+}
+function requestSaleExit(target='previous') {
+  if(state.saving)return;
+  pendingSaleExitTarget=target==='home'?'home':'previous';
+  if(!state.cart.size) {
+    finishSaleExit({discard:false});
+    return;
+  }
+  $('saleExitTitle').textContent=target==='cancel'?'Satışı iptal etmek istiyor musunuz?':'Satıştan çıkılsın mı?';
+  if(!$('saleExitDialog').open)$('saleExitDialog').showModal();
+}
 function renderProductPicker() {
   const query = fold($('pickProductSearch').value);
   const items = state.products.filter(p => isActive(p) && remaining(p) > 0 && !p.fiyatBelirsiz && (!query ||
@@ -232,8 +258,8 @@ function renderProductPicker() {
   }
   if (!items.length) target.textContent='Ürün bulunamadı';
 }
-function openProductPicker() {
-  $('pickProductSearch').value=''; renderProductPicker();
+function openProductPicker(initialQuery='') {
+  $('pickProductSearch').value=typeof initialQuery==='string'?initialQuery:''; renderProductPicker();
   if (!$('pickProductDialog').open) $('pickProductDialog').showModal();
   $('pickProductSearch').focus({preventScroll:true});
 }
@@ -562,7 +588,27 @@ function updateCart(id, field, value) {
 function renderCart() {
   dom.cartItems.replaceChildren();
   if (!state.cart.size) {
-    dom.cartItems.innerHTML = '<div class="sale-empty">Barkod okutun</div>';
+    dom.cartItems.innerHTML = `<div class="sale-empty-premium">
+      <div class="sale-empty-basket" aria-hidden="true">
+        <svg viewBox="0 0 120 110" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="60" cy="55" r="52" fill="#E9F2FF"/>
+          <path d="M32 43H90L82 87H40L32 43Z" fill="#3C98F2" stroke="#185EAF" stroke-width="3" stroke-linejoin="round"/>
+          <path d="M29 42H93V52H29Z" fill="#65B8FF" stroke="#185EAF" stroke-width="3" stroke-linejoin="round"/>
+          <path d="M45 63L47 78M61 62V78M76 62L74 78" stroke="#135FAE" stroke-width="4" stroke-linecap="round"/>
+          <path d="M45 42L61 19L79 42" stroke="#1C518F" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <strong>Sepetiniz Boş</strong>
+      <p>Barkod okutun veya ürün arayarak satışa ekleyin.</p>
+      <div class="sale-empty-actions">
+        <button id="emptyScanBtn" type="button"><span aria-hidden="true">▥</span>Barkod Okut</button>
+        <button id="emptyFindBtn" type="button"><span aria-hidden="true">⌕</span>Ürün Ara</button>
+        <button id="emptyAddBtn" type="button"><span aria-hidden="true">⊕</span>Ürün Ekle</button>
+      </div>
+    </div>`;
+    $('emptyScanBtn').addEventListener('click',openCamera);
+    $('emptyFindBtn').addEventListener('click',()=>openProductPicker($('saleBarcode').value.trim()));
+    $('emptyAddBtn').addEventListener('click',()=>openProductPicker());
   }
   for (const line of state.cart.values()) {
     const el = document.createElement('div'); el.className = 'cart-line';
@@ -610,7 +656,7 @@ function renderCart() {
 function updatePayment() {
   const selected = document.querySelector('input[name="payment"]:checked').value;
   $('creditBox').hidden=selected!=='Veresiye';
-  $('bankPaymentNotice').hidden=selected!=='Havale'&&selected!=='FAST';
+  $('bankPaymentNotice').hidden=selected!=='Havale / FAST';
   const paid=dom.cash.value.trim()===''?NaN:parseLocaleNumber(dom.cash.value,NaN);
   const total=totals().total;
   const change=Number.isFinite(paid)?round2(paid-total):NaN;
@@ -1503,7 +1549,11 @@ async function setup() {
   $('settingsExport').addEventListener('click',exportHistory);
   // Receipt width/title/contact info are persisted in settings above, not in checkout.
   $('saleBarcodeForm').addEventListener('submit',event=>{
-    event.preventDefault();const value=$('saleBarcode').value.trim();if(!value)openProductPicker();else barcodeAdd(value,$('saleBarcode'));
+    event.preventDefault();
+    const value=$('saleBarcode').value.trim();
+    if(!value)openProductPicker();
+    else if(exactProduct(value))barcodeAdd(value,$('saleBarcode'));
+    else openProductPicker(value);
   });
   $('pickProductSearch').addEventListener('input',renderProductPicker);
   $('saleScanButton').addEventListener('click',openCamera);
@@ -1540,6 +1590,16 @@ async function setup() {
   });
   window.addEventListener('pagehide',()=>stopScanner());
   dom.cartDialog.addEventListener('close',updateNavigation);
+  // iOS swipe-back / Android back / Escape must not silently lose an active sale.
+  dom.cartDialog.addEventListener('cancel',event=>{
+    event.preventDefault();requestSaleExit('previous');
+  });
+  $('saleBack').addEventListener('click',()=>requestSaleExit('previous'));
+  $('saleClose').addEventListener('click',()=>requestSaleExit('home'));
+  $('saleCancel').addEventListener('click',()=>requestSaleExit('cancel'));
+  $('saleExitStay').addEventListener('click',()=>$('saleExitDialog').close());
+  $('saleExitKeep').addEventListener('click',()=>finishSaleExit());
+  $('saleExitDiscard').addEventListener('click',()=>finishSaleExit({discard:true}));
   $('scanButton').addEventListener('click',openCamera);
   $('excelFile').addEventListener('change',()=>selectExcelFile($('excelFile').files[0]));
   $('confirmExcelImport').addEventListener('click',confirmExcelImport);
@@ -1584,8 +1644,12 @@ async function setup() {
   $('receiptPdfShare').addEventListener('click',()=>{if(state.lastSale)shareReceiptPdf(state.lastSale);});
   $('receiptClose').addEventListener('click',()=>{$('receiptActionsDialog').close();openSale();});
   $('exportSales').addEventListener('click',exportHistory);
-  for(const dialog of [dom.cartDialog,dom.scanDialog,dom.historyDialog,$('excelDialog'),$('manageDialog'),$('passiveProductDialog'),$('productDetailDialog'),$('pickProductDialog'),$('receiptActionsDialog'),$('cashPaymentDialog'),$('scanQuantityDialog'),$('manageActivationDialog'),$('customerDialog'),$('categoryImageDialog')]){
-    dialog.addEventListener('click',event=>{if(event.target===dialog)dialog.close();});
+  for(const dialog of [dom.cartDialog,dom.scanDialog,dom.historyDialog,$('saleExitDialog'),$('excelDialog'),$('manageDialog'),$('passiveProductDialog'),$('productDetailDialog'),$('pickProductDialog'),$('receiptActionsDialog'),$('cashPaymentDialog'),$('scanQuantityDialog'),$('manageActivationDialog'),$('customerDialog'),$('categoryImageDialog')]){
+    dialog.addEventListener('click',event=>{
+      if(event.target!==dialog)return;
+      if(dialog===dom.cartDialog)return; // Avoid accidental outside-tap sale exit.
+      dialog.close();
+    });
   }
   if('serviceWorker'in navigator&&window.isSecureContext)navigator.serviceWorker.register('/sw.js').catch(()=>{});
   try{
