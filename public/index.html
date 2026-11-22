@@ -225,6 +225,55 @@
       <button id="scanQuantityCancel" class="sale-secondary-button" type="button">Vazgeç</button>
     </div>
   </dialog>
+  <dialog id="weightDialog" class="modal weight-dialog" aria-labelledby="weightDialogTitle">
+    <div class="sheet-header weight-sheet-header">
+      <h2 id="weightDialogTitle">⚖️ Terazi ile Satış</h2>
+      <button id="weightClose" type="button" class="closebutton" aria-label="Tartımı kapat">×</button>
+    </div>
+    <div class="weight-body">
+      <strong id="weightProductName" class="weight-product-name">Ürün</strong>
+      <p id="weightUnitPrice" class="weight-unit-price">KG fiyatı: ₺0,00</p>
+      <div id="weightSerialPanel" class="weight-serial-panel" hidden>
+        <div class="weight-connection-head">
+          <span>CAS ER PLUS-2 · Windows seri bağlantı</span>
+          <strong id="weightConnectionState">Bağlı değil</strong>
+        </div>
+        <div class="weight-connection-actions">
+          <button id="weightConnect" type="button">COM Portu Seç / Bağlan</button>
+          <button id="weightDisconnect" type="button" disabled>Bağlantıyı Kes</button>
+        </div>
+        <details class="weight-serial-options">
+          <summary>Gelişmiş port ayarları</summary>
+          <div class="weight-serial-settings">
+            <label>Baud hızı<select id="weightBaud"><option>9600</option><option>4800</option><option>2400</option><option>19200</option></select></label>
+            <label>Veri biti<select id="weightDataBits"><option>8</option><option>7</option></select></label>
+            <label>Parity<select id="weightParity"><option value="none">Yok</option><option value="even">Çift (even)</option><option value="odd">Tek (odd)</option></select></label>
+            <label>Stop biti<select id="weightStopBits"><option>1</option><option>2</option></select></label>
+          </div>
+          <small>COM5 portu açılan Windows izin penceresinden seçilir. Eski kasa programı açıkken port meşgul olabilir.</small>
+        </details>
+        <div class="weight-live-panel">
+          <span>Teraziden canlı ağırlık</span>
+          <strong id="weightLive" aria-live="polite">— kg</strong>
+          <button id="weightUseLive" type="button" disabled>Teraziden Ağırlığı Al</button>
+          <small id="weightRaw" class="weight-raw">Ham seri veri henüz okunmadı.</small>
+        </div>
+        <p id="weightSerialStatus" role="status">Terazi bağlanmadı. Gramajı elle de girebilirsiniz.</p>
+      </div>
+      <div class="weight-manual-panel">
+        <label for="weightGrams">Gramajı girin (gram)</label>
+        <input id="weightGrams" type="text" inputmode="numeric" autocomplete="off" placeholder="Örneğin: 564" aria-describedby="weightHelp">
+        <small id="weightHelp">564 gram = 0,564 kg. Telefon ve tablette gramaj elle girilir.</small>
+      </div>
+      <div class="weight-total-panel">
+        <div><span>Miktar</span><strong id="weightQuantityPreview">—</strong></div>
+        <div><span>Hesaplanan tutar</span><strong id="weightTotalPreview">—</strong></div>
+      </div>
+      <p id="weightError" class="weight-error" role="alert" hidden></p>
+      <button id="weightAdd" type="button" class="primary-button" disabled>Tartımı Sepete Ekle</button>
+      <button id="weightCancel" type="button" class="sale-secondary-button">Vazgeç</button>
+    </div>
+  </dialog>
   <dialog id="cashPaymentDialog" class="modal cash-payment-dialog" aria-labelledby="cashPaymentTitle">
     <div class="sheet-header"><h2 id="cashPaymentTitle">Nakit Ödeme</h2><button class="closebutton" type="button" data-close="cashPaymentDialog" aria-label="Kapat">×</button></div>
     <div class="cash-payment-body">
