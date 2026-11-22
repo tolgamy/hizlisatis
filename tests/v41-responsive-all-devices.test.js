@@ -34,7 +34,7 @@ test('portrait tablets preserve the 3-column and 4-row main category grid',()=>{
   assert.equal(MAIN_CATEGORY_ORDER.length,12);
   assert.match(css,/#homeCategoryShortcuts\{[\s\S]*?grid-template-columns:repeat\(3,minmax\(0,1fr\)\)!important/);
 });
-test('original landscape tablet layout remains; desktop Product landing gets the v64 six-column override',()=>{
+test('original landscape tablet layout remains; desktop Product landing gets the v68 3×4 override',()=>{
   assert.match(html,/id="desktopHomeCategoryGrid"/);
   assert.match(html,/id="sidebarStock"/);
   assert.match(html,/id="sidebarReports"/);
@@ -43,9 +43,11 @@ test('original landscape tablet layout remains; desktop Product landing gets the
   assert.match(responsive,/#desktopHomeCategoryGrid\{[\s\S]*?grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
   assert.match(responsive,/#homeCategoryShortcuts\{[\s\S]*?grid-template-columns:repeat\(4,minmax\(0,1fr\)\)!important/);
   assert.match(responsive,/#categoryTree\.category-grid-page\{[\s\S]*?grid-template-columns:repeat\(4,minmax\(0,1fr\)\)!important/);
-  const latest=css.slice(css.indexOf('/* v64 — approved Products workspace:'));
+  const latest=css.slice(css.indexOf('/* v68 — approved 3 across'));
   assert.match(latest,/#productCategoryHome #homeCategoryShortcuts\.category-photo-grid/);
-  assert.match(latest,/grid-template-columns:repeat\(6,minmax\(0,1fr\)\)!important/);
+  assert.match(latest,/grid-template-columns:repeat\(3,minmax\(0,1fr\)\)!important/);
+  assert.match(latest,/grid-template-rows:repeat\(4,clamp\(240px,22vw,315px\)\)!important/);
+  assert.doesNotMatch(latest,/#desktopHomeCategoryGrid/);
   assert.match(responsive,/\.bottom-shell \.bottom-nav \.desktop-only-nav\{\s*display:flex!important/);
   assert.match(responsive,/#navHome\{order:1\}[\s\S]*?#navProducts\{order:2\}[\s\S]*?#navSale\{order:3\}/);
   assert.match(responsive,/grid-template-areas:"hero metrics" "actions actions" "categories categories"/);
