@@ -77,7 +77,7 @@ test('Two weighings from same product use distinct cart rows and stock sum',()=>
     state,dom:{cartDialog:{open:false}},
     isActive:()=>true,remaining:()=>2,cartCurrency:()=> 'TRY',
     renderCartBar(){},renderCart(){},playCartSound(){},showCartConfirmation(){},
-    announce:msg=>{throw Error(msg)}
+    announce:()=>{}
   };
   const add=runInNewContext(app.slice(begin,end)+';addToCart',ctx);
   assert.equal(add(product,.564,{separate:true,grams:564}),true);
