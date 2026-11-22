@@ -412,13 +412,13 @@
         </div>
         <label for="manageSearch">Ürün adı veya barkod ara</label>
         <input id="manageSearch" type="search" placeholder="Barkod veya ürün adı" autocomplete="off">
-        <section id="manageCategoryBrowser" class="manage-category-browser" hidden aria-label="Pasif ürünleri kategorilere göre seç">
+        <section id="manageCategoryBrowser" class="manage-category-browser" hidden aria-label="Aktif ve pasif ürünleri kategorilere göre seç">
           <div class="manage-category-heading">
             <button id="manageCategoryBack" type="button" class="clean-back" aria-label="Bir önceki kategoriye dön" hidden>‹</button>
             <strong id="manageCategoryTitle">Ana Kategoriler</strong>
           </div>
           <div id="manageCategoryGrid" class="manage-category-grid" aria-label="12 ana ve alt kategoriler"></div>
-          <p class="manage-category-help">Kategoriyi seçin, pasif ürüne dokunun ve satışa açın.</p>
+          <p id="manageCategoryHelp" class="manage-category-help">Kategoriyi seçin, pasif ürüne dokunun ve satışa açın.</p>
         </section>
         <div id="manageResultCount" class="manage-result-count"></div>
         <div id="manageResults" class="manage-results"></div>
