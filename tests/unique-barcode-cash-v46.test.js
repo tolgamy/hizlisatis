@@ -80,7 +80,7 @@ test('cash modal offers explicit direct, manual and 200 TL options',()=>{
   assert.match(app,/\$\('cashManualPanel'\)\.hidden=false/);
   assert.match(app,/if\(cartCurrency\(\)!=='TRY'\)return/);
   assert.match(app,/if\(\$\('cashPaymentDialog'\)\.open\)announce/);
-  assert.match(sw,/cep-pos-shell-v49-cas-stable-frame/);
+  assert.match(sw,/cep-pos-shell-v50-one-tap-live-scale/);
   assert.match(sw,/\/cash-change\.js/);
 });
 
