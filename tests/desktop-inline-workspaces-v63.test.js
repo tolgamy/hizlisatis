@@ -81,3 +81,28 @@ test('navigation, device reports, permission gate and mobile checkout remain int
     assert.ok(html.includes('id="'+id+'"'),id);
   assert.match(sw,/native-workspaces-v65/);
 });
+
+test('native Sale route exposes the page before focusing the USB barcode field',()=>{
+  const begin=app.indexOf('function applyRoute()');
+  const end=app.indexOf('function setView(',begin);
+  assert.ok(begin>0&&end>begin);
+  const state={view:'home',categoryPage:'',category:'',catalogMode:'',catalogEntry:''};
+  const events=[];
+  const ctx={
+    state,location:{hash:'#sale'},
+    useDesktopWorkspace:()=>true,
+    placeNativeWorkspacePages:()=>events.push('relocate'),
+    closeDesktopWorkspaceForNavigation:()=>events.push('close-overlays'),
+    renderCart:()=>events.push('cart-ready'),
+    updateNavigation:()=>events.push('page-visible'),
+    renderProducts:()=>events.push('products-untouched'),
+    focusSaleBarcode:()=>events.push('scanner-focus'),
+    window:{scrollTo:()=>events.push('scroll')},decodeURIComponent,
+    refreshHomeSales:()=>Promise.resolve()
+  };
+  runInNewContext(app.slice(begin,end)+';applyRoute()',ctx);
+  assert.equal(state.view,'sale');
+  assert.ok(events.indexOf('scanner-focus')>events.indexOf('page-visible'));
+  assert.ok(events.indexOf('scanner-focus')>events.indexOf('cart-ready'));
+  assert.equal(events.filter(x=>x==='scanner-focus').length,1);
+});
