@@ -665,7 +665,11 @@ function renderCart() {
   }
   const sum = totals(), currency = cartCurrency();
   dom.totals.innerHTML = `<div class="total-row grand"><span>Toplam</span><strong>${esc(money(sum.total, currency))}</strong></div>`;
-  dom.complete.disabled = !state.cart.size || state.saving;
+  const hasCartItems=state.cart.size>0;
+  dom.complete.disabled=state.saving;
+  dom.complete.classList.toggle('is-empty-cart',!hasCartItems);
+  $('checkoutActionLabel').textContent=hasCartItems?'Satışı Tamamla':'Ana Sayfaya Dön';
+  dom.complete.setAttribute('aria-label',hasCartItems?'Satışı Tamamla':'Ana Sayfaya Dön');
   updatePayment();
 }
 function updatePayment() {
@@ -1694,7 +1698,15 @@ async function setup() {
   dom.cash.addEventListener('input',updatePayment);
   $('cashConfirm').addEventListener('click',completeSale);
   $('cashCancel').addEventListener('click',()=>$('cashPaymentDialog').close());
-  dom.complete.addEventListener('click',completeSale);
+  dom.complete.addEventListener('click',()=>{
+    if(state.saving)return;
+    if(!state.cart.size){
+      if(dom.cartDialog.open)dom.cartDialog.close();
+      setView('home');
+      return;
+    }
+    completeSale();
+  });
   $('scanQuantityMinus').addEventListener('click',()=>adjustScanQuantity(-1));
   $('scanQuantityPlus').addEventListener('click',()=>adjustScanQuantity(1));
   $('scanQuantityConfirm').addEventListener('click',confirmScannedQuantity);
