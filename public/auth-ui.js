@@ -3,6 +3,17 @@
  * Authorization is verified again by the server on every protected operation.
  */
 const $=id=>document.getElementById(id);
+// Browser-default form submission formerly appended the username and password
+// to the URL when /api/auth failed. Scrub a leaked query from the current
+// history entry as early as possible; a fresh password is still required.
+try{
+  const url=new URL(location.href);
+  if(url.searchParams.has('password')||url.searchParams.has('username')){
+    url.searchParams.delete('password');
+    url.searchParams.delete('username');
+    history.replaceState(history.state,'',url.pathname+url.search+url.hash);
+  }
+}catch{/* Never break application startup during URL cleanup. */}
 const headers={'Content-Type':'application/json','Accept':'application/json'};
 let activeUser=null,enabled=false,initialResolved=false;
 const can=permission=>activeUser?.role==='admin'||activeUser?.permissions?.includes(permission);
@@ -129,10 +140,17 @@ function setupUserManager(){
  */
 export async function requireAccess(){
   const gate=$('loginGate'),form=$('loginForm');
+  const loginButton=$('loginSubmit');
+  // Register before ANY await, including network/API failures. A browser must
+  // never perform a native form submission with credentials.
+  form.addEventListener('submit',event=>event.preventDefault());
   let status;
   try{
     const response=await fetch('/api/auth',{cache:'no-store',credentials:'same-origin'});
-    status=await response.json().catch(()=>({error:'Giriş hizmeti yanıt vermedi.'}));
+    const type=(response.headers.get('content-type')||'').toLowerCase();
+    if(!type.includes('application/json'))
+      throw Error('Bu adreste giriş servisi bulunamadı. HızlıSatış sitesini https://hizlisatis.pages.dev/ adresinden açın.');
+    status=await response.json().catch(()=>{throw Error('Giriş hizmeti geçerli yanıt vermedi.');});
     if(!response.ok)throw Error(status.error||'Giriş yapılandırması eksik.');
   }catch(error){
     showGate(error.message);
@@ -167,6 +185,10 @@ export async function requireAccess(){
       }catch(error){showGate(error.message)}
       finally{button.disabled=false}
     });
+    // Only a verified API response enables the submit button. Without JS or
+    // when the login endpoint returns HTML/error, credentials cannot be sent.
+    loginButton.type='submit';
+    loginButton.disabled=false;
   });
 }
 /** Call before committing sales to any local store. This fails offline,
