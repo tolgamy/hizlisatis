@@ -395,7 +395,7 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
         marka:$('manageBrand').value.trim(),alisFiyati:purchase,
         satisFiyati:priceWithVat(entered,vat,excluded).gross,
         girisFiyati:entered,kdv:vat,kdvBelirsiz:false,kdvExcluded:excluded,
-        fiyatBelirsiz:false,stok,stokBelirsiz:!stockString,
+        fiyatBelirsiz:false,stok:stock,stokBelirsiz:!stockString,
         birim:$('manageUnit').value,
         kategoriAna:main,kategoriAlt:sub,kategoriYolu:[main,sub],
         kategori:main+' > '+sub,kaynakKategori:main+' > '+sub,
