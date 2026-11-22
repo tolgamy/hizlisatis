@@ -51,7 +51,7 @@ test('premium reader is a functioning full-screen dialog connected to existing s
   assert.match(css,/@keyframes premium-laser/);
   assert.match(css,/#scanDialog\.is-success \.scan-corner/);
   assert.match(app,/await scanner\.start\(\{ facingMode: 'environment' \}/);
-  assert.match(app,/onSuccess = \(decoded, details\) =>/);
+  assert.match(app,/const onSuccess=\(decoded,details\)=>/);
   assert.match(app,/scanned\(decoded,\{source:'camera',format:/);
   assert.match(app,/await optimizeScannerFocus\(session\)/);
   assert.match(app,/function torchFeature\(session\)/);
