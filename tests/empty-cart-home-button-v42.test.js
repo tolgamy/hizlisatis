@@ -20,7 +20,7 @@ test('initial empty cart action is active, clearly labeled Ana Sayfaya Dön and 
   assert.match(styles,/color:#075bae/);
   assert.match(styles,/#completeSale\.is-empty-cart \.checkout-home-icon\{display:block\}/);
   assert.match(styles,/#completeSale\.is-empty-cart \.checkout-complete-icon\{display:none\}/);
-  assert.match(sw,/v45-camera-pc-decoder/);
+  assert.match(sw,/v46-one-scan-cash-modes/);
 });
 
 test('cart renderer switches label/icon and enabled state without moving footer',()=>{
@@ -65,7 +65,9 @@ test('empty cart click navigates home; nonempty click still performs sale',()=>{
     dom:{complete:{addEventListener(event,cb){assert.equal(event,'click');handler=cb;}},
       cartDialog:{open:true,close(){this.open=false;closed++;}}},
     setView:view=>views.push(view),
-    completeSale:()=>completed++
+    completeSale:()=>completed++,
+    openCashPayment:()=>completed++,
+    document:{querySelector:()=>({value:'Nakit'})}
   };
   runInNewContext(app.slice(begin,end+6),ctx);
   assert.equal(typeof handler,'function');

@@ -58,10 +58,10 @@ test('premium reader is a functioning full-screen dialog connected to existing s
   assert.match(app,/function showScanHistory\(/);
   assert.match(app,/function scanned\(/);
   assert.match(app,/if\(purpose==='manage'\)/);
-  assert.match(app,/active=>selectScannedQuantity/);
+  assert.match(app,/active=>addBarcodeOnce/);
   assert.match(app,/document\.addEventListener\('visibilitychange'/);
   assert.match(app,/window\.addEventListener\('pagehide'/);
-  assert.match(sw,/cep-pos-shell-v45-camera-pc-decoder/);
+  assert.match(sw,/cep-pos-shell-v46-one-scan-cash-modes/);
 });
 
 test('bottom nav retains four routes with vivid real sales cart icon, desktop remains sidebar',()=>{

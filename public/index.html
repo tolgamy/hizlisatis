@@ -229,10 +229,22 @@
     <div class="sheet-header"><h2 id="cashPaymentTitle">Nakit Ödeme</h2><button class="closebutton" type="button" data-close="cashPaymentDialog" aria-label="Kapat">×</button></div>
     <div class="cash-payment-body">
       <p>Hesap Tutarı</p><strong id="cashPayTotal">₺0,00</strong>
-      <label for="cashReceived">Alınan Para (₺)</label>
-      <input id="cashReceived" type="text" inputmode="decimal" placeholder="Ör. 800" autocomplete="off">
-      <div id="changeLabel" class="cash-change" role="status">Para üstü: ₺0,00</div>
-      <button id="cashConfirm" type="button" class="primary-button">Tamam</button>
+      <div id="cashModeButtons" class="cash-mode-buttons" role="group" aria-label="Nakit satış tamamlama seçenekleri">
+        <button id="cashDirect" type="button" class="cash-mode-button cash-mode-direct"><strong>✓ Direkt Tamamla</strong><small>Tam para alındı, para üstü yok</small></button>
+        <button id="cashManual" type="button" class="cash-mode-button cash-mode-manual"><strong>⌗ Para Üstü Hesapla</strong><small>Müşterinin verdiği tutarı gir</small></button>
+        <button id="cashRoundConfirm" type="button" class="cash-mode-button cash-mode-round">
+          <strong>₺ 200 TL Katına Yuvarla</strong>
+          <small>Alınan: <b id="cashRoundedAmount">₺0,00</b> · Para üstü: <b id="cashRoundedChange">₺0,00</b></small>
+          <small>Bu tutarı gerçekten aldıysan tamamla</small>
+        </button>
+      </div>
+      <div id="cashManualPanel" class="cash-manual-panel" hidden>
+        <label for="cashReceived">Alınan Para (₺)</label>
+        <input id="cashReceived" type="text" inputmode="decimal" placeholder="Ör. 800" autocomplete="off">
+        <div id="changeLabel" class="cash-change" role="status">Alınan tutarı girin</div>
+        <button id="cashConfirm" type="button" class="primary-button">Para Üstüyle Tamamla</button>
+        <button id="cashBack" type="button" class="sale-secondary-button">Diğer Nakit Seçenekleri</button>
+      </div>
       <button id="cashCancel" type="button" class="sale-secondary-button">Vazgeç</button>
     </div>
   </dialog>

@@ -16,7 +16,7 @@ test('58/80 mm rolls reserve enough right-hand space for full price and change',
       'printer needs at least 5 mm clear at the right');
     assert.ok(plan.innerPaddingMm>=2);
   }
-  assert.match(sw,/cep-pos-shell-v45-camera-pc-decoder/);
+  assert.match(sw,/cep-pos-shell-v46-one-scan-cash-modes/);
   const print=app.slice(app.indexOf('function printSale(sale)'),app.indexOf('async function printBluetoothReceipt(sale)'));
   assert.match(print,/const printableMm=layout.contentMm/);
   assert.match(print,/const leftInsetMm=layout.leftInsetMm/);
@@ -57,47 +57,21 @@ test('opening checkout places focus directly into hardware barcode input',()=>{
   assert.equal(focused,1,'camera path must not pop up keyboard');
 });
 
-test('quantity confirmation resumes camera scanning or keyboard barcode input automatically',()=>{
-  const begin=app.indexOf('function confirmScannedQuantity()');
-  const end=app.indexOf('function renderAll()',begin);
-  assert.ok(begin>0&&end>begin);
-  const source=app.slice(begin,end);
-  for(const resumeCamera of [true,false]){
-    let camera=0,focus=0,cartOpened=0,chirps=0,closed=0;
-    const barcode={value:'123'};
-    const input={value:'1'};
-    const pending={product:{id:'sku-1'},sourceInput:barcode,resumeCamera};
-    const ctx={
-      pendingScanProduct:pending,lastScanText:'123',lastScanTime:123,
-      $:id=>({
-        scanQuantityInput:input,
-        scanQuantityDialog:{close(){closed++}},
-        saleBarcode:{value:'123'}
-      })[id],
-      dom:{cartDialog:{open:true}},
-      addToCart:()=>true,chirp:()=>chirps++,
-      openSale:()=>cartOpened++,openCamera:()=>camera++,
-      focusSaleBarcode:()=>focus++
-    };
-    const result=runInNewContext(source+';confirmScannedQuantity();({lastScanText,lastScanTime,pendingScanProduct})',ctx);
-    assert.equal(closed,1);
-    assert.equal(chirps,1);
-    assert.equal(barcode.value,'');
-    assert.equal(result.pendingScanProduct,null);
-    assert.equal(camera,resumeCamera?1:0);
-    assert.equal(focus,resumeCamera?0:1);
-    assert.equal(cartOpened,0);
-    if(resumeCamera)assert.equal(result.lastScanTime,0,'permit deliberate rescan of same item');
-  }
+test('barcode camera reads once and must not auto-restart the scanner',()=>{
+  const scanned=app.slice(app.indexOf('function scanned(raw,'),app.indexOf('function updateTorchButton(',app.indexOf('function scanned(raw,')));
+  assert.match(scanned,/addBarcodeOnce\(product,\$\('scanManualBarcode'\)\)/);
+  assert.doesNotMatch(scanned,/selectScannedQuantity\(/);
+  assert.doesNotMatch(scanned,/resumeCamera/);
+  const once=app.slice(app.indexOf('function addBarcodeOnce('),app.indexOf('function categoryEmoji(',app.indexOf('function addBarcodeOnce(')));
+  assert.match(once,/dom\.scanDialog\.close\(\)/);
+  assert.match(once,/stopScanner\(\)/);
+  assert.match(once,/if\(state\.cart\.has\(product\.id\)\)/);
+  assert.match(once,/addToCart\(product,1\)/);
 });
-
-test('camera path reopens only after successful add, not for gallery/history',()=>{
-  const begin=app.indexOf('function scanned(raw,');
-  const end=app.indexOf('function updateTorchButton(',begin);
-  const source=app.slice(begin,end);
-  assert.match(source,/const resumeCamera=source==='camera' && dialogWasOpen/);
-  assert.match(source,/selectScannedQuantity\(product,\$\('scanManualBarcode'\),resumeCamera\)/);
-  assert.match(app,/function selectScannedQuantity\(product,sourceInput=null,resumeCamera=false\)/);
+test('legacy quantity editor no longer restarts camera',()=>{
+  const qty=app.slice(app.indexOf('function confirmScannedQuantity()'),app.indexOf('function renderAll()',app.indexOf('function confirmScannedQuantity()')));
+  assert.doesNotMatch(qty,/openCamera\(\)/);
+  assert.match(qty,/focusSaleBarcode\(\)/);
 });
 
 test('printing a saved sale immediately prepares a new sale; Bluetooth errors remain visible',()=>{

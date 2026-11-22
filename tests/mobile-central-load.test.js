@@ -12,7 +12,7 @@ test('startup does not redundantly import the 19,096-product bundled catalogue',
  assert.match(setup,/await refreshManagedData\(\)/);
  const sw=read('../public/sw.js');
  assert.doesNotMatch(sw,/fetch\('\/catalog\/manifest\.json'/);
- assert.match(sw,/v45-camera-pc-decoder/);
+ assert.match(sw,/v46-one-scan-cash-modes/);
 });
 
 test('mobile D1 loading is explicit and dangerous bulk actions are disabled until completion',()=>{

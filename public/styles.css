@@ -2607,3 +2607,46 @@ body.view-settings .settings-view .settings-printer-details .settings-receipt{
     font-size:11pt!important;
   }
 }
+
+/* v5.1 — quick cash tender: three explicit choices, no unwanted cash modal on
+ * payment radio selection, responsive and accessible touch-sized controls. */
+.cash-payment-dialog{max-width:min(95vw,460px);border-radius:22px}
+.cash-payment-dialog .cash-payment-body{padding:17px;display:flex;flex-direction:column;gap:10px}
+.cash-payment-body #cashPayTotal{
+  display:block;text-align:center;font-weight:950;
+  font-size:clamp(28px,7vw,39px);color:#103451;font-variant-numeric:tabular-nums;
+}
+.cash-payment-body>p{margin:0;text-align:center;font-size:12px;font-weight:800;color:#71859b}
+.cash-mode-buttons{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+.cash-mode-button{
+  display:flex;align-items:flex-start;flex-direction:column;
+  width:100%;min-height:75px;text-align:left;gap:6px;
+  padding:14px 16px;border-radius:16px;
+  border:1px solid #d0dfec;background:#fff;
+  color:#193955;
+  box-shadow:0 4px 12px #193c6810;
+}
+.cash-mode-button strong{font-size:clamp(15px,3.8vw,18px);font-weight:900;line-height:1.2}
+.cash-mode-button small{font-size:clamp(11px,2.85vw,13px);line-height:1.32;font-weight:680}
+.cash-mode-button b{font-variant-numeric:tabular-nums;font-weight:900}
+.cash-mode-direct{background:#e7f9ec;border-color:#85d9a8;color:#126b42}
+.cash-mode-manual{background:#e9f3ff;border-color:#a7cff8;color:#155e9c}
+.cash-mode-round{background:#f3eaff;border-color:#d1b6f0;color:#6b349f}
+.cash-payment-dialog .cash-manual-panel{display:grid;gap:11px;padding-top:4px}
+.cash-manual-panel label{font-weight:850;color:#304a65;font-size:13px}
+.cash-manual-panel input{
+  width:100%;min-width:0;height:49px;
+  border:1px solid #bccfe2;border-radius:12px;
+  padding:10px 13px;font-size:19px;font-weight:820;
+  color:#183e61;background:white;font-variant-numeric:tabular-nums;
+}
+.cash-manual-panel .cash-change{
+  border-radius:10px;padding:12px;background:#e9f8ee;
+  font-size:15px;font-weight:850;
+}
+.cash-payment-dialog #cashCancel{min-height:46px;margin-top:3px}
+.cash-payment-dialog button:focus-visible{outline:3px solid #70b8ef;outline-offset:2px}
+@media(max-width:360px){
+  .cash-payment-dialog .cash-payment-body{padding:12px;gap:7px}
+  .cash-mode-button{padding:11px 12px;min-height:67px}
+}
