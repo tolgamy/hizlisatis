@@ -31,9 +31,9 @@ test('cart adjustments play sound on increase and decrease, confirm deletion, le
   assert.match(app,/line.discountPct\|\|''/);
 });
 test('sale navigation and cash payment are separate and remove receipt option clutter',()=>{
-  assert.match(html,/id="saleQuickHome"/);
-  assert.match(html,/id="saleQuickProducts"/);
-  assert.match(html,/id="saleQuickSettings"/);
+  assert.doesNotMatch(html,/id="saleQuickHome"/);
+  assert.doesNotMatch(html,/id="saleQuickProducts"/);
+  assert.doesNotMatch(html,/id="saleQuickSettings"/);
   assert.doesNotMatch(html,/id="cashOption"/);
   assert.doesNotMatch(html,/id="receiptWidth"/);
   assert.match(html,/id="cashPaymentDialog"/);

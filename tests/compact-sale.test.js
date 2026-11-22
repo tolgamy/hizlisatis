@@ -9,7 +9,7 @@ const cartRenderer = app.slice(app.indexOf('function renderCart() {'), app.index
 
 test('minimal checkout has only a compact header, barcode input, cart, total, payment, confirm', () => {
   for (const id of ['saleBarcode','saleScanButton','cartItems','cartTotals','completeSale',
-    'creditName','creditCustomerSearch','saleQuickHome','saleQuickProducts','saleQuickSettings']) {
+    'creditName','creditCustomerSearch','saleBack','saleClose','saleCancel']) {
     assert.match(saleHtml, new RegExp(`id="${id}"`));
   }
   assert.doesNotMatch(saleHtml, /id="cashOption"|id="receiptWidth"|sale-eyebrow|sale-count-strip|Merkezi POS/);
