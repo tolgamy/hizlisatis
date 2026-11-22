@@ -48,7 +48,7 @@ test('Device backup rejects foreign, broken or duplicate sales and carries setti
   assert.deepEqual(parsed.receiptSettings,settings);
   assert.equal(parseDeviceBackup(createDeviceBackup([sale,sale],settings)).sales.length,1);
   assert.throws(()=>parseDeviceBackup('not-json'),/Geçerli/);
-  assert.throws(()=>parseDeviceBackup('{"format":"random","sales":[]}'),/yedek/);
+  assert.throws(()=>parseDeviceBackup('{"format":"random","sales":[]}'),/yedeği/);
   assert.throws(()=>parseDeviceBackup(createDeviceBackup([{...sale,items:[{id:'a',quantity:-3}]}],settings)),/satış satırı/);
 });
 
