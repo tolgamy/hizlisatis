@@ -1045,10 +1045,12 @@ function csvCell(value) {
   if (/^\s*[=+\-@]/.test(str)) str = `'${str}`; // spreadsheet formula injection guard
   return `"${str.replace(/"/g, '""')}"`;
 }
-function exportHistory() {
+async function exportHistory() {
+  try {
+  const savedSales=await getSales();
   const header = ['Fiş No','Tarih','Ödeme','Müşteri','Para Birimi','Toplam','Ürün Kodu',
     'Barkod','Ürün','Adet','Birim Fiyat','İskonto %','Satır Toplamı','KDV'];
-  const rows = [header, ...state.sales.flatMap(sale => sale.items.map(item => [
+  const rows = [header, ...savedSales.flatMap(sale => sale.items.map(item => [
     sale.id, sale.createdAt, sale.payment, sale.creditName, sale.currency, sale.total,
     item.urunKodu, item.barkod, item.baslik, item.quantity, item.unitPrice,
     item.discountPct, item.total, item.kdv
@@ -1060,6 +1062,7 @@ function exportHistory() {
   a.download = `cep-pos-satislar-${new Date().toISOString().slice(0, 10)}.csv`;
   document.body.append(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(href), 1000);
+  }catch(error){announce('Satış CSV dosyası oluşturulamadı: '+error.message,'error');}
 }
 
 /** Download only device-local sales and receipt settings: never claim D1 is backed up. */
