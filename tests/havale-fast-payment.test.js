@@ -48,7 +48,7 @@ test('four payment options fit in one row with scrollable checkout',()=>{
   assert.match(newStyles,/\.sale-sheet \.payment-types\{[\s\S]*?grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
   assert.match(newStyles,/label:nth-of-type\(n\+4\)\{[\s\S]*?grid-column:auto/);
   assert.match(newStyles,/\.sale-sheet \.checkout-area\{[\s\S]*?overflow-y:auto/);
-  assert.match(sw,/cep-pos-shell-v49-cas-stable-frame/);
+  assert.match(sw,/cep-pos-shell-v50-one-tap-live-scale/);
 });
 
 test('merged Havale / FAST and old bank methods remain valid in saved history and receipts',()=>{
