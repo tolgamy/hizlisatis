@@ -20,7 +20,8 @@ import { createProductManager } from './product-management.js';
 import { checkRemoteProductStates } from './remote-products.js';
 import { createCustomerManager } from './customer-ui.js';
 import { recordCustomerCredit } from './customer-api.js';
-import { readReceiptSettings,saveReceiptSettings,receiptPrintLayout } from './receipt-settings.js';
+import { readReceiptSettings,saveReceiptSettings,receiptPrintLayout,readReceiptAction,saveReceiptAction } from './receipt-settings.js';
+import { parseBasketDiscountPercent,calculateBasketTotals } from './basket-pricing.js';
 import { next200Cash } from './cash-change.js';
 import { isWeightProduct,scaleSupported,ScaleSerialConnection,parseManualGrams,scaleGramsToQuantity,calculateWeightTotal } from './scale-serial.js';
 import { writeActiveProductsLocalStorage } from './active-products-cache.js';
@@ -29,7 +30,7 @@ const $ = id => document.getElementById(id);
 const state = {
   products: [], byId: new Map(), byBarcode: new Map(), categoryProductPhotos: new Map(), lifecycleMeta: null, legacyPending: false,
   catalogLoading:true,catalogProgress:0,catalogError:'',centralReadOnly:false,
-  sold: new Map(), cart: new Map(), category: '', brand: '',
+  sold: new Map(), cart: new Map(), basketDiscountPct:0, basketDiscountInvalid:false, category: '', brand: '',
   search: '', meta: null, sales: [], lastSale: null, pendingCreditSale:null,
   saving: false, scanner: null, scanPurpose: 'sale',
   excelCount: 0, bundleCount: 0, bundleLoading: false, categoryPage: '', excelPreview: null, excelUploading: false, browseAll: false,
@@ -122,12 +123,10 @@ function lineTotals(line) {
   return { base, discounted, total, vat };
 }
 function totals() {
-  let base = 0, discount = 0, total = 0, vat = 0;
-  for (const line of state.cart.values()) {
-    const row = lineTotals(line);
-    base += row.base; discount += row.discounted; total += row.total; vat += row.vat;
-  }
-  return { base: round2(base), discount: round2(discount), total: round2(total), vat: round2(vat) };
+  const rows=[...state.cart.values()].map(line=>({
+    ...lineTotals(line),vatRate:line.product.kdv
+  }));
+  return calculateBasketTotals(rows,state.basketDiscountPct);
 }
 function setConnection() {
   const el = $('connectionStatus');
@@ -237,6 +236,8 @@ function finishSaleExit({discard=false}={}) {
   if($('saleExitDialog').open)$('saleExitDialog').close();
   if(discard) {
     state.cart.clear();
+    state.basketDiscountPct=0;state.basketDiscountInvalid=false;
+    $('basketDiscountPct').value='';$('basketDiscountError').hidden=true;
     state.pendingCreditSale=null;
     dom.cash.value='';
     customerManager?.clearSelection();
@@ -808,7 +809,10 @@ function renderCart() {
     <div class="sale-cart-info">
     <div class="sale-product-row">
       <div class="cart-line-name">${brand && !brandPrefix ? `<span class="sale-line-brand">${esc(brand)}</span>` : ''}${esc(title)}</div>
-      <strong class="sale-line-price">${esc(amount)}</strong>
+      <div class="sale-price-actions">
+        <strong class="sale-line-price">${esc(amount)}</strong>
+        <button type="button" class="sale-edit-price" data-edit-price>✎ Fiyatı Düzenle</button>
+      </div>
     </div>
     ${line.weighed?'<small class="cart-weight-badge">⚖ '+esc(
       line.product.birim==='kg'?line.quantity.toFixed(3)+' kg':line.quantity+' g'
@@ -836,6 +840,11 @@ function renderCart() {
       media.append(image);
       applyProductImage(image,line.product.gorsel,192,'high');
     }
+    el.querySelector('[data-edit-price]').addEventListener('click',()=>{
+      el.querySelector('.sale-line-more').open=true;
+      const price=el.querySelector('[data-field="price"]');
+      price.focus({preventScroll:true});price.select();
+    });
     el.querySelector('[data-remove]').addEventListener('click', () => {
       if(!confirm(line.product.baslik+' sepetten silinsin mi?'))return;
       state.cart.delete(line.cartKey||line.id); playCartSound('decrease'); renderCart(); renderCartBar();
@@ -852,9 +861,12 @@ function renderCart() {
     dom.cartItems.append(el);
   }
   const sum = totals(), currency = cartCurrency();
-  dom.totals.innerHTML = `<div class="total-row grand"><span>Toplam</span><strong>${esc(money(sum.total, currency))}</strong></div>`;
+  dom.totals.innerHTML = `<div class="total-row summary"><span>Ara toplam</span><strong>${esc(money(sum.base,currency))}</strong></div>
+    ${sum.lineDiscount>0?`<div class="total-row summary"><span>Ürün iskontosu</span><strong>−${esc(money(sum.lineDiscount,currency))}</strong></div>`:''}
+    ${sum.basketDiscount>0?`<div class="total-row summary"><span>Sepet iskontosu (%${sum.basketDiscountPct})</span><strong>−${esc(money(sum.basketDiscount,currency))}</strong></div>`:''}
+    <div class="total-row grand"><span>Ödenecek toplam</span><strong>${esc(money(sum.total,currency))}</strong></div>`;
   const hasCartItems=state.cart.size>0;
-  dom.complete.disabled=state.saving;
+  dom.complete.disabled=state.saving||(hasCartItems&&state.basketDiscountInvalid);
   dom.complete.classList.toggle('is-empty-cart',!hasCartItems);
   $('checkoutActionLabel').textContent=hasCartItems?'Satışı Tamamla':'Ana Sayfaya Dön';
   dom.complete.setAttribute('aria-label',hasCartItems?'Satışı Tamamla':'Ana Sayfaya Dön');
@@ -871,7 +883,7 @@ function updatePayment() {
   dom.change.textContent=Number.isNaN(change)?'Alınan tutarı girin':change>=0?
     'Para üstü: '+money(change,cartCurrency()):'Eksik ödeme: '+money(-change,cartCurrency());
   dom.change.style.color=change<0?'#a73b46':'#136c49';
-  $('cashConfirm').disabled=!Number.isFinite(change)||change<-.009||!state.cart.size;
+  $('cashConfirm').disabled=!Number.isFinite(change)||change<-.009||!state.cart.size||state.basketDiscountInvalid;
 }
 function openCashPayment(){
   if(!state.cart.size){announce('Önce sepete ürün ekleyin.','error');return;}
@@ -991,6 +1003,7 @@ async function confirmExcelImport() {
 
 async function completeSale() {
   if (state.saving || !state.cart.size) return;
+  if(state.basketDiscountInvalid){announce('Sepet iskontosu geçersiz. %0–%100 arasında düzeltin.','error');return;}
   if (state.centralReadOnly) { announce('Merkezi ürün bağlantısı yok. Satış kaydedilemez.','error'); return; }
   const sum = totals();
   const payment = document.querySelector('input[name="payment"]:checked').value;
@@ -1017,9 +1030,10 @@ async function completeSale() {
   // Keep the same id if a central credit write succeeded but local storage failed;
   // the server ledger rejects duplicates and avoids double-charging a customer.
   const creditFingerprint=payment==='Veresiye'?
-    JSON.stringify([creditCustomer.id,sum.total,[...state.cart.values()].map(x=>[x.id,x.quantity,x.unitPrice,x.discountPct])]):'';
+    JSON.stringify([creditCustomer.id,sum.total,sum.basketDiscountPct,[...state.cart.values()].map(x=>[x.id,x.quantity,x.unitPrice,x.discountPct])]):'';
   if(payment==='Veresiye'&&state.pendingCreditSale?.fingerprint!==creditFingerprint)
     state.pendingCreditSale={fingerprint:creditFingerprint,id:crypto.randomUUID()};
+  const {allocations,...saleTotals}=sum;
   const record = {
     id: payment==='Veresiye'?state.pendingCreditSale.id:
       typeof crypto.randomUUID === 'function' ? crypto.randomUUID() :
@@ -1028,13 +1042,15 @@ async function completeSale() {
     currency: cartCurrency(),creditName:payment==='Veresiye'?creditName:'',
     creditCustomerId:creditCustomer?.id||'',receiptSettings:readReceiptSettings(),
     cashReceived: cash, change: payment === 'Nakit' ? round2(cash - sum.total) : 0,
-    ...sum,
-    items: [...state.cart.values()].map(line => ({
+    ...saleTotals,
+    items: [...state.cart.values()].map((line,index) => ({
       id: line.id, urunKodu: line.product.urunKodu, barkod: line.product.barkod,
       baslik: line.product.baslik, marka: line.product.marka, beden: line.product.beden, renk: line.product.renk,
       quantity: line.quantity, unitPrice: line.unitPrice, discountPct: line.discountPct,
       birim:line.product.birim,grams:line.weighed?line.grams:null,
-      kdv: line.product.kdv, ...lineTotals(line)
+      kdv: line.product.kdv, ...lineTotals(line),
+      basketDiscount:allocations[index].basketDiscount,
+      netTotal:allocations[index].netTotal,vat:allocations[index].vat
     }))
   };
   state.saving = true; dom.complete.disabled = true;
@@ -1044,6 +1060,8 @@ async function completeSale() {
     state.pendingCreditSale=null;
     for (const line of record.items) state.sold.set(line.id, (state.sold.get(line.id) || 0) + line.quantity);
     state.lastSale = record; state.cart.clear();
+    state.basketDiscountPct=0;state.basketDiscountInvalid=false;
+    $('basketDiscountPct').value='';$('basketDiscountError').hidden=true;
     dom.cash.value='';customerManager?.clearSelection();
     if($('cashPaymentDialog').open)$('cashPaymentDialog').close();
     dom.cartDialog.close();
@@ -1053,6 +1071,7 @@ async function completeSale() {
     announce(`Satış kaydedildi: ${money(record.total, record.currency)}`, 'success');
     $('receiptActionsTotal').textContent = money(record.total, record.currency);
     $('receiptActionStatus').textContent = '';
+    applyReceiptActionPreference();
     $('receiptActionsDialog').showModal();
   } catch (error) { announce(`Satış kaydedilemedi: ${error.message}`, 'error'); }
   finally { state.saving = false; renderCart(); }
@@ -1086,7 +1105,10 @@ function renderReceipt(sale) {
       <span>${esc(money(item.total, sale.currency))}</span></div></div>`).join('')}
     <div class="receipt-rule"></div>
     <div class="receipt-row"><span>Ara toplam</span><span>${esc(money(sale.base, sale.currency))}</span></div>
-    <div class="receipt-row"><span>İskonto</span><span>-${esc(money(sale.discount, sale.currency))}</span></div>
+    ${sale.basketDiscount>0?
+      `<div class="receipt-row"><span>Ürün iskontosu</span><span>-${esc(money(sale.lineDiscount||0,sale.currency))}</span></div>
+       <div class="receipt-row"><span>Sepet iskontosu (%${esc(sale.basketDiscountPct||0)})</span><span>-${esc(money(sale.basketDiscount,sale.currency))}</span></div>`:
+      `<div class="receipt-row"><span>İskonto</span><span>-${esc(money(sale.discount, sale.currency))}</span></div>`}
     ${[...vatByRate.entries()].map(([rate, vat]) =>
       `<div class="receipt-row"><span>Dahil KDV %${esc(rate)}</span><span>${esc(money(vat, sale.currency))}</span></div>`).join('')}
     <div class="receipt-rule"></div>
@@ -1270,11 +1292,13 @@ async function exportHistory() {
   try {
   const savedSales=await getSales();
   const header = ['Fiş No','Tarih','Ödeme','Müşteri','Para Birimi','Toplam','Ürün Kodu',
-    'Barkod','Ürün','Adet','Birim Fiyat','İskonto %','Satır Toplamı','KDV'];
+    'Barkod','Ürün','Adet','Birim Fiyat','İskonto %','Satır Toplamı','KDV',
+    'Sepet İskontosu %','Sepet İskontosu Tutarı','Toplam İskonto'];
   const rows = [header, ...savedSales.flatMap(sale => sale.items.map(item => [
     sale.id, sale.createdAt, sale.payment, sale.creditName, sale.currency, sale.total,
     item.urunKodu, item.barkod, item.baslik, item.quantity, item.unitPrice,
-    item.discountPct, item.total, item.kdv
+    item.discountPct, item.total, item.kdv,
+    sale.basketDiscountPct||0,sale.basketDiscount||0,sale.discount||0
   ]))];
   const csv = '\ufeff' + rows.map(row => row.map(csvCell).join(';')).join('\r\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
@@ -1748,6 +1772,14 @@ async function refreshManagedData(productId=null) {
     productManager?.render();
   }
 }
+function applyReceiptActionPreference(){
+  const preferred=readReceiptAction();
+  for(const [id,action] of [
+    ['receiptNetworkPrint','network'],['receiptBluetoothPrint','bluetooth'],
+    ['receiptWhatsApp','whatsapp'],['receiptPdfShare','pdf']
+  ])$(id).hidden=preferred!==action;
+  $('receiptActionsGrid').classList.add('single-action');
+}
 async function setup() {
   customerManager=createCustomerManager({announce});
   const settings=readReceiptSettings();
@@ -1755,6 +1787,19 @@ async function setup() {
   $('settingsReceiptTitle').value=settings.title;
   $('settingsReceiptPhone').value=settings.phone;
   $('settingsReceiptWebsite').value=settings.website;
+  $('settingsReceiptAction').value=readReceiptAction();
+  $('settingsReceiptAction').addEventListener('change',()=>{
+    const status=$('settingsReceiptActionStatus'),oldValue=readReceiptAction();
+    try{
+      const selected=saveReceiptAction($('settingsReceiptAction').value);
+      if(readReceiptAction()!==selected)throw Error('Cihaz tercihi doğrulanamadı.');
+      status.textContent='✓ Bu cihaz için '+$('settingsReceiptAction').selectedOptions[0].textContent+' kaydedildi.';
+      applyReceiptActionPreference();
+    }catch(error){
+      $('settingsReceiptAction').value=oldValue;
+      status.textContent='Tercih kaydedilemedi: '+error.message;
+    }
+  });
   const settingsSaveButton=$('settingsReceiptSave'),saveStatus=$('settingsReceiptStatus');
   const receiptFields=['settingsPrintWidth','settingsReceiptTitle','settingsReceiptPhone','settingsReceiptWebsite'];
   const changedReceiptSettings=()=>{
@@ -1951,6 +1996,20 @@ async function setup() {
     if(el.value==='Veresiye')el.addEventListener('click',()=>{
       if(el.checked)customerManager.load().catch(()=>{});
     });
+  });
+  $('basketDiscountPct').addEventListener('input',()=>{
+    const input=$('basketDiscountPct'),error=$('basketDiscountError');
+    try{
+      state.basketDiscountPct=parseBasketDiscountPercent(input.value);
+      state.basketDiscountInvalid=false;
+      input.removeAttribute('aria-invalid');
+      error.textContent='';error.hidden=true;
+    }catch(problem){
+      state.basketDiscountInvalid=true;
+      input.setAttribute('aria-invalid','true');
+      error.textContent=problem.message;error.hidden=false;
+    }
+    renderCartBar();renderCart();
   });
   dom.cash.addEventListener('input',updatePayment);
   $('cashDirect').addEventListener('click',()=>{
