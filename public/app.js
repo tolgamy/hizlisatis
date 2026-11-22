@@ -1616,6 +1616,7 @@ async function setup() {
   $('sortProducts').addEventListener('change',()=>{state.sort=$('sortProducts').value;renderProducts();});
   $('loadMoreProducts').addEventListener('click',()=>{state.visibleLimit+=48;renderProducts();});
   $('settingsExcel').addEventListener('click',()=>$('excelFile').click());
+  $('settingsHome').addEventListener('click',()=>setView('home'));
   $('settingsManage').addEventListener('click',()=>productManager.openManage());
   $('settingsAdd').addEventListener('click',()=>productManager.openNew());
   $('settingsHistory').addEventListener('click',showHistory);
