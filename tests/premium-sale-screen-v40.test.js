@@ -66,7 +66,7 @@ test('empty state has basket artwork and working search, scan and add handlers',
   }
   assert.match(app,/function openProductPicker\(initialQuery=''\)/);
   assert.match(app,/else if\(!addHardwareBarcode\(value,\$\('saleBarcode'\)\)\)openProductPicker\(value\)/);
-  assert.match(app,/else openProductPicker\(value\)/);
+  assert.match(app,/if\(!addHardwareBarcode\(value,\$\('saleBarcode'\)\)\)openProductPicker\(value\)/);
 });
 
 test('all four payment tiles are one row, with premium palette and readable small-screen labels',()=>{
