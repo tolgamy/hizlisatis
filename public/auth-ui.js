@@ -138,6 +138,8 @@ export async function requireAccess(){
   }
   if(status.enabled===false){
     enabled=false;gate.hidden=true;document.body.classList.remove('auth-locked');
+    $('accessIdentity').textContent='⚠ Güvenli giriş henüz etkin değil';
+    $('accessIdentity').hidden=false;
     return {enabled:false};
   }
   enabled=true;
