@@ -215,7 +215,7 @@ function applyRoute() {
   updateNavigation();renderProducts();
   if(state.view==='stock')renderStockOverview();
   if(state.view==='home'){
-    renderHomeStockInsights();
+    if(typeof renderHomeStockInsights==='function')renderHomeStockInsights();
     refreshHomeSales().catch(()=>{});
   }
   window.scrollTo({top:0,behavior:'auto'});
@@ -660,7 +660,7 @@ async function refreshHomeSales() {
         ? sum+Number(sale.total):sum;
     },0);
     $('homeTodaySales').textContent=money(round2(amount),'TRY');
-    renderHomeRecentSales(sales);
+    if(typeof renderHomeRecentSales==='function')renderHomeRecentSales(sales);
   } catch {
     if(requestId===homeSalesReadId)$('homeTodaySales').textContent='—';
   }
@@ -1120,7 +1120,7 @@ function confirmScannedQuantity() {
     focusSaleBarcode();
   }
 }
-function renderAll() { renderHome(); renderHomeStockInsights(); renderFilters(); renderProducts(); if(state.view==='stock')renderStockOverview(); renderCartBar(); setSyncStatus(); updateNavigation(); if (dom.cartDialog.open) renderCart(); }
+function renderAll() { renderHome(); if(typeof renderHomeStockInsights==='function')renderHomeStockInsights(); renderFilters(); renderProducts(); if(state.view==='stock')renderStockOverview(); renderCartBar(); setSyncStatus(); updateNavigation(); if (dom.cartDialog.open) renderCart(); }
 function exactProduct(raw) {
   const code = String(raw ?? '').trim();
   return findBarcodeProduct(state.byBarcode, code) || state.products.find(p => p.urunKodu && fold(p.urunKodu) === fold(code));
