@@ -4738,3 +4738,81 @@ body.auth-locked #app{display:none!important}
     margin-left:0!important;
   }
 }
+
+
+/* v67 — Desktop stock table: real per-product replenishment and price editing.
+   Existing home/category/Sale/Reports layouts and mobile navigation stay intact. */
+.stock-overview .stock-overview-metric-link {
+  display:inline-flex;align-items:center;justify-content:center;align-self:flex-start;
+  margin-top:auto;padding:5px 9px;border:1px solid #e2c98a;border-radius:8px;
+  background:#fff4d6;color:#8d5c13;font:inherit;font-size:12px;font-weight:850;cursor:pointer;
+}
+.stock-overview .stock-overview-edit-button {
+  display:inline-flex;align-items:center;justify-content:center;
+  min-height:36px;min-width:105px;padding:7px 10px;
+  border:1px solid #a9d1ee;border-radius:9px;
+  background:#e6f3ff;color:#155b95;font:inherit;font-size:12px;font-weight:850;
+  white-space:nowrap;cursor:pointer;
+}
+.stock-overview .stock-status-editable {
+  border:1px solid #dfc382;cursor:pointer;
+  font:inherit;font-weight:850;font-size:12px;
+  transition:filter .15s ease;
+}
+.stock-overview .stock-status-editable:hover,
+.stock-overview .stock-overview-edit-button:hover {filter:brightness(.96)}
+.stock-overview .stock-status-editable:focus-visible,
+.stock-overview .stock-overview-edit-button:focus-visible,
+.stock-overview .stock-overview-metric-link:focus-visible {
+  outline:3px solid #187ad2;outline-offset:2px;
+}
+.stock-overview .stock-overview-table {min-width:880px}
+.stock-overview .stock-overview-table td:last-child,
+.stock-overview .stock-overview-table th:last-child {white-space:nowrap;text-align:center}
+.stock-edit-dialog {
+  box-sizing:border-box;width:min(94vw,485px);max-width:485px;
+  max-height:min(90dvh,760px);padding:0;margin:auto;
+  border:1px solid #d0e3ef;border-radius:18px;
+  background:#fff;color:#163651;
+  box-shadow:0 24px 65px #071d3659;overflow-y:auto;
+}
+.stock-edit-dialog::backdrop {background:#0b203b99}
+.stock-edit-dialog form {display:grid;gap:13px;padding:21px}
+.stock-edit-heading {display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.stock-edit-heading h2 {margin:0 0 6px;font-size:22px;font-weight:950;color:#133856}
+.stock-edit-heading p {margin:0 0 3px;font-size:14px;font-weight:850}
+.stock-edit-heading small {font-size:12px;color:#678199}
+.stock-edit-heading button {
+  width:38px;height:38px;flex:none;border:1px solid #cee0ec;
+  border-radius:11px;color:#285676;background:#f2f8fe;font-size:25px;cursor:pointer;
+}
+.stock-edit-present {
+  display:flex;flex-wrap:wrap;justify-content:space-between;gap:7px;
+  margin:0;padding:12px 13px;background:#e9f6ee;border:1px solid #c7e6d3;
+  border-radius:12px;font-size:13px;font-weight:750;color:#255b3e;
+}
+.stock-edit-present strong {font-size:17px;font-weight:950}
+.stock-edit-field {display:grid;gap:6px;font-size:13px;font-weight:850;color:#2a5068}
+.stock-edit-field input {
+  box-sizing:border-box;width:100%;min-height:45px;
+  border:1px solid #bad0e1;border-radius:10px;
+  background:#fbfdff;color:#183951;padding:10px 12px;
+  font:inherit;font-size:16px;
+}
+.stock-edit-field input:disabled {opacity:.65;background:#eef2f6}
+.stock-edit-set99 {
+  padding:11px 13px;min-height:43px;border:1px solid #9ebff2;
+  border-radius:11px;background:#eff6ff;color:#145e9d;
+  font:inherit;font-size:13px;font-weight:900;cursor:pointer;
+}
+.stock-edit-set99[aria-pressed="true"] {color:white;background:#216ac0;border-color:#216ac0}
+.stock-edit-hint {font-size:12px;color:#607991;line-height:1.5;margin:0}
+.stock-edit-message {font-size:12px;color:#a04424;min-height:16px;margin:0}
+.stock-edit-actions {display:grid;grid-template-columns:1fr 1.2fr;gap:9px}
+.stock-edit-actions button {min-height:44px;border-radius:11px;font:inherit;font-size:14px;font-weight:900;cursor:pointer}
+.stock-edit-actions #stockEditCancel {border:1px solid #cedee9;background:#edf3f8;color:#294c68}
+.stock-edit-actions #stockEditSave {border:0;background:#128257;color:#fff}
+.stock-edit-actions #stockEditSave:disabled {opacity:.55;cursor:wait}
+@media (prefers-reduced-motion:reduce) {
+  .stock-overview .stock-status-editable {transition:none}
+}
