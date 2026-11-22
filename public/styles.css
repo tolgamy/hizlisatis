@@ -3646,3 +3646,81 @@ body.auth-locked #app{display:none!important}
 #app #accessLogout[hidden],
 #app .sale-line-more[hidden],
 #app #checkoutDiscountToggle[hidden] {display:none!important}
+
+
+/* v58 report widgets use real device-local history; hide on mobile. */
+.history-summary{display:none!important}
+@media (min-width:1024px) and (min-height:600px) and (orientation:landscape) and (hover:hover) and (pointer:fine) {
+  .history-summary:not([hidden]) {
+    display:grid!important;gap:12px;
+    padding:0;border:0;background:transparent;
+  }
+  .history-summary-metrics {
+    display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;
+  }
+  .history-summary-metrics>div {
+    display:flex;flex-direction:column;gap:7px;
+    min-height:81px;padding:12px 15px;
+    border:1px solid #dfeaf4;border-radius:12px;
+    background:linear-gradient(145deg,#f0f8ff,#fff);
+  }
+  .history-summary-metrics>div:first-child{background:#eafbf1}
+  .history-summary-metrics>div:nth-child(2){background:#ebf5ff}
+  .history-summary-metrics>div:nth-child(3){background:#f4efff}
+  .history-summary-metrics span {font-size:12px;font-weight:800;color:#5f7890}
+  .history-summary-metrics strong{font-size:clamp(21px,1.7vw,29px);font-weight:950;color:#113451}
+  #historyDialog .history-summary h3 {
+    font-size:15px;color:#1c3c59;margin:4px 0 0;font-weight:900;
+  }
+  .history-summary h3 small{color:#647f93;font-weight:600;font-size:11px}
+  .history-summary-chart {
+    display:grid;grid-template-columns:repeat(7,minmax(0,1fr));
+    gap:9px;align-items:end;min-height:140px;
+    padding:12px;border:1px solid #e2eaf4;border-radius:13px;background:#fbfdff;
+  }
+  .history-summary-day {
+    display:grid;grid-template-rows:auto 94px auto;
+    gap:5px;justify-items:center;align-items:end;
+    min-width:0;
+  }
+  .history-summary-value {
+    font-size:10px;color:#365f7c;
+    font-variant-numeric:tabular-nums;
+    max-width:100%;overflow:hidden;text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .history-summary-track {
+    width:100%;height:94px;display:flex;align-items:flex-end;justify-content:center;
+    background:#edf4fb;border-radius:8px 8px 2px 2px;
+    overflow:hidden;
+  }
+  .history-summary-bar {
+    display:block;width:min(38px,82%);min-height:3px;
+    border-radius:7px 7px 2px 2px;background:linear-gradient(180deg,#3797f2,#1262b8);
+  }
+  .history-summary-day small {font-size:11px;color:#526e85}
+  .desktop-stock-hint:not([hidden]) {
+    display:block;margin:0 0 12px;padding:10px 15px;
+    border-radius:11px;border:1px solid #d9e6f5;
+    background:#edf6ff;color:#315676;font-size:13px;font-weight:800;
+  }
+  #productResults .products.list-view .product-stock-details{
+    display:block;margin-top:7px;
+    color:#496b85;font-size:12px;font-weight:750;white-space:normal;
+  }
+}
+@media (min-width:1280px) and (min-height:600px) and (orientation:landscape) and (hover:hover) and (pointer:fine) {
+  #homeView.dashboard-home{
+    grid-template-columns:minmax(0,1.2fr) minmax(360px,.8fr)!important;
+    grid-template-areas:"hero metrics" "actions actions" "categories categories"!important;
+    align-items:stretch;
+  }
+  #homeView .dashboard-hero{min-height:143px!important;max-height:none}
+  #homeView .dashboard-metrics{min-height:143px!important;align-items:stretch}
+  #homeView .dashboard-metric{min-height:0!important}
+}
+@media (prefers-reduced-motion:reduce){
+  #desktopHomeCategoryGrid .photo-category-tile,
+  #homeCategoryShortcuts .photo-category-tile,
+  #categoryTree .photo-category-tile{transition:none!important}
+}
