@@ -99,16 +99,17 @@
       </section>
       <section id="settingsView" class="settings-view" aria-label="Ayarlar" hidden>
         <h1>Ayarlar</h1>
-        <div class="settings-links">
-          <button id="settingsExcel" type="button"><span>▤</span> Excel Ürün Yükle <b>›</b></button>
-          <button id="settingsAdd" type="button"><span>＋</span> Yeni Ürün Ekle <b>›</b></button>
-          <button id="settingsManage" type="button"><span>▦</span> Ürün Yönetimi <b>›</b></button>
-          <button id="settingsCategoryImages" type="button"><span>▧</span> Kategori Görsellerini Yönet <b>›</b></button>
-          <button id="settingsCustomers" type="button"><span>♙</span> Müşteri Yönetimi / Veresiye <b>›</b></button>
-          <button id="settingsHistory" type="button"><span>◷</span> Satış Geçmişi <b>›</b></button>
-          <button id="settingsExport" type="button"><span>↓</span> Satışları CSV İndir <b>›</b></button>
-          <a href="/urun-yukleme-sablonu.xlsx" download="Hizlisatis_Urun_Sablonu.xlsx"><span>▤</span> Excel Şablonu <b>›</b></a>
+        <div class="settings-links settings-card-grid" aria-label="Ayarlar işlemleri">
+          <button id="settingsExcel" type="button" class="settings-tile settings-tile-excel"><span class="settings-tile-icon" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M14 8h26l12 12v36H14z" fill="currentColor" opacity=".17"/><path d="M40 8v12h12M14 8h26l12 12v36H14z" stroke="currentColor" stroke-width="3" fill="none" stroke-linejoin="round"/><rect x="6" y="24" width="30" height="24" rx="3" fill="currentColor"/><text x="21" y="42" font-size="18" text-anchor="middle" font-weight="900" fill="white" stroke="none">X</text><path d="M40 33h8M40 40h8M40 47h8" stroke="currentColor" stroke-width="2"/></svg></span><strong>Excel Ürün Yükle</strong><small>Toplu ürün aktarımı</small><b aria-hidden="true">›</b></button>
+          <button id="settingsAdd" type="button" class="settings-tile settings-tile-add"><span class="settings-tile-icon" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="m8 24 24-12 24 12-24 13zM8 24v25l24 13V37M56 24v25L32 62" stroke="currentColor" stroke-width="3.5" fill="none" stroke-linejoin="round"/><path d="M32 20v17M23.5 28.5h17" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg></span><strong>Yeni Ürün Ekle</strong><small>Barkodla veya elle ekleyin</small><b aria-hidden="true">›</b></button>
+          <button id="settingsManage" type="button" class="settings-tile settings-tile-manage"><span class="settings-tile-icon" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="m32 6 21 11v25L32 54 11 42V17zM11 17l21 12 21-12M32 29v25" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M21 22 42 10M43 23 22 10" stroke="currentColor" stroke-width="2.5"/></svg></span><strong>Ürün Yönetimi</strong><small>Fiyat, stok ve ürün durumu</small><b aria-hidden="true">›</b></button>
+          <button id="settingsCategoryImages" type="button" class="settings-tile settings-tile-category"><span class="settings-tile-icon" aria-hidden="true"><svg viewBox="0 0 64 64"><rect x="6" y="6" width="22" height="22" rx="5" fill="currentColor" opacity=".26"/><rect x="36" y="6" width="22" height="22" rx="5" fill="currentColor"/><rect x="6" y="36" width="22" height="22" rx="5" fill="currentColor"/><rect x="36" y="36" width="22" height="22" rx="5" fill="currentColor" opacity=".4"/></svg></span><strong>Kategori Görselleri</strong><small>Görselleri yönetin</small><b aria-hidden="true">›</b></button>
+          <button id="settingsCustomers" type="button" class="settings-tile settings-tile-customer"><span class="settings-tile-icon" aria-hidden="true"><svg viewBox="0 0 64 64"><circle cx="32" cy="18" r="10" fill="currentColor"/><circle cx="13" cy="26" r="7" fill="currentColor" opacity=".7"/><circle cx="51" cy="26" r="7" fill="currentColor" opacity=".7"/><path d="M13 57V46q0-12 19-12t19 12v11zM2 55V44q0-10 12-10M62 55V44q0-10-12-10" fill="currentColor" opacity=".85"/></svg></span><strong>Müşteri / Veresiye</strong><small>Borç ve tahsilatlar</small><b aria-hidden="true">›</b></button>
+          <button id="settingsHistory" type="button" class="settings-tile settings-tile-history"><span class="settings-tile-icon" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M14 16a25 25 0 1 1-6 23M6 18l9-6 7 9" stroke="currentColor" stroke-width="4.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M34 17v17l11 7" fill="none" stroke="currentColor" stroke-width="4.8" stroke-linecap="round"/></svg></span><strong>Satış Geçmişi</strong><small>Satışları görüntüleyin</small><b aria-hidden="true">›</b></button>
+          <button id="settingsExport" type="button" class="settings-tile settings-tile-csv"><span class="settings-tile-icon" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M32 7v35m-13-13 13 13 13-13M12 46v10h40V46" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg></span><strong>Satışları CSV İndir</strong><small>Excel uyumlu rapor</small><b aria-hidden="true">›</b></button>
+          <button id="settingsBackup" type="button" class="settings-tile settings-tile-backup"><span class="settings-tile-icon" aria-hidden="true"><svg viewBox="0 0 64 64"><rect x="9" y="15" width="46" height="36" rx="8" fill="none" stroke="currentColor" stroke-width="4"/><path d="M20 30h24M20 39h12M38 9l-6-6-6 6" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="46" cy="40" r="3" fill="currentColor"/></svg></span><strong>Yedekle / Geri Yükle</strong><small>Bu cihazın satış kayıtları</small><b aria-hidden="true">›</b></button>
         </div>
+        <a class="settings-template-link" href="/urun-yukleme-sablonu.xlsx" download="Hizlisatis_Urun_Sablonu.xlsx">▤ Excel ürün yükleme şablonunu indir <span aria-hidden="true">›</span></a>
         <section class="settings-receipt" aria-label="Fiş yazıcı ayarları">
           <h2>Fiş Yazıcı Ayarları</h2>
           <label>Fiş Genişliği <select id="settingsPrintWidth"><option value="80">80 mm</option><option value="58">58 mm</option></select></label>
@@ -138,6 +139,18 @@
       </nav>
     </div>
   </div>
+
+  <dialog id="backupDialog" class="modal device-backup-dialog" aria-labelledby="backupTitle">
+    <div class="sheet-header"><h2 id="backupTitle">Yedekleme / Geri Yükleme</h2><button type="button" data-close="backupDialog" class="closebutton" aria-label="Kapat">×</button></div>
+    <div class="device-backup-body">
+      <p>Bu cihazın satış geçmişini ve fiş ayarlarını JSON dosyası olarak saklayın. Merkezi D1 ürünleri, müşteri borçları ve yönetici şifreleri bu yedeğe dahil değildir.</p>
+      <button id="backupDownload" type="button" class="primary-button">↓ Cihaz Yedeğini İndir</button>
+      <label for="backupUpload">Yedeği geri yükle (JSON)</label>
+      <input id="backupUpload" type="file" accept=".json,application/json">
+      <p>Geri yükleme mevcut satışları silmez. Aynı fiş numarası ikinci kez aktarılmaz. Yalnızca bu cihazın kayıtları etkilenir.</p>
+      <p id="backupStatus" role="status" aria-live="polite"></p>
+    </div>
+  </dialog>
 
   <dialog id="cartDialog" class="sheet sale-sheet" aria-labelledby="cartTitle">
     <div class="sheet-header sale-sheet-header">
@@ -178,11 +191,6 @@
         <div id="creditCustomerResults" class="credit-customer-results"></div>
         <button id="creditNewCustomer" type="button" class="sale-secondary-button">+ Yeni müşteri</button>
       </div>
-      <nav class="sale-quick-nav" aria-label="Sayfalar">
-        <button id="saleQuickHome" type="button"><span aria-hidden="true">⌂</span>Ana Sayfa</button>
-        <button id="saleQuickProducts" type="button"><span aria-hidden="true">▦</span>Ürünler</button>
-        <button id="saleQuickSettings" type="button"><span aria-hidden="true">⚙</span>Ayarlar</button>
-      </nav>
       <button id="completeSale" class="primary-button" type="button">Satışı Tamamla</button>
     </div>
   </dialog>
