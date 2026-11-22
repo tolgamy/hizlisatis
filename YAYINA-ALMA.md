@@ -24,6 +24,17 @@ XML yeniden eklenmedi.
 
 ## v56 — Güvenli Admin / Kasiyer Girişi (CANLIYA ALMADAN ÖNCE OKUYUN)
 
+**Güvenli aşamalı dağıtım:** Kodun GitHub `main` dalına alınması
+`AUTH_V2_ENABLED` değerini **kendiliğinden açmaz**. Değer henüz tanımlı değilse
+eski site işleyişi ve ürün aktarımında eski anahtar uygulaması devam eder;
+kullanıcılara bir **"Güvenli giriş henüz etkin değil"** uyarısı gösterilir.
+Bu, korumanın açıldığı anlamına **gelmez**. Önce yeni kodun Pages üzerinde
+derlendiğini ve `/api/auth` uç noktasının `{"enabled":false}` yanıtladığını
+doğrulayın; sonra Production parolası/sunucu sırlarını tanımlayıp
+`AUTH_V2_ENABLED=true` etkinleştirin. Yeni bayrak açılınca tüm kullanıcıların
+oturum doğrulaması zorunlu hale gelir; eksik yapılandırma halinde erişim
+güvenlik nedeniyle **kapalı** kalır.
+
 Bu sürüm kullanıcı adı/parola ile giriş, D1 kullanıcı tablosu ve ayrı kullanıcı yetkileri ekler.
 **Güvenli mod Cloudflare'da etkinleştirilmeden URL'yi bilen kullanıcılar için erişim hâlâ açıktır.**
 Sadece GitHub kodunu güncellemek güvenlik kurulumunu tamamlamaz.
