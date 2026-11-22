@@ -98,23 +98,35 @@
           <span id="imageHealth" class="sr-only"></span>
         </section>
       </section>
-      <section id="settingsView" class="settings-view" aria-label="Ayarlar" hidden>
-        <h1>Ayarlar</h1>
-        <div class="settings-links settings-card-grid" aria-label="Ayarlar işlemleri">
+      <section id="settingsView" class="settings-view" aria-label="Ana menü ve ayarlar" hidden>
+        <h1 id="settingsPageTitle">Ana Menü</h1>
+        <div id="settingsMainMenu" class="settings-links settings-card-grid" aria-label="Ana menü işlemleri">
           <button id="settingsExcel" type="button" class="settings-tile settings-tile-excel"><span class="settings-tile-icon" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M14 8h26l12 12v36H14z" fill="currentColor" opacity=".17"/><path d="M40 8v12h12M14 8h26l12 12v36H14z" stroke="currentColor" stroke-width="3" fill="none" stroke-linejoin="round"/><rect x="6" y="24" width="30" height="24" rx="3" fill="currentColor"/><text x="21" y="42" font-size="18" text-anchor="middle" font-weight="900" fill="white" stroke="none">X</text><path d="M40 33h8M40 40h8M40 47h8" stroke="currentColor" stroke-width="2"/></svg></span><strong>Excel Ürün Yükle</strong><small>Toplu ürün aktarımı</small><b aria-hidden="true">›</b></button>
           <button id="settingsAdd" type="button" class="settings-tile settings-tile-add"><span class="settings-tile-icon" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="m8 24 24-12 24 12-24 13zM8 24v25l24 13V37M56 24v25L32 62" stroke="currentColor" stroke-width="3.5" fill="none" stroke-linejoin="round"/><path d="M32 20v17M23.5 28.5h17" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg></span><strong>Yeni Ürün Ekle</strong><small>Barkodla veya elle ekleyin</small><b aria-hidden="true">›</b></button>
-          <button id="settingsManage" type="button" class="settings-tile settings-tile-manage"><span class="settings-tile-icon" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="m32 6 21 11v25L32 54 11 42V17zM11 17l21 12 21-12M32 29v25" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M21 22 42 10M43 23 22 10" stroke="currentColor" stroke-width="2.5"/></svg></span><strong>Ürün Yönetimi</strong><small>Fiyat, stok ve ürün durumu</small><b aria-hidden="true">›</b></button>
-          <button id="settingsCategoryImages" type="button" class="settings-tile settings-tile-category"><span class="settings-tile-icon" aria-hidden="true"><svg viewBox="0 0 64 64"><rect x="6" y="6" width="22" height="22" rx="5" fill="currentColor" opacity=".26"/><rect x="36" y="6" width="22" height="22" rx="5" fill="currentColor"/><rect x="6" y="36" width="22" height="22" rx="5" fill="currentColor"/><rect x="36" y="36" width="22" height="22" rx="5" fill="currentColor" opacity=".4"/></svg></span><strong>Kategori Görselleri</strong><small>Görselleri yönetin</small><b aria-hidden="true">›</b></button>
-          <button id="settingsCustomers" type="button" class="settings-tile settings-tile-customer"><span class="settings-tile-icon" aria-hidden="true"><svg viewBox="0 0 64 64"><circle cx="32" cy="18" r="10" fill="currentColor"/><circle cx="13" cy="26" r="7" fill="currentColor" opacity=".7"/><circle cx="51" cy="26" r="7" fill="currentColor" opacity=".7"/><path d="M13 57V46q0-12 19-12t19 12v11zM2 55V44q0-10 12-10M62 55V44q0-10-12-10" fill="currentColor" opacity=".85"/></svg></span><strong>Müşteri / Veresiye</strong><small>Borç ve tahsilatlar</small><b aria-hidden="true">›</b></button>
           <button id="settingsHistory" type="button" class="settings-tile settings-tile-history"><span class="settings-tile-icon" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M14 16a25 25 0 1 1-6 23M6 18l9-6 7 9" stroke="currentColor" stroke-width="4.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M34 17v17l11 7" fill="none" stroke="currentColor" stroke-width="4.8" stroke-linecap="round"/></svg></span><strong>Satış Geçmişi</strong><small>Satışları görüntüleyin</small><b aria-hidden="true">›</b></button>
           <button id="settingsExport" type="button" class="settings-tile settings-tile-csv"><span class="settings-tile-icon" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M32 7v35m-13-13 13 13 13-13M12 46v10h40V46" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg></span><strong>Satışları CSV İndir</strong><small>Excel uyumlu rapor</small><b aria-hidden="true">›</b></button>
+          <button id="settingsManage" type="button" class="settings-tile settings-tile-manage"><span class="settings-tile-icon" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="m32 6 21 11v25L32 54 11 42V17zM11 17l21 12 21-12M32 29v25" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M21 22 42 10M43 23 22 10" stroke="currentColor" stroke-width="2.5"/></svg></span><strong>Ürün Yönetimi</strong><small>Fiyat, stok ve ürün durumu</small><b aria-hidden="true">›</b></button>
+          <button id="settingsCategoryImages" type="button" class="settings-tile settings-tile-category"><span class="settings-tile-icon" aria-hidden="true"><svg viewBox="0 0 64 64"><rect x="6" y="6" width="22" height="22" rx="5" fill="currentColor" opacity=".26"/><rect x="36" y="6" width="22" height="22" rx="5" fill="currentColor"/><rect x="6" y="36" width="22" height="22" rx="5" fill="currentColor"/><rect x="36" y="36" width="22" height="22" rx="5" fill="currentColor" opacity=".4"/></svg></span><strong>Kategori Görselleri</strong><small>Görselleri yönetin</small><b aria-hidden="true">›</b></button>
           <button id="settingsBackup" type="button" class="settings-tile settings-tile-backup"><span class="settings-tile-icon" aria-hidden="true"><svg viewBox="0 0 64 64"><rect x="9" y="15" width="46" height="36" rx="8" fill="none" stroke="currentColor" stroke-width="4"/><path d="M20 30h24M20 39h12M38 9l-6-6-6 6" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="46" cy="40" r="3" fill="currentColor"/></svg></span><strong>Yedekle / Geri Yükle</strong><small>Bu cihazın satış kayıtları</small><b aria-hidden="true">›</b></button>
-          <a id="settingsTemplate" class="settings-tile settings-tile-template" href="/urun-yukleme-sablonu.xlsx" download="Hizlisatis_Urun_Sablonu.xlsx"><span class="settings-tile-icon" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M15 7h26l12 12v37H15z" stroke="currentColor" stroke-width="3.3" stroke-linejoin="round" fill="none"/><path d="M41 7v13h12M23 30h22M23 39h22M23 48h15" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/><path d="m25 21 7 7 7-7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><strong>Excel Şablonunu İndir</strong><small>Hazır ürün yükleme dosyası</small><b aria-hidden="true">›</b></a>
-          <button id="settingsHome" type="button" class="settings-tile settings-tile-home"><span class="settings-tile-icon" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="m8 30 24-20 24 20v26a2 2 0 0 1-2 2H41V39H23v19H10a2 2 0 0 1-2-2z" stroke="currentColor" stroke-width="4.3" stroke-linejoin="round" fill="none"/></svg></span><strong>Ana Sayfaya Git</strong><small>Ana ekrana dön</small><b aria-hidden="true">›</b></button>
+          <button id="settingsOpenPreferences" type="button" class="settings-tile settings-tile-config" aria-controls="settingsPreferences">
+            <span class="settings-tile-icon" aria-hidden="true">
+              <svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="10" stroke="currentColor" stroke-width="4" fill="none"/><path d="M29 5h6l3 8 7 3 8-3 4 7-5 7v9l5 7-4 7-8-3-7 3-3 8h-6l-3-8-7-3-8 3-4-7 5-7v-9l-5-7 4-7 8 3 7-3z" stroke="currentColor" stroke-width="3" fill="none"/></svg>
+            </span><strong>Ayarlar</strong><small>Uygulama, yazıcı ve ödeme tercihleri</small><b aria-hidden="true">›</b>
+          </button>
         </div>
-        <details id="settingsPickerGroup" class="settings-preference-group" open>
-          <summary>▦ Ürün Görünümü ve Satış Tercihleri</summary>
-          <div class="settings-mode-section">
+        <section id="settingsPreferences" class="settings-preferences" aria-labelledby="settingsPreferencesTitle" hidden>
+          <div class="settings-inner-header">
+            <button id="settingsBackToMenu" type="button" aria-label="Ana menüye geri dön">‹ Geri</button>
+            <h2 id="settingsPreferencesTitle">⚙ Ayarlar</h2>
+          </div>
+          <div class="settings-inner-list"><details id="settingsGeneralGroup" class="settings-inner-section">
+          <summary><span aria-hidden="true" class="settings-section-symbol">☷</span><span class="settings-section-name"><strong>Genel Ayarlar</strong><small>Uygulama ve cihaz tercihleri</small></span><span aria-hidden="true" class="settings-section-arrow">⌄</span></summary>
+          <div class="settings-inner-content"><p>Bu cihazın satış ve kullanım tercihlerini aşağıdaki bölümlerden yönetebilirsiniz.</p>
+   <button id="settingsGeneralToPicker" type="button" class="settings-inner-action">Ürün görünümü tercihlerini aç <span aria-hidden="true">›</span></button></div>
+        </details>
+        <details id="settingsPickerGroup" class="settings-inner-section">
+          <summary><span aria-hidden="true" class="settings-section-symbol">▦</span><span class="settings-section-name"><strong>Ürün Görünümü ve Satış Tercihleri</strong><small>Arama, kategoriler ve toplu liste</small></span><span aria-hidden="true" class="settings-section-arrow">⌄</span></summary>
+          <div class="settings-inner-content"><div class="settings-mode-section">
             <label for="settingsPickerMode">Ürün Ekle ekranının varsayılan görünümü</label>
             <select id="settingsPickerMode">
               <option value="search">Arama</option>
@@ -122,11 +134,15 @@
               <option value="list">Toplu Liste</option>
             </select>
             <p id="settingsPickerModeStatus" role="status">Bu cihazın ürün ekleme görünümü.</p>
-          </div>
+          </div></div>
         </details>
-        <details id="settingsPrintingGroup" class="settings-preference-group">
-          <summary>▤ Yazdırma ve Paylaşım Ayarları</summary>
-        <section class="settings-device-receipt" aria-label="Bu cihazın fiş tercihi">
+        <details id="settingsProductGroup" class="settings-inner-section">
+          <summary><span aria-hidden="true" class="settings-section-symbol">⬡</span><span class="settings-section-name"><strong>Ürün ve Kategori Ayarları</strong><small>Ürün yönetimi ve kategori görselleri</small></span><span aria-hidden="true" class="settings-section-arrow">⌄</span></summary>
+          <div class="settings-inner-content"><div class="settings-inner-actions"><button id="settingsInnerManage" type="button" class="settings-inner-action">Ürün Yönetimi <span aria-hidden="true">›</span></button><button id="settingsInnerCategoryImages" type="button" class="settings-inner-action">Kategori Görselleri <span aria-hidden="true">›</span></button></div></div>
+        </details>
+        <details id="settingsPrintingGroup" class="settings-inner-section">
+          <summary><span aria-hidden="true" class="settings-section-symbol">▤</span><span class="settings-section-name"><strong>Yazıcı Ayarları</strong><small>Fiş yazdırma ve paylaşma tercihleri</small></span><span aria-hidden="true" class="settings-section-arrow">⌄</span></summary>
+          <div class="settings-inner-content"><section class="settings-device-receipt" aria-label="Bu cihazın fiş tercihi">
           <h2>Bu Cihazın Fiş / Paylaşım Tercihi</h2>
           <label for="settingsReceiptAction">Satış tamamlandıktan sonra gösterilecek işlem</label>
           <select id="settingsReceiptAction">
@@ -149,9 +165,28 @@
           <button id="settingsReceiptSave" class="primary-button" type="button">Fiş / Firma Bilgilerini Kaydet</button>
           <p id="settingsReceiptStatus" class="receipt-save-status" role="status" aria-live="polite">Kayıtlı fiş ayarları yüklendi.</p>
           </section>
+        </details></div>
         </details>
+        <details id="settingsPaymentsGroup" class="settings-inner-section">
+          <summary><span aria-hidden="true" class="settings-section-symbol">▣</span><span class="settings-section-name"><strong>Ödeme Yöntemleri</strong><small>Nakit, kart, veresiye, FAST ve diğerleri</small></span><span aria-hidden="true" class="settings-section-arrow">⌄</span></summary>
+          <div class="settings-inner-content"><p>Nakit ve Kart satış ekranında; Veresiye ve Havale / FAST, <strong>Diğer Ödeme</strong> altında bulunur. Harici tahsilatlarınızı satıştan önce doğrulayın.</p>
+    <button id="settingsPaymentsOpenSale" type="button" class="settings-inner-action">Satış ekranında ödeme seçeneklerini aç <span aria-hidden="true">›</span></button></div>
         </details>
-        <p id="catalogSource" class="settings-catalog-count">Katalog yükleniyor...</p>
+        <details id="settingsDiscountGroup" class="settings-inner-section">
+          <summary><span aria-hidden="true" class="settings-section-symbol">%</span><span class="settings-section-name"><strong>İskonto ve Sepet Ayarları</strong><small>Sepet indirimi ve ürün iskontosu</small></span><span aria-hidden="true" class="settings-section-arrow">⌄</span></summary>
+          <div class="settings-inner-content"><p>Sepet iskontosunu satış ekranındaki <strong>Sepet İndirimi</strong> düğmesinden uygulayabilirsiniz. Ürün fiyatı ve satır iskontosu ise ürünün <strong>⋯</strong> menüsündedir.</p>
+    <button id="settingsDiscountOpenSale" type="button" class="settings-inner-action">Satış ekranını aç <span aria-hidden="true">›</span></button></div>
+        </details>
+        <details id="settingsDataGroup" class="settings-inner-section">
+          <summary><span aria-hidden="true" class="settings-section-symbol">⇅</span><span class="settings-section-name"><strong>Veri İşlemleri</strong><small>Yedekleme, Excel ve CSV</small></span><span aria-hidden="true" class="settings-section-arrow">⌄</span></summary>
+          <div class="settings-inner-content"><div class="settings-inner-actions"><button id="settingsInnerBackup" type="button" class="settings-inner-action">Yedekle / Geri Yükle <span aria-hidden="true">›</span></button><button id="settingsInnerExcel" type="button" class="settings-inner-action">Excel Ürün Yükle <span aria-hidden="true">›</span></button><button id="settingsInnerExport" type="button" class="settings-inner-action">Satışları CSV İndir <span aria-hidden="true">›</span></button><a id="settingsTemplate" class="settings-tile settings-tile-template" href="/urun-yukleme-sablonu.xlsx" download="Hizlisatis_Urun_Sablonu.xlsx"><span class="settings-tile-icon" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M15 7h26l12 12v37H15z" stroke="currentColor" stroke-width="3.3" stroke-linejoin="round" fill="none"/><path d="M41 7v13h12M23 30h22M23 39h22M23 48h15" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/><path d="m25 21 7 7 7-7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><strong>Excel Şablonunu İndir</strong><small>Hazır ürün yükleme dosyası</small><b aria-hidden="true">›</b></a></div></div>
+        </details>
+        <details id="settingsCustomerGroup" class="settings-inner-section">
+          <summary><span aria-hidden="true" class="settings-section-symbol">♙</span><span class="settings-section-name"><strong>Müşteri ve Veresiye Ayarları</strong><small>Müşteri kayıtları, borç ve tahsilatlar</small></span><span aria-hidden="true" class="settings-section-arrow">⌄</span></summary>
+          <div class="settings-inner-content"><div class="settings-inner-actions"><button id="settingsCustomers" type="button" class="settings-tile settings-tile-customer"><span class="settings-tile-icon" aria-hidden="true"><svg viewBox="0 0 64 64"><circle cx="32" cy="18" r="10" fill="currentColor"/><circle cx="13" cy="26" r="7" fill="currentColor" opacity=".7"/><circle cx="51" cy="26" r="7" fill="currentColor" opacity=".7"/><path d="M13 57V46q0-12 19-12t19 12v11zM2 55V44q0-10 12-10M62 55V44q0-10-12-10" fill="currentColor" opacity=".85"/></svg></span><strong>Müşteri / Veresiye</strong><small>Borç ve tahsilatlar</small><b aria-hidden="true">›</b></button></div></div>
+        </details></div>
+          <p id="catalogSource" class="settings-catalog-count">Katalog yükleniyor...</p>
+        </section>
       </section>
     </main>
 
