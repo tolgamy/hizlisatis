@@ -15,7 +15,17 @@ export function receiptAsText(sale) {
    const per=item.birim==='kg'?'/kg':item.birim==='g'?'/g':'';
    rows.push(clean(item.baslik),qty+' x '+fmt(item.unitPrice)+per+' = '+fmt(item.total)+' '+(clean(sale.currency)||'TRY'));
  }
- rows.push('--------------------','TOPLAM: '+fmt(sale.total)+' '+(clean(sale.currency)||'TRY'));
+ const currency=clean(sale.currency)||'TRY';
+ if(Number(sale.basketDiscount)>0){
+   rows.push('Ara toplam: '+fmt(sale.base)+' '+currency);
+   if(Number(sale.lineDiscount)>0)
+     rows.push('Urun iskontosu: -'+fmt(sale.lineDiscount)+' '+currency);
+   rows.push('Sepet iskontosu (%'+clean(sale.basketDiscountPct)+'): -'+fmt(sale.basketDiscount)+' '+currency);
+ }else if(Number(sale.discount)>0){
+   rows.push('Ara toplam: '+fmt(sale.base)+' '+currency);
+   rows.push('Iskonto: -'+fmt(sale.discount)+' '+currency);
+ }
+ rows.push('--------------------','TOPLAM: '+fmt(sale.total)+' '+currency);
  if (sale.payment==='Nakit') rows.push('Para ustu: '+fmt(sale.change)+' '+(clean(sale.currency)||'TRY'));
  rows.push('Tesekkur ederiz.');
  if(settings.phone)rows.push('Tel: '+clean(settings.phone));
