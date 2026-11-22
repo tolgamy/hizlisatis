@@ -2674,3 +2674,80 @@ body.view-settings .settings-view .settings-printer-details .settings-receipt{
 .manage-body #manageEditForm button:disabled{
   cursor:wait;opacity:.7;
 }
+
+/* v5.3 — CAS/RS-232 desktop weighing and mobile manual gram entry.
+   Do not show hardware connection on phones/tablets. */
+.weight-dialog{
+  width:min(94vw,460px);max-height:min(91dvh,850px);padding:0;
+  border:1px solid #d4e4f0;border-radius:22px;background:#fff;
+  color:#1b344e;box-shadow:0 18px 65px #0a2d5060;
+  overflow-y:auto;
+}
+.weight-dialog .weight-sheet-header{
+  display:flex;align-items:center;justify-content:space-between;
+  background:linear-gradient(110deg,#087569,#0d536a);
+  color:#fff;padding:15px 17px;
+}
+.weight-dialog .weight-sheet-header h2{color:#fff;font-size:21px;margin:0;font-weight:900}
+.weight-dialog .weight-sheet-header button{background:#ffffff22;color:#fff;border:1px solid #fff6}
+.weight-dialog .weight-body{display:flex;flex-direction:column;gap:11px;padding:16px}
+.weight-product-name{font-size:19px;font-weight:900;color:#1b3555}
+.weight-unit-price{margin:-5px 0 3px;font-size:13px;font-weight:770;color:#647f95}
+.weight-serial-panel{
+  display:grid;gap:10px;padding:12px;
+  border:1px solid #bcdce8;background:#f4fbff;border-radius:14px;
+}
+.weight-serial-panel[hidden],.weight-error[hidden]{display:none!important}
+.weight-connection-head{
+  display:flex;justify-content:space-between;gap:9px;flex-wrap:wrap;
+  font-size:11px;font-weight:780;color:#336985;
+}
+.weight-connection-head strong{color:#096d58}
+.weight-connection-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.weight-connection-actions button{
+  min-height:42px;border-radius:10px;border:1px solid #95c4da;
+  background:#e3f4ff;color:#145981;font-size:12px;font-weight:850;
+}
+.weight-connection-actions #weightConnect{background:#0b7380;color:#fff;border-color:#0b7380}
+.weight-connection-actions button:disabled{opacity:.5}
+.weight-serial-options{border:1px solid #c3d5e2;background:#fff;border-radius:11px;padding:8px}
+.weight-serial-options summary{font-size:12px;font-weight:820;color:#3b5872;cursor:pointer}
+.weight-serial-settings{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:11px 0}
+.weight-serial-settings label{display:grid;gap:5px;font-size:11px;color:#536b81;font-weight:800}
+.weight-serial-settings select{
+  min-width:0;width:100%;padding:7px 8px;border-radius:9px;border:1px solid #c5d6e3;background:#fff;
+}
+.weight-serial-options>small{font-size:10px;color:#6e8191;line-height:1.35}
+.weight-live-panel{display:grid;justify-items:center;gap:6px;background:#e4f6ec;padding:13px;border-radius:13px}
+.weight-live-panel>span{font-size:12px;font-weight:820;color:#30644d}
+.weight-live-panel>strong{
+  color:#0c6943;font-size:clamp(29px,8vw,42px);
+  font-weight:950;font-variant-numeric:tabular-nums;
+}
+.weight-live-panel button{
+  min-height:43px;min-width:85%;border:0;border-radius:11px;
+  background:#0f9160;color:white;font-size:13px;font-weight:900;
+}
+.weight-live-panel button:disabled{background:#98b4a6}
+.weight-raw{display:block;max-width:100%;font:10px ui-monospace,monospace;color:#53697b;overflow-wrap:anywhere}
+.weight-serial-panel>p{margin:0;font-size:11px;font-weight:750;color:#4c6478;line-height:1.45}
+.weight-manual-panel{display:grid;gap:6px}
+.weight-manual-panel label{font-size:13px;color:#314b63;font-weight:850}
+.weight-manual-panel input{
+  width:100%;height:55px;font-size:24px;font-weight:900;font-variant-numeric:tabular-nums;
+  padding:10px 15px;border:1px solid #bfd2e3;border-radius:13px;color:#173a55;background:#f8fbff;
+}
+.weight-manual-panel small{font-size:11px;color:#738495;line-height:1.3}
+.weight-total-panel{display:grid;gap:8px;border-top:1px solid #dce8f1;padding-top:12px}
+.weight-total-panel>div{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.weight-total-panel span{font-size:12px;color:#6b7e90;font-weight:780}
+.weight-total-panel strong{font-variant-numeric:tabular-nums;font-size:18px;font-weight:910;color:#1a4161}
+.weight-total-panel #weightTotalPreview{font-size:25px;color:#0a885a}
+.weight-error{margin:0;border-radius:9px;padding:8px;color:#ac3844;background:#fff1f0;font-size:12px;font-weight:790}
+.weight-body #weightAdd{min-height:53px;font-weight:900;border-radius:13px;background:#07865d;color:#fff}
+.weight-body #weightAdd:disabled{opacity:.5;cursor:not-allowed}
+.weight-body #weightCancel{min-height:44px;border-radius:12px}
+.weight-body button:focus-visible,.weight-body input:focus-visible{
+  outline:3px solid #52b8d6;outline-offset:2px;
+}
+.cart-weight-badge{display:block;font-size:11px;color:#177d66;font-weight:820;margin:3px 0 4px}
