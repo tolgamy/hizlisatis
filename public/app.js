@@ -1848,6 +1848,22 @@ function applyReceiptActionPreference(){
   ])$(id).hidden=preferred!==action;
   $('receiptActionsGrid').classList.add('single-action');
 }
+/** Main Settings tab is a menu; the gear tile alone opens all preferences. */
+function showSettingsMainMenu(){
+  $('settingsMainMenu').hidden=false;
+  $('settingsPageTitle').hidden=false;
+  $('settingsPreferences').hidden=true;
+}
+function showSettingsPreferences(){
+  $('settingsMainMenu').hidden=true;
+  $('settingsPageTitle').hidden=true;
+  $('settingsPreferences').hidden=false;
+}
+function openSettingsMenu(){
+  showSettingsMainMenu();
+  setView('settings');
+}
+
 async function setup() {
   customerManager=createCustomerManager({announce});
   const settings=readReceiptSettings();
@@ -1940,8 +1956,23 @@ async function setup() {
   });
   $('navProducts').addEventListener('click',openProductCategoryHome);
   $('navSale').addEventListener('click',openSale);
-  $('navSettings').addEventListener('click',()=>setView('settings'));
-  $('homeSettingsShortcut').addEventListener('click',()=>setView('settings'));
+  $('navSettings').addEventListener('click',openSettingsMenu);
+  $('homeSettingsShortcut').addEventListener('click',openSettingsMenu);
+  $('settingsOpenPreferences').addEventListener('click',showSettingsPreferences);
+  $('settingsBackToMenu').addEventListener('click',showSettingsMainMenu);
+  $('settingsGeneralToPicker').addEventListener('click',()=>{
+    $('settingsPickerGroup').open=true;
+    $('settingsPickerGroup').scrollIntoView({block:'nearest',behavior:'smooth'});
+  });
+  for(const [inner,existing] of [
+    ['settingsInnerManage','settingsManage'],
+    ['settingsInnerCategoryImages','settingsCategoryImages'],
+    ['settingsInnerBackup','settingsBackup'],
+    ['settingsInnerExcel','settingsExcel'],
+    ['settingsInnerExport','settingsExport']
+  ])$(inner).addEventListener('click',()=>$(existing).click());
+  $('settingsPaymentsOpenSale').addEventListener('click',openSale);
+  $('settingsDiscountOpenSale').addEventListener('click',openSale);
   // The six approved home shortcuts all open an existing, working workflow.
   $('homeQuickCategories').addEventListener('click',openProductCategoryHome);
   $('homeQuickSale').addEventListener('click',openSale);
@@ -1971,7 +2002,6 @@ async function setup() {
   $('sortProducts').addEventListener('change',()=>{state.sort=$('sortProducts').value;renderProducts();});
   $('loadMoreProducts').addEventListener('click',()=>{state.visibleLimit+=48;renderProducts();});
   $('settingsExcel').addEventListener('click',()=>$('excelFile').click());
-  $('settingsHome').addEventListener('click',()=>setView('home'));
   $('settingsManage').addEventListener('click',()=>productManager.openManage());
   $('settingsAdd').addEventListener('click',()=>productManager.openNew());
   $('settingsHistory').addEventListener('click',showHistory);
