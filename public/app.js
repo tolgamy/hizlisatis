@@ -1713,7 +1713,7 @@ async function setup() {
   $('saleBarcode').addEventListener('input',()=>{
     clearTimeout(barcodeInputIdle);
     const barcode=$('saleBarcode').value.trim();
-    if(!/^(?:\\d{8}|\\d{12,14})$/.test(barcode))return;
+    if(!/^(?:\d{8}|\d{12,14})$/.test(barcode))return;
     barcodeInputIdle=setTimeout(()=>{
       if(!dom.cartDialog.open || $('saleBarcode').value.trim()!==barcode ||
         $('scanQuantityDialog').open || dom.scanDialog.open)return;
