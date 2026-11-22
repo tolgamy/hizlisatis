@@ -61,7 +61,7 @@ test('premium reader is a functioning full-screen dialog connected to existing s
   assert.match(app,/active=>selectScannedQuantity/);
   assert.match(app,/document\.addEventListener\('visibilitychange'/);
   assert.match(app,/window\.addEventListener\('pagehide'/);
-  assert.match(sw,/cep-pos-shell-v39-bank-payments/);
+  assert.match(sw,/cep-pos-shell-v40-approved-sale-screen/);
 });
 
 test('bottom nav retains four routes with vivid real sales cart icon, desktop remains sidebar',()=>{
