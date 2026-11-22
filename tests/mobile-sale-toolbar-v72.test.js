@@ -6,7 +6,7 @@ const read=file=>readFileSync(new URL('../public/'+file,import.meta.url),'utf8')
 const html=read('index.html'),css=read('styles.css'),app=read('app.js'),sw=read('sw.js');
 const marker='/* v72 — approved unified mobile Sale toolbar,';
 const idx=css.indexOf(marker);
-const v72=css.slice(idx);
+const v72=css.slice(idx,css.indexOf('/* v73 — iPhone compact Sale:',idx));
 
 function style(selector) {
   const offset=v72.indexOf(selector+' {');
