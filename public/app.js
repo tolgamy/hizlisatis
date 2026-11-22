@@ -291,7 +291,12 @@ function selectScannedQuantity(product,sourceInput=null,resumeCamera=false) {
   $('scanQuantityProduct').textContent=product.baslik+' · '+money(product.satisFiyati,product.paraBirimi);
   const input=$('scanQuantityInput');
   input.min=weighted?'0.001':'1';input.step=weighted?'0.1':'1';input.value='1';
-  if(dom.scanDialog.open)dom.scanDialog.close();
+  if(dom.scanDialog.open){
+    dom.scanDialog.close();
+    // Immediately invalidate the old camera session. The dialog 'close' event
+    // can fire later, after the next camera has already opened.
+    stopScanner();
+  }
   if(!$('scanQuantityDialog').open)$('scanQuantityDialog').showModal();
   input.focus({preventScroll:true});
   input.select();
@@ -1747,6 +1752,9 @@ async function setup() {
   });
   document.querySelectorAll('[data-close]').forEach(button=>button.addEventListener('click',()=>$(button.dataset.close).close()));
   dom.scanDialog.addEventListener('close',()=>{
+    // A queued close event from a previous scan must not stop the camera
+    // already reopened for the next barcode.
+    if(dom.scanDialog.open)return;
     dom.scanDialog.classList.remove('is-success');
     stopScanner();
     focusSaleBarcode();
