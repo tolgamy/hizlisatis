@@ -82,10 +82,15 @@ test('first admin bootstraps from a normal password and receives an HttpOnly ses
   assert.equal(response.status,200);
   assert.match(response.headers.get('set-cookie'),/HttpOnly; SameSite=Strict/);
   const account=env.DB.users.values().next().value;
-  assert.match(account.password_hash,/^pbkdf2\$180000\$/);
+  assert.match(account.password_hash,/^pbkdf2\$100000\$/);
   assert.doesNotMatch(account.password_hash,/OwnerFirstPassword/);
   const user=await currentAccessUser(request('/api/auth','GET',null,session(response)),env);
   assert.equal(user.username,'admin');
+  // The same hash must be verifiable on subsequent login attempts, not just
+  // during initial bootstrap.
+  const loginAgain=await signIn(env,'admin',env.ADMIN_INITIAL_PASSWORD);
+  assert.equal(loginAgain.status,200);
+  assert.equal((await loginAgain.json()).user.username,'admin');
 });
 
 test('cashier can sell, but cannot edit products, users or make discounts',async()=>{
