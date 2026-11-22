@@ -154,7 +154,10 @@ export function receiptPdfBlob(sale) {
     const extra = [item.beden, item.renk].filter(Boolean).join(' / ');
     const wrapped = splitLines(ctx, name + (extra ? ' (' + extra + ')' : ''), 485);
     return { name: wrapped,
-      detail: safe(item.quantity) + ' × ' + fmt(item.unitPrice) +
+      detail: (item.birim==='kg'?
+        Number(item.quantity).toLocaleString('tr-TR',{minimumFractionDigits:3,maximumFractionDigits:3})+' kg':
+        item.birim==='g'?safe(item.quantity)+' g':safe(item.quantity))+
+        ' × ' + fmt(item.unitPrice) + (item.birim==='kg'?'/kg':item.birim==='g'?'/g':'')+
         (item.discountPct ? ' · İskonto %' + item.discountPct : ''),
       total: fmt(item.total) + ' ' + currency,
       height: wrapped.length * 15 + 27 };
