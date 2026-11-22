@@ -117,7 +117,12 @@ function renderPage(ctx, page, pageNo, count, sale, groups, summary) {
       y += highlight ? 29 : 20;
     };
     summaryLine('Ara toplam', amount(sale.base ?? sale.total));
-    summaryLine('İskonto', '- ' + amount(sale.discount));
+    if(Number(sale.basketDiscount)>0){
+      if(Number(sale.lineDiscount)>0)
+        summaryLine('Ürün iskontosu', '- ' + amount(sale.lineDiscount));
+      summaryLine('Sepet iskontosu (%'+safe(sale.basketDiscountPct)+')',
+        '- ' + amount(sale.basketDiscount));
+    }else summaryLine('İskonto', '- ' + amount(sale.discount));
     for (const [rate, vat] of groups) summaryLine('Dahil KDV %' + rate, amount(vat));
     rule(y);
     y += 23;
