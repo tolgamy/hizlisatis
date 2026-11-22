@@ -24,7 +24,7 @@ test('Products landing uses six actual main categories across two rows, with the
 
 test('inline subcategories and quick actions stay inside Products, not in extra modal dialogs',()=>{
   const products=html.slice(html.indexOf('<section id="productCategoryHome"'),
-    html.indexOf('</section>\n        </section>\n        <section id="productResults"'));
+    html.indexOf('<section id="productResults"',html.indexOf('<section id="productCategoryHome"')));
   for(const id of ['homeCategoryShortcuts','productCategoryBrowseAll',
     'productCategoryBrowseCategories','productSubcategoriesPanel','productSubcategoriesTitle',
     'productSubcategoryList','productSubcategoriesAll','productSubcategoriesClose']) {
