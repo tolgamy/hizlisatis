@@ -4323,3 +4323,55 @@ body.auth-locked #app{display:none!important}
     align-content:start;
   }
 }
+
+
+/* v63 — Sales and Reports are actual in-page desktop workspaces, not overlays.
+   Keep the established HızlıSatış palette, sidebar, scanner, checkout grid,
+   local-only reports and all mobile/modal behavior intact. */
+@media (min-width:1024px) and (min-height:600px) and (orientation:landscape) and (hover:hover) and (pointer:fine) {
+  body.desktop-workspace #mainContent.clean-content {
+    padding-bottom:18px!important;
+    min-height:calc(100dvh - 72px);
+  }
+  /* Hide the previous page instead of letting it appear behind the workspace. */
+  body.desktop-workspace #mainContent > :not(#cartDialog):not(#historyDialog) {
+    display:none!important;
+  }
+  body.desktop-workspace #mainContent > dialog[open] {
+    box-sizing:border-box!important;
+    position:relative!important;
+    top:auto!important;
+    left:auto!important;
+    right:auto!important;
+    bottom:auto!important;
+    transform:none!important;
+    margin:0!important;
+    width:100%!important;
+    max-width:none!important;
+    height:calc(100dvh - 118px)!important;
+    max-height:none!important;
+    min-height:0!important;
+    border-radius:16px!important;
+    border:1px solid #dce6ef!important;
+    box-shadow:0 7px 22px #15355112!important;
+    overflow:hidden!important;
+  }
+  body.desktop-sale-workspace #mainContent > #cartDialog.sale-sheet[open] {
+    display:grid!important;
+    grid-template-columns:minmax(0,1.65fr) minmax(325px,.87fr)!important;
+    grid-template-rows:auto auto minmax(0,1fr)!important;
+    grid-template-areas:"saleheader saleheader" "salesearch payment" "salelist payment"!important;
+  }
+  body.desktop-reports-workspace #mainContent > #historyDialog.sheet[open] {
+    display:flex!important;
+    flex-direction:column!important;
+  }
+  /* The page itself scrolls only when its content truly exceeds the viewport;
+     receipt items and the cashier's list retain their internal scrolling. */
+  body.desktop-workspace #mainContent > #historyDialog #historyItems,
+  body.desktop-workspace #mainContent > #cartDialog .cart-items,
+  body.desktop-workspace #mainContent > #cartDialog .checkout-area {
+    min-height:0!important;
+    overflow-y:auto!important;
+  }
+}
