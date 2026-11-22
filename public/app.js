@@ -218,7 +218,8 @@ function setView(view,showAll=false) {
  */
 function focusSaleBarcode(){
   if(!dom.cartDialog.open || $('receiptActionsDialog').open ||
-     $('scanQuantityDialog').open || dom.scanDialog.open || $('pickProductDialog').open) return;
+     $('scanQuantityDialog').open || dom.scanDialog.open || $('pickProductDialog').open ||
+     $('weightDialog').open) return;
   $('saleBarcode').focus({preventScroll:true});
 }
 function openSale({preferCamera=false}={}) {
@@ -308,6 +309,72 @@ function selectScannedQuantity(product,sourceInput=null,resumeCamera=false) {
   input.focus({preventScroll:true});
   input.select();
 }
+/** Scale product is selected on any device; Windows can choose a COM port,
+ * tablets and phones only use manually entered integer grams.
+ */
+function renderWeightPreview(){
+  if(!weightProduct)return;
+  const product=weightProduct,unit=product.birim;
+  const val=$('weightGrams').value;
+  try{
+    const grams=parseManualGrams(val);
+    const qty=scaleGramsToQuantity(grams,unit);
+    const total=calculateWeightTotal(grams,product.satisFiyati,unit);
+    $('weightQuantityPreview').textContent=
+      unit==='kg'?qty.toLocaleString('tr-TR',{minimumFractionDigits:3,maximumFractionDigits:3})+' kg':grams+' g';
+    $('weightTotalPreview').textContent=money(total,product.paraBirimi);
+    $('weightAdd').disabled=false;
+    $('weightError').hidden=true;
+  }catch{
+    $('weightQuantityPreview').textContent='—';
+    $('weightTotalPreview').textContent='—';
+    $('weightAdd').disabled=true;
+  }
+}
+function openWeightProduct(product){
+  if(!product||!isWeightProduct(product))return;
+  if(state.centralReadOnly||!isActive(product)||product.fiyatBelirsiz||remaining(product)<=0){
+    announce('Tartılı ürün şu an satışa uygun değil.','error');return;
+  }
+  if(dom.scanDialog.open){dom.scanDialog.close();stopScanner();}
+  if($('pickProductDialog').open)$('pickProductDialog').close();
+  weightProduct=product;scaleLatest=null;scaleCapturedAt=0;weightInputMode='manual';
+  $('weightProductName').textContent=product.baslik;
+  $('weightUnitPrice').textContent=(product.birim==='kg'?'KG':'Gram')+
+    ' fiyatı: '+money(product.satisFiyati,product.paraBirimi);
+  $('weightGrams').value='';
+  $('weightLive').textContent='— kg';
+  $('weightUseLive').disabled=true;
+  $('weightError').hidden=true;
+  const supported=scaleSupported();
+  $('weightSerialPanel').hidden=!supported;
+  $('weightConnectionState').textContent=scaleConnection?.connected?'Bağlı':'Bağlı değil';
+  $('weightConnect').disabled=Boolean(scaleConnection?.connected);
+  $('weightDisconnect').disabled=!scaleConnection?.connected;
+  $('weightSerialStatus').textContent=scaleConnection?.connected?
+    'Bağlı: terazinin ağırlık göndermesi bekleniyor.':'COM5 portunu Windows izin penceresinden seçin.';
+  renderWeightPreview();
+  if(!$('weightDialog').open)$('weightDialog').showModal();
+  if(!supported)$('weightGrams').focus({preventScroll:true});
+}
+function confirmWeight(){
+  if(!weightProduct)return;
+  const product=weightProduct;
+  let grams,quantity;
+  try{
+    grams=parseManualGrams($('weightGrams').value);
+    quantity=scaleGramsToQuantity(grams,product.birim);
+    if(weightInputMode==='serial'&&(!scaleCapturedAt||Date.now()-scaleCapturedAt>5000))
+      throw Error('Terazi ölçümü eski. Ağırlığı yeniden alın veya gramajı elle girin.');
+  }catch(error){
+    $('weightError').textContent=error.message;
+    $('weightError').hidden=false;
+    return;
+  }
+  if(!addToCart(product,quantity,{separate:true,grams}))return;
+  $('weightDialog').close();
+  openSale();
+}
 /** Every decoded barcode is a single deliberate add. Duplicates are ignored,
  * including the same product reread after the scanner's cooldown. Quantities
  * can still be changed using the basket's + / - editor.
@@ -323,6 +390,11 @@ function addBarcodeOnce(product,sourceInput=null){
     }
     focusSaleBarcode();
   };
+  if(isWeightProduct(product)){
+    reset();
+    openWeightProduct(product);
+    return true;
+  }
   if(state.cart.has(product.id)){
     announce('Ürün zaten sepette. Adedi sepetten + / − ile artırabilirsiniz.','error');
     reset();
@@ -1810,7 +1882,7 @@ async function setup() {
   document.addEventListener('visibilitychange',()=>{
     if(document.hidden&&dom.scanDialog.open)stopScanner();
   });
-  window.addEventListener('pagehide',()=>stopScanner());
+  window.addEventListener('pagehide',()=>{stopScanner();scaleConnection?.disconnect();});
   dom.cartDialog.addEventListener('close',updateNavigation);
   // iOS swipe-back / Android back / Escape must not silently lose an active sale.
   dom.cartDialog.addEventListener('cancel',event=>{
@@ -1858,6 +1930,67 @@ async function setup() {
     dom.cash.value='';
     updatePayment();
   });
+  $('weightGrams').addEventListener('input',()=>{
+    weightInputMode='manual';
+    scaleCapturedAt=0;
+    renderWeightPreview();
+  });
+  $('weightAdd').addEventListener('click',confirmWeight);
+  $('weightCancel').addEventListener('click',()=>$('weightDialog').close());
+  $('weightClose').addEventListener('click',()=>$('weightDialog').close());
+  $('weightDialog').addEventListener('close',()=>{
+    weightProduct=null;scaleLatest=null;scaleCapturedAt=0;weightInputMode='manual';
+    focusSaleBarcode();
+  });
+  $('weightConnect').addEventListener('click',async()=>{
+    const button=$('weightConnect');
+    button.disabled=true;
+    try{
+      if(!scaleConnection)scaleConnection=new ScaleSerialConnection({
+        onReading:reading=>{
+          scaleLatest=reading;
+          $('weightLive').textContent=(reading.grams/1000).toLocaleString('tr-TR',{
+            minimumFractionDigits:3,maximumFractionDigits:3})+' kg';
+          $('weightUseLive').disabled=!$('weightDialog').open;
+        },
+        onStatus:status=>$('weightSerialStatus').textContent=status,
+        onRaw:raw=>$('weightRaw').textContent='Ham veri: '+raw
+      });
+      await scaleConnection.connect({
+        baudRate:Number($('weightBaud').value),
+        dataBits:Number($('weightDataBits').value),
+        parity:$('weightParity').value,
+        stopBits:Number($('weightStopBits').value)
+      });
+      $('weightConnectionState').textContent='Bağlı';
+      $('weightDisconnect').disabled=false;
+    }catch(error){
+      $('weightSerialStatus').textContent=error.message||
+        'COM portu seçilemedi. Terazi başka bir programda açık olabilir.';
+    }finally{
+      button.disabled=Boolean(scaleConnection?.connected);
+    }
+  });
+  $('weightDisconnect').addEventListener('click',async()=>{
+    if(scaleConnection)await scaleConnection.disconnect();
+    scaleLatest=null;scaleCapturedAt=0;
+    $('weightConnectionState').textContent='Bağlı değil';
+    $('weightConnect').disabled=false;
+    $('weightDisconnect').disabled=true;
+    $('weightUseLive').disabled=true;
+    $('weightLive').textContent='— kg';
+  });
+  $('weightUseLive').addEventListener('click',()=>{
+    if(!scaleLatest||Date.now()-scaleLatest.at>5000){
+      $('weightError').textContent='Teraziden güncel sabit ağırlık alınamadı. Gramajı elle girin veya yeniden deneyin.';
+      $('weightError').hidden=false;
+      return;
+    }
+    weightInputMode='serial';
+    scaleCapturedAt=scaleLatest.at;
+    $('weightGrams').value=String(scaleLatest.grams);
+    renderWeightPreview();
+  });
   $('cashCancel').addEventListener('click',()=>$('cashPaymentDialog').close());
   dom.complete.addEventListener('click',()=>{
     if(state.saving)return;
@@ -1899,7 +2032,7 @@ async function setup() {
   $('receiptPdfShare').addEventListener('click',()=>{if(state.lastSale)shareReceiptPdf(state.lastSale);});
   $('receiptClose').addEventListener('click',beginNextSaleAfterPrint);
   $('exportSales').addEventListener('click',exportHistory);
-  for(const dialog of [dom.cartDialog,dom.scanDialog,dom.historyDialog,$('backupDialog'),$('saleExitDialog'),$('excelDialog'),$('manageDialog'),$('passiveProductDialog'),$('productDetailDialog'),$('pickProductDialog'),$('receiptActionsDialog'),$('cashPaymentDialog'),$('scanQuantityDialog'),$('manageActivationDialog'),$('customerDialog'),$('categoryImageDialog')]){
+  for(const dialog of [dom.cartDialog,dom.scanDialog,dom.historyDialog,$('backupDialog'),$('saleExitDialog'),$('excelDialog'),$('manageDialog'),$('passiveProductDialog'),$('productDetailDialog'),$('pickProductDialog'),$('receiptActionsDialog'),$('cashPaymentDialog'),$('weightDialog'),$('scanQuantityDialog'),$('manageActivationDialog'),$('customerDialog'),$('categoryImageDialog')]){
     dialog.addEventListener('click',event=>{
       if(event.target!==dialog)return;
       if(dialog===dom.cartDialog)return; // Avoid accidental outside-tap sale exit.
