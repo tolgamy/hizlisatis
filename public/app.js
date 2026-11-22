@@ -1,4 +1,4 @@
-import { getSnapshot, getLocalSnapshot, upsertExcelProducts, installBundledProducts, saveSale, getSales, restoreSalesBackup, openDB } from './idb.js';
+import { getSnapshot, getLocalSnapshot, upsertExcelProducts, installBundledProducts, saveSale, getSales, restoreSalesBackup, openDB, saveManagedProduct } from './idb.js';
 import { createDeviceBackup, parseDeviceBackup } from './device-backup.js';
 import { readXlsxRows } from './xlsx-reader.js';
 import { parseExcelProducts } from './excel-products.js';
@@ -27,6 +27,7 @@ import { next200Cash } from './cash-change.js';
 import { isWeightProduct,scaleSupported,ScaleSerialConnection,parseManualGrams,scaleGramsToQuantity,calculateWeightTotal } from './scale-serial.js';
 import { writeActiveProductsLocalStorage } from './active-products-cache.js';
 import { requireAccess,authorizeCheckout,userCan } from './auth-ui.js';
+import { sameProductRecord,prepareStockEdit } from './stock-editor.js';
 
 const $ = id => document.getElementById(id);
 const state = {
@@ -915,8 +916,9 @@ function renderProducts() {
   $('loadMoreProducts').hidden=items.length<=state.visibleLimit;
   $('productLimit').hidden=true;
 }
-/** Read-only stock state derived from the products and this device's sold ledger.
- * No stock quantities or product statuses are changed by this view.
+/** Stock state derived from the central product and this device's sold ledger.
+ * Merely rendering these values never changes inventory. Authorized product
+ * edits can be requested separately, and are written through D1.
  */
 function stockState(product){
   if(product.stokBelirsiz)return {stock:Infinity,status:'unknown',label:'Belirtilmemiş'};
@@ -967,15 +969,32 @@ function renderStockOverview(){
     const price=document.createElement('td');
     price.textContent=priceLabel(item.product);
     const status=document.createElement('td');
-    const tag=document.createElement('span');
-    tag.className='stock-status stock-status-'+item.status;
+    const canEdit=userCan('products')&&!state.centralReadOnly;
+    const tag=document.createElement(canEdit&&['empty','low'].includes(item.status)?'button':'span');
+    tag.className='stock-status stock-status-'+item.status+
+      (tag.tagName==='BUTTON'?' stock-status-editable':'');
     tag.textContent={empty:'Stok bitti',low:'Azalan',ok:'Yeterli',unknown:'Belirsiz'}[item.status];
+    if(tag.tagName==='BUTTON'){
+      tag.type='button';
+      tag.title='Stok ekle veya fiyatı değiştir';
+      tag.setAttribute('aria-label',item.product.baslik+' stok ve fiyat düzenle');
+      tag.addEventListener('click',()=>openStockEditor(item.product.id));
+    }
     status.append(tag);
-    row.append(product,category,quantity,price,status);tbody.append(row);
+    const actions=document.createElement('td');
+    if(canEdit){
+      const edit=document.createElement('button');
+      edit.type='button';edit.className='stock-overview-edit-button';
+      edit.textContent='Stok / Fiyat';
+      edit.setAttribute('aria-label',item.product.baslik+' stok ve fiyat düzenle');
+      edit.addEventListener('click',()=>openStockEditor(item.product.id));
+      actions.append(edit);
+    } else actions.textContent='—';
+    row.append(product,category,quantity,price,status,actions);tbody.append(row);
   }
   if(!matches.length){
     const row=document.createElement('tr');const cell=document.createElement('td');
-    cell.colSpan=5;cell.className='stock-overview-no-results';
+    cell.colSpan=6;cell.className='stock-overview-no-results';
     cell.textContent=search||filter!=='all'?
       'Aramanıza uygun stok kaydı bulunamadı.':'Henüz görüntülenecek stok kaydı yok.';
     row.append(cell);tbody.append(row);
@@ -983,6 +1002,84 @@ function renderStockOverview(){
   $('stockOverviewCount').textContent=matches.length.toLocaleString('tr-TR')+
     ' ürün · '+shown.length.toLocaleString('tr-TR')+' gösteriliyor';
   $('stockOverviewMore').hidden=matches.length<=state.stockOverviewLimit;
+}
+/** Desktop stock editor, intentionally per-item. Never silently set all
+ * 19,096 catalogue records to fake 99 inventory or alter local sale ledgers. */
+let stockEditProductId=null,stockEditOriginal=null,stockEditMode='add',stockEditBusy=false;
+function chooseStockEditMode(mode){
+  stockEditMode=mode;
+  const set99=mode==='set99';
+  $('stockEditSet99').setAttribute('aria-pressed',String(set99));
+  $('stockEditAmount').disabled=set99;
+  $('stockEditModeHint').textContent=set99
+    ? 'Yalnızca seçili ürünün bu cihazda görünen kalan stoğu 99 olacak. Başka ürünler değişmez.'
+    : 'Eklenecek miktarı girin. Yalnız fiyat değiştirmek için miktarı 0 bırakabilirsiniz.';
+}
+function openStockEditor(productId){
+  if(!userCan('products')||state.centralReadOnly){
+    announce('Stok veya fiyat düzenlemek için merkezi bağlantı ve ürün düzenleme yetkisi gerekli.','error');
+    return;
+  }
+  const product=state.byId.get(productId);
+  if(!product||!isActive(product)){announce('Bu ürün artık düzenlenebilir durumda değil.','error');return;}
+  stockEditProductId=product.id;stockEditOriginal={...product};
+  $('stockEditProductTitle').textContent=product.baslik;
+  $('stockEditBarcode').textContent=product.barkod||product.urunKodu||'Barkod yok';
+  $('stockEditCurrent').textContent=stockState(product).label;
+  $('stockEditUnit').textContent=product.birim||'adet';
+  $('stockEditPriceCurrency').textContent=product.paraBirimi||'TRY';
+  $('stockEditPrice').value=product.fiyatBelirsiz?'':String(product.satisFiyati).replace('.',',');
+  $('stockEditAmount').value='0';
+  $('stockEditMessage').textContent='';
+  $('stockEditSave').disabled=false;
+  chooseStockEditMode('add');
+  $('stockEditDialog').showModal();
+  $('stockEditAmount').focus();
+}
+async function saveStockEditor(event){
+  event.preventDefault();
+  if(stockEditBusy||!stockEditProductId||!stockEditOriginal)return;
+  const button=$('stockEditSave'),message=$('stockEditMessage');
+  stockEditBusy=true;button.disabled=true;message.textContent='Merkezi stok kaydı doğrulanıyor…';
+  let saved=null;
+  try{
+    if(!userCan('products')||state.centralReadOnly)
+      throw Error('Ürün düzenleme yetkisi veya merkezi bağlantı yok.');
+    const priceText=$('stockEditPrice').value.trim();
+    if(!priceText&&!stockEditOriginal.fiyatBelirsiz)
+      throw Error('Satış fiyatı boş bırakılamaz.');
+    const price=priceText?parseLocaleNumber(priceText,NaN):null;
+    const amountText=$('stockEditAmount').value.trim();
+    const amount=amountText?Number(amountText):0;
+    const remote=await checkRemoteProductStates([stockEditProductId]);
+    const fresh=remote.products.get(stockEditProductId);
+    if(!fresh||!sameProductRecord(stockEditOriginal,fresh))
+      throw Error('Ürün başka bir cihazda güncellenmiş. Bu pencereyi kapatıp yeniden açın.');
+    const next=prepareStockEdit(fresh,{
+      mode:stockEditMode,quantity:amount,
+      soldQuantity:Number(state.sold.get(stockEditProductId)||0),price
+    });
+    message.textContent='Merkezi veritabanına kaydediliyor…';
+    saved=await serializeMutation(()=>saveManagedProduct(next,'stock-overview-edit'));
+    try{await refreshManagedData(saved.id);}
+    catch(error){
+      // The server already committed the edit; show its returned record
+      // rather than claiming the edit failed or writing a fake stock value.
+      const products=state.products.map(p=>p.id===saved.id?saved:p);
+      const adjustments=[...state.sold].map(([id,soldQuantity])=>({id,soldQuantity}));
+      setCatalog(products,adjustments,state.meta,state.excelCount,state.bundleCount,state.lifecycleMeta);
+      announce('Merkezi kayıt yapıldı, ancak güncel stok tekrar okunamadı: '+error.message,'error');
+    }
+    $('stockEditDialog').close();
+    stockEditProductId=null;stockEditOriginal=null;
+    channel?.postMessage('product-managed');
+    announce('Stok / fiyat değişikliği kaydedildi.','success');
+  }catch(error){
+    message.textContent=error.message;
+    if(!saved)announce('Stok kaydedilemedi: '+error.message,'error');
+  }finally{
+    stockEditBusy=false;button.disabled=false;
+  }
 }
 function renderCartBar() {
   const count = cartQty();
@@ -2318,6 +2415,16 @@ async function setup() {
   $('stockOverviewMore').addEventListener('click',()=>{
     state.stockOverviewLimit+=60;renderStockOverview();
   });
+  $('stockOverviewLowJump').addEventListener('click',()=>{
+    state.stockOverviewFilter='low';state.stockOverviewLimit=60;
+    renderStockOverview();
+    $('stockOverviewRows').scrollIntoView({behavior:'smooth',block:'nearest'});
+  });
+  $('stockEditForm').addEventListener('submit',saveStockEditor);
+  $('stockEditClose').addEventListener('click',()=>$('stockEditDialog').close());
+  $('stockEditCancel').addEventListener('click',()=>$('stockEditDialog').close());
+  $('stockEditSet99').addEventListener('click',()=>chooseStockEditMode(stockEditMode==='set99'?'add':'set99'));
+  $('stockEditAmount').addEventListener('input',()=>{if(stockEditMode==='set99')chooseStockEditMode('add');});
   $('homeStockInsightOpen').addEventListener('click',()=>$('homeQuickStock').click());
   $('homeRecentSalesOpen').addEventListener('click',showHistory);
   $('homeQuickReports').addEventListener('click',showHistory);
@@ -2678,7 +2785,7 @@ async function setup() {
   $('receiptPdfShare').addEventListener('click',()=>{if(state.lastSale)shareReceiptPdf(state.lastSale);});
   $('receiptClose').addEventListener('click',beginNextSaleAfterPrint);
   $('exportSales').addEventListener('click',exportHistory);
-  for(const dialog of [dom.cartDialog,dom.scanDialog,dom.historyDialog,$('backupDialog'),$('otherPaymentDialog'),$('saleExitDialog'),$('excelDialog'),$('manageDialog'),$('passiveProductDialog'),$('productDetailDialog'),$('pickProductDialog'),$('receiptActionsDialog'),$('cashPaymentDialog'),$('weightDialog'),$('scanQuantityDialog'),$('manageActivationDialog'),$('customerDialog'),$('categoryImageDialog')]){
+  for(const dialog of [dom.cartDialog,dom.scanDialog,dom.historyDialog,$('backupDialog'),$('otherPaymentDialog'),$('saleExitDialog'),$('excelDialog'),$('manageDialog'),$('passiveProductDialog'),$('productDetailDialog'),$('pickProductDialog'),$('receiptActionsDialog'),$('cashPaymentDialog'),$('weightDialog'),$('scanQuantityDialog'),$('manageActivationDialog'),$('customerDialog'),$('categoryImageDialog'),$('stockEditDialog')]){
     dialog.addEventListener('click',event=>{
       if(event.target!==dialog)return;
       if(dialog===dom.cartDialog)return; // Avoid accidental outside-tap sale exit.
