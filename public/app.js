@@ -38,7 +38,7 @@ const state = {
   excelCount: 0, bundleCount: 0, bundleLoading: false, categoryPage: '', excelPreview: null, excelUploading: false, browseAll: false,
   view: 'home', catalogMode: 'categories', catalogEntry: 'categories', categoryTreeData: [], expandedProductCategory: '',
   productLayout: 'grid', stockOnly: false, sort: 'name', visibleLimit: 48, detailProduct: null, manageSelection: null,
-  stockOverviewFilter:'all',stockOverviewLimit:60
+  stockOverviewFilter:'all',stockOverviewLimit:60,previousWorkspaceHash:'#home'
 };
 const dom = {
   search: $('search'), productList: $('productList'), count: $('resultCount'),
@@ -176,58 +176,91 @@ function setCatalog(products, adjustments, meta, excelCount = 0, bundleCount = 0
   renderAll();
 }
 
-/** Desktop workspace screens reuse the existing sale/report controls in the
- * normal content flow. Touch devices keep the original modal sheets. */
+/** Desktop uses the same native section/page system as Home, Products,
+ * Stock and Settings. Sale/Reports keep their ONE set of existing form controls.
+ * Their nodes move between page sections and original mobile-only dialogs;
+ * their listeners, input values and device data are preserved. */
 const desktopWorkspaceMedia = '(min-width:1024px) and (min-height:600px) and (orientation:landscape) and (hover:hover) and (pointer:fine)';
 function useDesktopWorkspace() {
   return window.matchMedia(desktopWorkspaceMedia).matches;
 }
-function placeDesktopWorkspace(dialog) {
-  if(!useDesktopWorkspace()) return;
-  const main=$('mainContent');
-  if(dialog.parentElement!==main) main.append(dialog);
+function isSaleActive() {
+  return dom.cartDialog.open || (useDesktopWorkspace() && state.view==='sale');
+}
+function isReportsActive() {
+  return dom.historyDialog.open || (useDesktopWorkspace() && state.view==='reports');
+}
+function placeNativeWorkspacePages() {
+  const desktop=useDesktopWorkspace();
+  for(const [dialog,section] of [[dom.cartDialog,$('saleView')],[dom.historyDialog,$('reportsView')]]) {
+    const target=desktop?section:dialog;
+    const source=desktop?dialog:section;
+    if(source.childNodes.length)target.append(...Array.from(source.childNodes));
+  }
+}
+function returnToPreviousWorkspace() {
+  const previous=state.previousWorkspaceHash;
+  return previous && !['#sale','#reports'].includes(previous)?previous:'#home';
 }
 function closeDesktopWorkspaceForNavigation() {
-  if(!useDesktopWorkspace()) return;
-  if(dom.cartDialog.open) dom.cartDialog.close(); // Keep the unsaved basket.
-  if(dom.historyDialog.open) dom.historyDialog.close();
+  // Unlike the old window overlays, these two page sections are hidden by
+  // normal route navigation. No cart state is destroyed by a page change.
+  if(useDesktopWorkspace()){
+    if(dom.cartDialog.open)dom.cartDialog.close();
+    if(dom.historyDialog.open)dom.historyDialog.close();
+  }
 }
-
 /** Navigation and home dashboard never replace IndexedDB records. */
 function updateNavigation() {
-  document.body.classList.toggle('view-home', state.view === 'home');
-  document.body.classList.toggle('view-settings', state.view === 'settings');
-  document.body.classList.toggle('view-stock', state.view === 'stock');
-  const desktopSale=useDesktopWorkspace() && dom.cartDialog.open;
-  const desktopReports=useDesktopWorkspace() && dom.historyDialog.open;
-  document.body.classList.toggle('desktop-workspace', desktopSale||desktopReports);
-  document.body.classList.toggle('desktop-sale-workspace', desktopSale);
-  document.body.classList.toggle('desktop-reports-workspace', desktopReports);
-  $('sidebarReports').classList.toggle('active',desktopReports);
-  if(desktopReports) $('sidebarReports').setAttribute('aria-current','page');
-  else $('sidebarReports').removeAttribute('aria-current');
-  $('homeView').hidden = state.view !== 'home';
-  $('catalogView').hidden = state.view !== 'catalog';
-  $('settingsView').hidden = state.view !== 'settings';
-  $('stockView').hidden = state.view !== 'stock';
+  const sale=isSaleActive(),reports=isReportsActive();
+  document.body.classList.toggle('view-home', state.view==='home');
+  document.body.classList.toggle('view-settings', state.view==='settings');
+  document.body.classList.toggle('view-stock', state.view==='stock');
+  document.body.classList.toggle('view-sale', sale);
+  document.body.classList.toggle('view-reports', reports);
+  // Existing diagnostics and earlier UI modes use these classes; only
+  // native pages (not dialogs) are rendered on desktop.
+  document.body.classList.toggle('desktop-workspace', useDesktopWorkspace()&&(sale||reports));
+  document.body.classList.toggle('desktop-sale-workspace', useDesktopWorkspace()&&sale);
+  document.body.classList.toggle('desktop-reports-workspace', useDesktopWorkspace()&&reports);
+  $('homeView').hidden=state.view!=='home';
+  $('catalogView').hidden=state.view!=='catalog';
+  $('settingsView').hidden=state.view!=='settings';
+  $('stockView').hidden=state.view!=='stock';
+  $('saleView').hidden=!useDesktopWorkspace()||state.view!=='sale';
+  $('reportsView').hidden=!useDesktopWorkspace()||state.view!=='reports';
   $('sidebarStock').classList.toggle('active',state.view==='stock');
   if(state.view==='stock')$('sidebarStock').setAttribute('aria-current','page');
   else $('sidebarStock').removeAttribute('aria-current');
-  // The approved mobile navigation has four destinations only; all category
-  // levels remain inside Products, and desktop uses the same routes.
-  const active = dom.cartDialog.open ? 'sale' :
-    state.view==='catalog' ? 'products' : state.view;
+  $('sidebarReports').classList.toggle('active',reports);
+  if(reports)$('sidebarReports').setAttribute('aria-current','page');
+  else $('sidebarReports').removeAttribute('aria-current');
+  const active=sale?'sale':reports?'reports':state.view==='catalog'?'products':state.view;
   for (const [id,value] of [['navHome','home'],['navSale','sale'],['navProducts','products'],['navSettings','settings']]) {
-    const el=$(id); const yes=active===value; el.classList.toggle('active',yes);
-    if(yes) el.setAttribute('aria-current','page'); else el.removeAttribute('aria-current');
+    const el=$(id),yes=active===value;
+    el.classList.toggle('active',yes);
+    if(yes)el.setAttribute('aria-current','page');else el.removeAttribute('aria-current');
   }
 }
 function navigate(hash) { if(location.hash!==hash) location.hash=hash; else applyRoute(); }
 function applyRoute() {
   if(typeof closeDesktopWorkspaceForNavigation==='function')
     closeDesktopWorkspaceForNavigation();
+  placeNativeWorkspacePages();
   const fragment=decodeURIComponent(location.hash.slice(1));
-  if(fragment==='product-categories'){
+  if(fragment==='sale' && useDesktopWorkspace()){
+    state.view='sale';
+    renderCart();
+  } else if(fragment==='reports' && useDesktopWorkspace()){
+    state.view='reports';
+    if(!reportsPageLoaded)showHistory().catch(error=>announce('Rapor yüklenemedi: '+error.message,'error'));
+  } else if(fragment==='sale' && !useDesktopWorkspace()){
+    state.view='home';
+    if(!dom.cartDialog.open)dom.cartDialog.showModal();
+  } else if(fragment==='reports' && !useDesktopWorkspace()){
+    state.view='home';
+    if(!dom.historyDialog.open)showHistory().catch(error=>announce('Rapor yüklenemedi: '+error.message,'error'));
+  } else if(fragment==='product-categories'){
     state.view='catalog';state.catalogMode='category-home';state.catalogEntry='products';state.categoryPage='';
   } else if (fragment.startsWith('categories')) {
     state.view='catalog';state.catalogMode='categories';state.catalogEntry='products';
@@ -257,22 +290,25 @@ function setView(view,showAll=false) {
  * EAN/UPC immediately, without a second tap. Do not steal focus from overlays.
  */
 function focusSaleBarcode(){
-  if(!dom.cartDialog.open || $('receiptActionsDialog').open ||
+  if(!isSaleActive() || $('receiptActionsDialog').open ||
      $('scanQuantityDialog').open || dom.scanDialog.open || $('pickProductDialog').open ||
      $('weightDialog').open) return;
   $('saleBarcode').focus({preventScroll:true});
 }
 function openSale({preferCamera=false}={}) {
   renderCart();
-  const desktop=typeof useDesktopWorkspace==='function' && useDesktopWorkspace();
-  if(desktop && dom.historyDialog?.open) dom.historyDialog.close();
-  if(desktop) placeDesktopWorkspace(dom.cartDialog);
-  if (!dom.cartDialog.open) {
-    if(desktop) dom.cartDialog.show();
-    else dom.cartDialog.showModal();
+  if(useDesktopWorkspace()){
+    placeNativeWorkspacePages();
+    if(state.view!=='sale'){
+      if(!['#sale','#reports'].includes(location.hash))state.previousWorkspaceHash=location.hash||'#home';
+      navigate('#sale');
+    }else updateNavigation();
+  }else{
+    placeNativeWorkspacePages();
+    if(!dom.cartDialog.open)dom.cartDialog.showModal();
+    updateNavigation();
   }
   $('saleBarcode').value='';
-  updateNavigation();
   if(!preferCamera)focusSaleBarcode();
 }
 // A closed sale never destroys the cart unless the operator explicitly
@@ -294,6 +330,8 @@ function finishSaleExit({discard=false}={}) {
   }
   if(dom.cartDialog.open)dom.cartDialog.close();
   if(pendingSaleExitTarget==='home')setView('home');
+  else if(typeof useDesktopWorkspace==='function' && useDesktopWorkspace() && state.view==='sale')
+    navigate(returnToPreviousWorkspace());
 }
 function requestSaleExit(target='previous') {
   if(state.saving)return;
@@ -993,7 +1031,7 @@ function addToCart(product, quantity=1,{separate=false,grams=null}={}) {
       unitPrice:product.satisFiyati,discountPct:0});
   }
   renderCartBar();
-  if(dom.cartDialog.open)renderCart();
+  if(isSaleActive())renderCart();
   playCartSound(existingWeighed||(current&&!separate)?'increase':'add');
   showCartConfirmation(product);
   return true;
@@ -1191,12 +1229,12 @@ function confirmScannedQuantity() {
     pendingScanProduct=null;
     $('scanQuantityDialog').close();
     chirp();
-    if(!dom.cartDialog.open)openSale();
+    if(!isSaleActive())openSale();
     // Even the legacy quantity editor must never automatically restart camera.
     focusSaleBarcode();
   }
 }
-function renderAll() { renderHome(); if(typeof renderHomeStockInsights==='function')renderHomeStockInsights(); renderFilters(); renderProducts(); if(state.view==='stock')renderStockOverview(); renderCartBar(); setSyncStatus(); updateNavigation(); if (dom.cartDialog.open) renderCart(); }
+function renderAll() { renderHome(); if(typeof renderHomeStockInsights==='function')renderHomeStockInsights(); renderFilters(); renderProducts(); if(state.view==='stock')renderStockOverview(); renderCartBar(); setSyncStatus(); updateNavigation(); if (isSaleActive()) renderCart(); }
 function exactProduct(raw) {
   const code = String(raw ?? '').trim();
   return findBarcodeProduct(state.byBarcode, code) || state.products.find(p => p.urunKodu && fold(p.urunKodu) === fold(code));
@@ -1347,7 +1385,8 @@ async function completeSale() {
     document.querySelector('input[name="payment"][value="Nakit"]').checked=true;
     dom.cash.value='';customerManager?.clearSelection();
     if($('cashPaymentDialog').open)$('cashPaymentDialog').close();
-    dom.cartDialog.close();
+    if(useDesktopWorkspace() && state.view==='sale')navigate('#home');
+    else if(dom.cartDialog.open)dom.cartDialog.close();
     renderProducts(); renderCartBar(); renderHome();
     refreshHomeSales().catch(()=>{});
     channel?.postMessage('sale-updated');
@@ -1589,6 +1628,7 @@ function renderHistorySummary(sales){
   $('historySummaryPlot').hidden=empty;
   $('historySummary').hidden=false;
 }
+let reportsPageLoaded=false;
 async function showHistory() {
   try {
     state.sales = (await getSales()).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
@@ -1607,13 +1647,18 @@ async function showHistory() {
       item.querySelector('button').addEventListener('click', () => printSale(sale));
       dom.historyItems.append(item);
     }
-    if(useDesktopWorkspace() && dom.cartDialog.open) dom.cartDialog.close();
-    placeDesktopWorkspace(dom.historyDialog);
-    if(!dom.historyDialog.open) {
-      if(useDesktopWorkspace()) dom.historyDialog.show();
-      else dom.historyDialog.showModal();
+    reportsPageLoaded=true;
+    if(useDesktopWorkspace()){
+      placeNativeWorkspacePages();
+      if(state.view!=='reports'){
+        if(!['#sale','#reports'].includes(location.hash))state.previousWorkspaceHash=location.hash||'#home';
+        navigate('#reports');
+      } else updateNavigation();
+    }else{
+      placeNativeWorkspacePages();
+      if(!dom.historyDialog.open)dom.historyDialog.showModal();
+      updateNavigation();
     }
-    updateNavigation();
   } catch (error) { announce(`Satış geçmişi açılamadı: ${error.message}`, 'error'); }
 }
 function csvCell(value) {
@@ -2331,7 +2376,7 @@ async function setup() {
     const barcode=$('saleBarcode').value.trim();
     if(!/^(?:\d{8}|\d{12,14})$/.test(barcode))return;
     barcodeInputIdle=setTimeout(()=>{
-      if(!dom.cartDialog.open || $('saleBarcode').value.trim()!==barcode ||
+      if(!isSaleActive() || $('saleBarcode').value.trim()!==barcode ||
         $('scanQuantityDialog').open || dom.scanDialog.open)return;
       if(exactProduct(barcode))addHardwareBarcode(barcode,$('saleBarcode'));
     },220);
@@ -2386,7 +2431,11 @@ async function setup() {
     catch(error) { console.warn('Merkezi katalog hâlâ kullanılamıyor:',error); }
     finally { button.disabled=false; }
   });
-  document.querySelectorAll('[data-close]').forEach(button=>button.addEventListener('click',()=>$(button.dataset.close).close()));
+  document.querySelectorAll('[data-close]').forEach(button=>button.addEventListener('click',()=>{
+    if(button.dataset.close==='historyDialog' && useDesktopWorkspace() && state.view==='reports')
+      navigate(returnToPreviousWorkspace());
+    else $(button.dataset.close).close();
+  }));
   dom.scanDialog.addEventListener('close',()=>{
     // A queued close event from a previous scan must not stop the camera
     // already reopened for the next barcode.
@@ -2401,16 +2450,22 @@ async function setup() {
   window.addEventListener('pagehide',()=>{stopScanner();scaleConnection?.disconnect();});
   dom.cartDialog.addEventListener('close',updateNavigation);
   dom.historyDialog.addEventListener('close',updateNavigation);
-  // If the browser switches between desktop and touch layouts, preserve the
-  // active basket/report while changing only the dialog presentation mode.
+  // Preserve the active cashier/report while changing between desktop
+  // native pages and handheld dialogs. Move the SAME controls, never clone.
   window.matchMedia(desktopWorkspaceMedia).addEventListener('change',()=>{
-    const active=dom.cartDialog.open?dom.cartDialog:
-      dom.historyDialog.open?dom.historyDialog:null;
-    if(!active) {updateNavigation();return;}
-    active.close();
-    placeDesktopWorkspace(active);
-    if(useDesktopWorkspace())active.show();
-    else active.showModal();
+    const sale=state.view==='sale'||dom.cartDialog.open;
+    const reports=state.view==='reports'||dom.historyDialog.open;
+    if(dom.cartDialog.open)dom.cartDialog.close();
+    if(dom.historyDialog.open)dom.historyDialog.close();
+    placeNativeWorkspacePages();
+    if(useDesktopWorkspace()){
+      if(sale){state.view='sale';if(location.hash!=='#sale')location.hash='#sale';}
+      else if(reports){state.view='reports';if(location.hash!=='#reports')location.hash='#reports';}
+    }else{
+      if(sale||reports)state.view='home';
+      if(sale)dom.cartDialog.showModal();
+      else if(reports)dom.historyDialog.showModal();
+    }
     updateNavigation();
   });
   // iOS swipe-back / Android back / Escape must not silently lose an active sale.
