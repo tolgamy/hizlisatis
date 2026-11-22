@@ -34,7 +34,7 @@ test('portrait tablets preserve the 3-column and 4-row main category grid',()=>{
   assert.equal(MAIN_CATEGORY_ORDER.length,12);
   assert.match(css,/#homeCategoryShortcuts\{[\s\S]*?grid-template-columns:repeat\(3,minmax\(0,1fr\)\)!important/);
 });
-test('landscape tablet and desktop display fixed sidebar with four by three categories',()=>{
+test('original landscape tablet layout remains; desktop Product landing gets the v64 six-column override',()=>{
   assert.match(html,/id="desktopHomeCategoryGrid"/);
   assert.match(html,/id="sidebarStock"/);
   assert.match(html,/id="sidebarReports"/);
@@ -43,6 +43,9 @@ test('landscape tablet and desktop display fixed sidebar with four by three cate
   assert.match(responsive,/#desktopHomeCategoryGrid\{[\s\S]*?grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
   assert.match(responsive,/#homeCategoryShortcuts\{[\s\S]*?grid-template-columns:repeat\(4,minmax\(0,1fr\)\)!important/);
   assert.match(responsive,/#categoryTree\.category-grid-page\{[\s\S]*?grid-template-columns:repeat\(4,minmax\(0,1fr\)\)!important/);
+  const latest=css.slice(css.indexOf('/* v64 — approved Products workspace:'));
+  assert.match(latest,/#productCategoryHome #homeCategoryShortcuts\.category-photo-grid/);
+  assert.match(latest,/grid-template-columns:repeat\(6,minmax\(0,1fr\)\)!important/);
   assert.match(responsive,/\.bottom-shell \.bottom-nav \.desktop-only-nav\{\s*display:flex!important/);
   assert.match(responsive,/#navHome\{order:1\}[\s\S]*?#navProducts\{order:2\}[\s\S]*?#navSale\{order:3\}/);
   assert.match(responsive,/grid-template-areas:"hero metrics" "actions actions" "categories categories"/);
@@ -54,6 +57,7 @@ test('desktop and mobile categories use the exact same twelve source nodes and c
   const code=app.slice(start,end);
   const tile=()=>({nodes:[],replaceChildren(){this.nodes=[]},append(child){this.nodes.push(child)}});
   const mobile=tile(),desktop=tile(),total={textContent:''};
+  let inlineRefreshes=0;
   const nodes=MAIN_CATEGORY_ORDER.map(name=>({name,path:name,children:[{name:'child'}]}));
   const state={categoryTreeData:nodes,products:[{id:'a',lifecycleStatus:'active'},{id:'b',lifecycleStatus:'deleted'}]};
   const sandbox={
@@ -61,9 +65,11 @@ test('desktop and mobile categories use the exact same twelve source nodes and c
     $:id=>({homeCategoryShortcuts:mobile,desktopHomeCategoryGrid:desktop,homeTotalProducts:total})[id],
     document:{createElement:tag=>({tag,className:'',setAttribute(){},textContent:''})},
     categoryTile:(node,hasChildren)=>({path:node.path,hasChildren,children:[],append(value){this.children.push(value)}}),
-    sortCategoryNodes:n=>n,productStatus:p=>p.lifecycleStatus
+    sortCategoryNodes:n=>n,productStatus:p=>p.lifecycleStatus,
+    renderInlineProductSubcategories:()=>{inlineRefreshes++;}
   };
   runInNewContext(code+';renderHome()',sandbox);
+  assert.equal(inlineRefreshes,1);
   assert.equal(mobile.nodes.length,12);
   assert.equal(desktop.nodes.length,12);
   assert.deepEqual(mobile.nodes.map(x=>x.path),[...MAIN_CATEGORY_ORDER]);
