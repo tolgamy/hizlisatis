@@ -26,10 +26,13 @@ test('close and back preserve products, explicit cancellation discards them only
   const cartDialog={open:true,close(){this.open=false}};
   const cash={value:'120'};
   const radio={checked:false};
-  const nodes={saleExitDialog:exit,saleExitTitle:{textContent:''}};
+  const nodes={saleExitDialog:exit,saleExitTitle:{textContent:''},
+    basketDiscountPct:{value:'5'},basketDiscountError:{hidden:false},
+    basketDiscountPanel:{hidden:false},checkoutDiscountToggle:{setAttribute(){}}};
   let barRenders=0,cartRenders=0,cleared=0,view='';
   const ctx={
-    state:{saving:false,cart:products,pendingCreditSale:{fingerprint:'x'}},
+    state:{saving:false,cart:products,pendingCreditSale:{fingerprint:'x'},
+      basketDiscountPct:5,basketDiscountInvalid:true},
     $:id=>nodes[id],dom:{cartDialog,cash},
     document:{querySelector:()=>radio},
     customerManager:{clearSelection(){cleared++}},
@@ -52,6 +55,9 @@ test('close and back preserve products, explicit cancellation discards them only
   handlers.finishSaleExit({discard:true});
   assert.equal(products.size,0);
   assert.equal(ctx.state.pendingCreditSale,null);
+  assert.equal(ctx.state.basketDiscountPct,0);
+  assert.equal(ctx.state.basketDiscountInvalid,false);
+  assert.equal(nodes.basketDiscountPct.value,'');
   assert.equal(cash.value,'');assert.equal(radio.checked,true);
   assert.equal(cleared,1);assert.equal(barRenders,1);assert.equal(cartRenders,1);
 });
@@ -69,15 +75,19 @@ test('empty state has basket artwork and working search, scan and add handlers',
   assert.match(app,/if\(!addHardwareBarcode\(value,\$\('saleBarcode'\)\)\)openProductPicker\(value\)/);
 });
 
-test('all four payment tiles are one row, with premium palette and readable small-screen labels',()=>{
-  const sale=html.slice(html.indexOf('<fieldset class="payment-types"'),html.indexOf('</fieldset>',html.indexOf('<fieldset class="payment-types"')));
-  const names=[...sale.matchAll(/name="payment" value="([^"]+)"/g)].map(m=>m[1]);
-  assert.deepEqual(names,['Nakit','Kart','Veresiye','Havale / FAST']);
-  const styles=css.slice(css.indexOf('/* v4.6'));
-  assert.match(styles,/grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
-  assert.match(styles,/--pay-strong:/);
-  assert.match(styles,/max-width:420px/);
-  assert.match(styles,/\.sale-exit-dialog\{/);
+test('four checkout shortcuts retain the current payment and discount design',()=>{
+  const sale=html.slice(html.indexOf('<fieldset class="payment-types checkout-shortcuts"'),
+    html.indexOf('</fieldset>',html.indexOf('<fieldset class="payment-types checkout-shortcuts"')));
+  const direct=[...sale.matchAll(/name="payment" value="([^"]+)"/g)].map(m=>m[1]);
+  assert.deepEqual(direct,['Nakit','Kart']);
+  assert.match(sale,/id="checkoutDiscountToggle"/);
+  assert.match(sale,/id="checkoutOtherPayment"/);
+  assert.match(html,/name="payment" value="Veresiye"/);
+  assert.match(html,/name="payment" value="Havale \/ FAST"/);
+  const styles=css.slice(css.indexOf('/* v54: compact checkout'));
+  assert.match(styles,/grid-template-columns:repeat\(4,minmax\(0,1fr\)\)!important/);
+  assert.match(styles,/\.sale-sheet \.checkout-shortcuts \.payment-shortcut/);
+  assert.match(css,/\.sale-exit-dialog\{/);
   assert.match(sw,/v50-one-tap-live-scale/);
 });
 
