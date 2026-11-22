@@ -61,6 +61,15 @@ export function applyProductImage(image,source,width=256,priority='low') {
   image.referrerPolicy='no-referrer';
   image.alt='';
   image.style.visibility='hidden'; // Keep the local category icon visible while downloading.
+  // User-uploaded D1 product photos are already compact data URIs. Load these
+  // immediately: the fallback lazy queue can run before an image is connected
+  // to the DOM and permanently discard its task on browsers without IO.
+  if(/^data:image\/(?:webp|jpeg|png);base64,/.test(source)){
+    image.onload=()=>{image.style.visibility='visible';};
+    image.onerror=()=>image.remove();
+    image.src=source;
+    return image;
+  }
   const task={image,source,width};
   if(priority==='high') {
     // Product detail is intentionally loaded immediately, not queued behind grid.
@@ -74,7 +83,7 @@ export function applyProductImage(image,source,width=256,priority='low') {
   } else {
     const io=lazyObserver();
     if(io){image.__photoTask=task;io.observe(image);}
-    else {pending.push(task);queueMicrotask(drain);}
+    else {pending.push(task);setTimeout(drain,0);}
   }
   return image;
 }
