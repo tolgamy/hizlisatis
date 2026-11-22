@@ -2921,3 +2921,11 @@ body.view-settings .settings-view .settings-printer-details .settings-receipt{
   .picker-category-grid{gap:6px}
   .picker-category-tile img{height:70px}
 }
+
+/* Direct settings access from main dashboard without replacing sales/reports. */
+.dashboard-settings-shortcut{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  align-self:flex-start;margin-top:9px;min-height:35px;padding:6px 13px;
+  border:1px solid #b9ddcd;border-radius:10px;background:#e3f7ed;
+  color:#126344;font-size:13px;font-weight:850;cursor:pointer;
+}
