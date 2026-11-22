@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 
 const read=file=>readFileSync(new URL('../public/'+file,import.meta.url),'utf8');
 const css=read('styles.css'),html=read('index.html'),app=read('app.js'),sw=read('sw.js');
-const marker='/* v73 — iPhone compact Sale:';
+const marker='/* v73 — compact phone Sale:';
 const start=css.indexOf(marker),layout=css.slice(start);
 function rules(selector){
   const needle=selector+' {',pos=layout.indexOf(needle);
