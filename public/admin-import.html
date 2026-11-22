@@ -21,21 +21,41 @@ small{color:#63758a;line-height:1.6;display:block;margin-top:18px}
 <h1>Merkezi Ürün Aktarımı</h1>
 <p>Bu ekran, <strong>19.096 ürünün tamamını</strong> Hızlı Satış’ın Cloudflare D1 veritabanına aktarır. Kayıtlı ürünleri silmez ve önceki değişikliklerin üzerine yazmaz.</p>
 <p><strong>Önemli:</strong> Önceki telefonda yaptığınız aktif/pasif değişikliklerini aktarmak ayrı bir adımdır. Bu ekran yalnız başlangıç ürün kataloğunu yükler.</p>
-<label for="key">Cloudflare PRODUCT_WRITE_KEY değeri</label>
-<input type="password" id="key" autocomplete="off" spellcheck="false" placeholder="Cloudflare'da oluşturduğunuz gizli anahtar">
+<p id="authHint"><strong>Güvenli kullanıcı girişi</strong> durumunu kontrol ediyoruz…</p>
+<div id="legacyImportKey" hidden>
+  <label for="key">Eski sistem: Cloudflare ürün yönetim anahtarı</label>
+  <input type="password" id="key" autocomplete="off" spellcheck="false" placeholder="Yalnız yeni giriş sistemi etkinleştirilene kadar">
+</div>
 <button type="button" id="start">19.096 Ürünü D1'e Yükle</button>
 <progress id="progress" value="0" max="19096" hidden></progress>
 <p id="info" role="status">Henüz aktarım başlamadı.</p>
 <p id="error" role="alert"></p>
-<small>Yönetim anahtarı bu sayfada saklanmaz; Türkçe karakterler güvenle iletilir ve yalnız aynı sitenin yetkili API'sine HTTPS üzerinden gönderilir. Bu ekranı üçüncü kişilerle paylaşmayın. İşlem yarıda kesilirse aynı düğmeyle tekrar başlayabilirsiniz.</small>
+<small>Aktarım işlemi yalnız yetkili kullanıcı oturumuyla yapılır. İşlem yarıda kesilirse aynı düğmeyle tekrar başlayabilirsiniz. Yüklü ürünler korunur.</small>
 </main>
 <script type="module">
 const $=id=>document.getElementById(id), total=19096;
 let running=false;
-async function api(body,secret){
+let secureMode=false;
+const modeReady=(async()=>{
+  try{
+    const response=await fetch('/api/auth',{cache:'no-store',credentials:'same-origin'});
+    const data=await response.json();
+    secureMode=data.enabled===true;
+  }catch{secureMode=false}
+  $('legacyImportKey').hidden=secureMode;
+  $('authHint').textContent=secureMode?
+    'Bu işlem için giriş yapmış ve ürün yükleme yetkisine sahip olmanız yeterlidir. 24 karakterlik anahtar gerekmiyor.':
+    'Henüz güvenli kullanıcı girişi etkin değil. Eski yönetim anahtarı geçici olarak gereklidir.';
+})();
+async function api(body){
+ await modeReady;
+ const legacyKey=$('key').value.trim();
+ if(!secureMode&&legacyKey.length<24)
+   throw Error('Eski sistem etkin. Yönetim anahtarını en az 24 karakter olarak girin.');
  const response=await fetch('/api/catalog-seed',{
   method:body?'POST':'GET',
-  headers:{'X-Product-Key':encodeURIComponent(secret),...(body?{'Content-Type':'application/json'}:{})},
+  headers:{...(!secureMode?{'X-Product-Key':encodeURIComponent(legacyKey)}:{}),
+    ...(body?{'Content-Type':'application/json'}:{})},
   body:body?JSON.stringify(body):undefined,
   cache:'no-store',credentials:'same-origin'
  });
@@ -45,13 +65,11 @@ async function api(body,secret){
 }
 $('start').addEventListener('click',async()=>{
  if(running)return;
- const secret=$('key').value.trim();
- if(secret.length<24){$('error').textContent='Cloudflare yönetim anahtarını girin (en az 24 karakter).';return;}
  if(!confirm('Hızlı Satış veritabanına 19.096 ürün aktarılsın mı?'))return;
  running=true;$('start').disabled=true;$('error').textContent='';
  $('progress').hidden=false;$('progress').value=0;
  try{
-  const status=await api(null,secret);
+  const status=await api(null);
   if(status.ready){
    if(status.count!==total)throw Error('Katalog hazır işaretli, fakat ürün sayısı beklenenden farklı. Kontrol edin.');
    $('progress').value=total;$('info').textContent='19.096 ürün zaten merkezi veritabanında.';
@@ -74,7 +92,7 @@ $('start').addEventListener('click',async()=>{
      throw Error('Katalog parçası geçersiz.');
    for(let offset=0;offset<rows.length;offset+=100){
     const batch=rows.slice(offset,offset+100);
-    const done=await api({part,offset,rows:batch,partTotal:rows.length,version:manifest.version},secret);
+    const done=await api({part,offset,rows:batch,partTotal:rows.length,version:manifest.version});
     if(done.count!==batch.length||done.nextOffset!==offset+batch.length||
        done.partComplete!==(offset+batch.length>=rows.length))
       throw Error('Merkezi sunucudan geçersiz aktarım yanıtı alındı.');
@@ -84,12 +102,11 @@ $('start').addEventListener('click',async()=>{
    }
   }
   if(progressed!==total)throw Error('Beklenen katalog ürün sayısı tutmadı: '+progressed);
-  await api({action:'finish'},secret);
-  const verified=await api(null,secret);
+  await api({action:'finish'});
+  const verified=await api(null);
   if(!verified.ready||verified.count!==total)throw Error('Sunucu ürün sayısı doğrulanamadı.');
   $('progress').value=total;
   $('info').textContent='19.096 ürün merkezi D1 veritabanına aktarıldı ve doğrulandı.';
-  $('key').value='';
  }catch(e){
   $('error').textContent='Aktarım durdu: '+(e?.message||'Bilinmeyen hata')+
    '\nVeriler silinmedi. Sorunu çözdükten sonra aynı işlemi yeniden başlatabilirsiniz.';

@@ -1,6 +1,8 @@
 import {validAdminKey,makeSessionCookie,clearSessionCookie,allowAdminRequestOrigin} from '../../lib/admin-auth.js';
 const shared={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'};
 export async function onRequestPost({request,env}) {
+  if(String(env?.AUTH_V2_ENABLED||'').toLowerCase()==='true')
+    return Response.json({error:'Ortak yönetim anahtarı kaldırıldı. Kullanıcı adı ve şifrenizle giriş yapın.'},{status:403,headers:shared});
   if(!allowAdminRequestOrigin(request))return Response.json({error:'İzin verilmeyen kaynak.'},{status:403,headers:shared});
   const value=String(env?.PRODUCT_WRITE_KEY||'');
   let body;try{body=await request.json()}catch{return Response.json({error:'Geçersiz oturum isteği.'},{status:400,headers:shared})}

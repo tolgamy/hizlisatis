@@ -26,14 +26,14 @@ test('main menu has exactly 8 approved tiles, with Settings beside Backup',()=>{
   assert.match(css,/grid-template-columns:repeat\(2,minmax\(0,1fr\)\)!important/);
 });
 
-test('all 8 settings sections retain product, customer, printer and data controls',()=>{
+test('settings sections retain existing controls and add authorized admin management',()=>{
   const ids=[...html.matchAll(/\bid="([^"]+)"/g)].map(m=>m[1]);
   assert.equal(ids.length,new Set(ids).size);
   const sections=[...settings.matchAll(/<details id="(settings[A-Za-z]+Group)"/g)].map(m=>m[1]);
   assert.deepEqual(sections,[
     'settingsGeneralGroup','settingsPickerGroup','settingsProductGroup',
     'settingsPrintingGroup','settingsPaymentsGroup','settingsDiscountGroup',
-    'settingsDataGroup','settingsCustomerGroup'
+    'settingsDataGroup','settingsCustomerGroup','settingsAdminGroup'
   ]);
   for(const id of ['settingsCustomers','settingsTemplate','settingsPrintWidth',
     'settingsReceiptAction','settingsPrinterDetails','settingsPickerMode'])

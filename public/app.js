@@ -26,6 +26,7 @@ import { readPickerMode,savePickerMode } from './picker-preferences.js';
 import { next200Cash } from './cash-change.js';
 import { isWeightProduct,scaleSupported,ScaleSerialConnection,parseManualGrams,scaleGramsToQuantity,calculateWeightTotal } from './scale-serial.js';
 import { writeActiveProductsLocalStorage } from './active-products-cache.js';
+import { requireAccess,authorizeCheckout,userCan } from './auth-ui.js';
 
 const $ = id => document.getElementById(id);
 const state = {
@@ -894,6 +895,10 @@ function renderCart() {
       media.append(image);
       applyProductImage(image,line.product.gorsel,192,'high');
     }
+    // Cashiers without a price/discount right must not be invited to edit it.
+    // The D1 checkout gate independently verifies every changed unit price.
+    el.querySelector('[data-edit-price]').hidden=!userCan('discounts');
+    el.querySelector('.sale-line-more').hidden=!userCan('discounts');
     el.querySelector('[data-edit-price]').addEventListener('click',()=>{
       el.querySelector('.sale-line-more').open=true;
       const price=el.querySelector('[data-field="price"]');
@@ -1120,6 +1125,9 @@ async function completeSale() {
   };
   state.saving = true; dom.complete.disabled = true;
   try {
+    // Check server-side account/discount/veresiye rights before any central
+    // customer ledger write or this device's IndexedDB sale mutation.
+    await authorizeCheckout(record);
     if(payment==='Veresiye')await recordCustomerCredit(creditCustomer.id,record);
     await serializeMutation(() => saveSale(record));
     state.pendingCreditSale=null;
@@ -2340,4 +2348,7 @@ async function setup() {
     catch{/* other tab closing */}
   });
 }
-setup();
+// Do not mount the POS until a signed user session has been verified.
+requireAccess().then(()=>setup()).catch(error=>{
+  console.error('HızlıSatış girişi tamamlanamadı:',error);
+});

@@ -39,7 +39,7 @@ async function balance(db,id) {
 }
 export async function onRequestGet({request,env}) {
   const db=dbFor(env);if(!db)return fail('Müşteri veritabanı bağlı değil.',503);
-  if(!await authorizedAdmin(request,env))return fail('Yönetim oturumu gerekli.',401);
+  if(!await authorizedAdmin(request,env,'customers'))return fail('Yönetim oturumu gerekli.',401);
   try {
     await ensure(db);
     const url=new URL(request.url),id=url.searchParams.get('customer');
@@ -58,7 +58,7 @@ export async function onRequestGet({request,env}) {
 }
 export async function onRequestPost({request,env}) {
   const db=dbFor(env);if(!db)return fail('Müşteri veritabanı bağlı değil.',503);
-  if(!await authorizedAdmin(request,env))return fail('Yönetim oturumu gerekli.',401);
+  if(!await authorizedAdmin(request,env,'customers'))return fail('Yönetim oturumu gerekli.',401);
   let data;try{data=await request.json();}catch{return fail('Geçersiz veri.');}
   try {
     await ensure(db);

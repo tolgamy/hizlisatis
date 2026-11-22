@@ -4,6 +4,7 @@
  * Never accepts catalogue URLs or writes to browser storage.
  */
 import { productFromBundledRow } from '../../public/bundled-catalog.js';
+import {authorizedAccess,accessEnabled} from '../../lib/user-access.js';
 
 const PAGE_SIZE=100;
 const CATALOG_VERSION='7f27e3a60ef04e77';
@@ -40,7 +41,7 @@ export async function onRequest({request,env}) {
   // Pages secrets take effect only on deployments made after the secret is saved.
   if(String(env?.PRODUCT_WRITE_KEY||'').length<24)
     return respond({error:'Cloudflare Pages Production ortamındaki PRODUCT_WRITE_KEY bu dağıtımda tanımlı değil veya 24 karakterden kısa. Secret kaydını ve yeniden dağıtımı kontrol edin.'},503);
-  if(!await permitted(request,env))
+  if(!(accessEnabled(env) ? await authorizedAccess(request,env,'products') : await permitted(request,env)))
     return respond({error:'Girilen anahtar bu dağıtımdaki Cloudflare Production Secret ile eşleşmiyor. Secret değiştiyse yeni Production dağıtımı yapın; şifreyi bu sohbete göndermeyin.'},401);
   let db;
   try{db=provider(env);}

@@ -11,6 +11,13 @@ async function requestCustomer(method='GET',data=null,query='') {
   try{response=await fetch('/api/customers'+query,options)}
   catch{throw Error('Müşteri veritabanına bağlanılamıyor.')}
   if(response.status===401) {
+    const access=await fetch('/api/auth',{cache:'no-store',credentials:'same-origin'})
+      .then(r=>r.json()).catch(()=>({enabled:true,authenticated:false}));
+    if(access.enabled) {
+      if(!access.authenticated)window.dispatchEvent(new Event('hizlisatis:auth-required'));
+      throw Error('Müşteri / Veresiye işlemi için yetkiniz yok veya oturum süreniz doldu.');
+    }
+    // The legacy shared key remains solely during a controlled migration.
     const key=window.prompt('Müşteri kayıtları için bir defa yönetim anahtarını girin (oturum 30 gün geçerli):');
     if(!key)throw Error('Yönetim oturumu açılmadı.');
     const login=await fetch('/api/admin-session',{method:'POST',credentials:'same-origin',
