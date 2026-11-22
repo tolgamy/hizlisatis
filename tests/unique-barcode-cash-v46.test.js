@@ -31,6 +31,7 @@ test('barcode adds one unit once per product, duplicate never increases cart',()
     state,dom:{scanDialog:scan},
     $:id=>({saleBarcode:sale,scanManualBarcode:manual})[id],
     addToCart:(p,qty)=>{adds++;assert.equal(qty,1);state.cart.set(p.id,{quantity:1});return true;},
+    isWeightProduct:()=>false,
     announce:(msg)=>notices.push(msg),stopScanner:()=>stops++,
     focusSaleBarcode:()=>focus++
   };
@@ -79,7 +80,7 @@ test('cash modal offers explicit direct, manual and 200 TL options',()=>{
   assert.match(app,/\$\('cashManualPanel'\)\.hidden=false/);
   assert.match(app,/if\(cartCurrency\(\)!=='TRY'\)return/);
   assert.match(app,/if\(\$\('cashPaymentDialog'\)\.open\)announce/);
-  assert.match(sw,/cep-pos-shell-v47-product-photo-upload/);
+  assert.match(sw,/cep-pos-shell-v48-windows-scale-manual-grams/);
   assert.match(sw,/\/cash-change\.js/);
 });
 
