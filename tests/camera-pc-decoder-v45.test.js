@@ -72,7 +72,7 @@ test('Scanner restart awaits old async stop even when state session was already 
   const stop=runInNewContext(app.slice(a,b)+';stopScanner',sandbox);
   const pending=stop();
   const repeat=stop();
-  await Promise.resolve();
+  await new Promise(resolve=>setTimeout(resolve,0));
   assert.equal(session.active,false);
   assert.equal(state.scanner,null);
   assert.equal(stops,1);
