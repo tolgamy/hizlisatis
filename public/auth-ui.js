@@ -54,7 +54,6 @@ function applyUser(user){
     const node=$(id);if(node)node.hidden=!manageSettings;
   }
   $('settingsAdminGroup').hidden=user.role!=='admin';
-  $('accessUserButton').hidden=user.role!=='admin';
 }
 function release(){
   $('loginGate').hidden=true;
@@ -98,7 +97,6 @@ async function openUserManager(){
   try{await listUsers()}catch(error){$('accessUserFormStatus').textContent=error.message}
 }
 function setupUserManager(){
-  $('accessUserButton').addEventListener('click',openUserManager);
   $('settingsOpenUsers').addEventListener('click',openUserManager);
   $('accessCloseUsers').addEventListener('click',()=>$('accessUsersDialog').close());
   $('accessNewUser').addEventListener('click',()=>selectUser());

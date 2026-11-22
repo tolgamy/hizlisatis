@@ -18,7 +18,7 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
       - name: Test secure access and current responsive layouts
-        run: node --test tests/secure-access-v56.test.js tests/settings-main-menu-v55.test.js tests/large-categories-v56.test.js tests/login-form-no-leak-v57.test.js
+        run: node --test tests/secure-access-v56.test.js tests/settings-main-menu-v55.test.js tests/large-categories-v56.test.js tests/login-form-no-leak-v57.test.js tests/desktop-redesign-v58.test.js
       - name: Build
         run: npm run build
       - name: Verify new auth entrypoint and server functions
