@@ -8,25 +8,27 @@ import {restoreSalesBackup,getSales,getLocalSnapshot} from '../public/idb.js';
 const read=path=>readFileSync(new URL('../public/'+path,import.meta.url),'utf8');
 const html=read('index.html'),css=read('styles.css'),app=read('app.js'),sw=read('sw.js');
 
-test('Settings has nine functional tiles plus home with responsive 3x3 and 5x2 arrangements',()=>{
+test('Settings keeps eight working main-menu tiles and moves preferences into a nested page',()=>{
   const start=html.indexOf('class="settings-links settings-card-grid"');
   const end=html.indexOf('</div>',start);
   const tiles=html.slice(start,end);
   const ids=[...tiles.matchAll(/<(?:button|a) id="(settings\w+)"[^>]+class="settings-tile/g)].map(m=>m[1]);
-  assert.deepEqual(ids,['settingsExcel','settingsAdd','settingsManage','settingsCategoryImages',
-    'settingsCustomers','settingsHistory','settingsExport','settingsBackup','settingsTemplate','settingsHome']);
-  assert.match(css,/\/\* v4\.9 — approved device-specific Settings grid/);
-  assert.match(css,/\.settings-view \.settings-card-grid\{[\s\S]*?grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
-  assert.match(css,/@media \(min-width:900px\) and \(hover:hover\) and \(pointer:fine\)\{[\s\S]*?grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
-  assert.match(css,/\.settings-view \.settings-card-grid>\.settings-tile-home\{[\s\S]*?grid-column:1\/-1/);
-  assert.match(html,/id="settingsTemplate"[^>]+href="\/urun-yukleme-sablonu.xlsx"/);
-  assert.match(html,/<details id="settingsPrinterDetails" class="settings-printer-details">/);
-  assert.doesNotMatch(html,/<details id="settingsPrinterDetails"[^>]*\sopen\b/);
+  assert.deepEqual(ids,['settingsExcel','settingsAdd','settingsHistory','settingsExport',
+    'settingsManage','settingsCategoryImages','settingsBackup','settingsOpenPreferences']);
+  assert.doesNotMatch(tiles,/id="settingsHome"|id="settingsTemplate"/);
+  assert.match(css,/\/\* v55: approved two-column main menu/);
+  assert.match(css,/\.settings-view #settingsMainMenu\.settings-card-grid\{[\s\S]*?grid-template-columns:repeat\(2,minmax\(0,1fr\)\)!important/);
+  assert.match(css,/#settingsView #settingsMainMenu\.settings-card-grid/);
+  assert.match(html,/id="settingsPreferences"[^>]*hidden/);
+  assert.match(html,/id="settingsCustomers"/);
+  assert.match(html,/id="settingsPrinterDetails"/);
   assert.match(html,/id="settingsReceiptSave"/);
   assert.match(html,/id="backupDialog"/);
-  assert.match(app,/\$\('settingsHome'\)\.addEventListener\('click',\(\)=>setView\('home'\)\)/);
+  assert.match(app,/\$\('settingsOpenPreferences'\)\.addEventListener\('click',showSettingsPreferences\)/);
+  assert.match(app,/\$\('navSettings'\)\.addEventListener\('click',openSettingsMenu\)/);
   assert.match(app,/classList\.toggle\('view-settings', state\.view === 'settings'\)/);
 });
+
 test('Sale has one-line header and image-led cart without redundant screen shortcuts',()=>{
   const sale=html.slice(html.indexOf('<dialog id="cartDialog"'),html.indexOf('</dialog>',html.indexOf('<dialog id="cartDialog"')));
   assert.doesNotMatch(sale,/class="sale-quick-nav"|saleQuickHome|saleQuickProducts|saleQuickSettings/);

@@ -120,6 +120,24 @@
           </div>
           <section id="productCategoryHome" hidden aria-label="12 ana kategori">
             <div id="homeCategoryShortcuts" class="home-category-shortcuts category-photo-grid" aria-label="12 ana kategori"></div>
+            <div class="product-category-quickbar">
+              <p>Kategori seçerek alt kategorileri açın veya tüm ürünlere göz atın.</p>
+              <div class="product-category-quick-actions">
+                <button id="productCategoryBrowseAll" type="button">Tüm Ürünleri Gör ›</button>
+                <button id="productCategoryBrowseCategories" type="button">Kategori Ara</button>
+              </div>
+            </div>
+            <section id="productSubcategoriesPanel" class="product-inline-subcategories" aria-labelledby="productSubcategoriesTitle" hidden>
+              <div class="product-inline-subcategories-head">
+                <div>
+                  <h2 id="productSubcategoriesTitle">Alt Kategoriler</h2>
+                  <p id="productSubcategoriesCount"></p>
+                </div>
+                <button id="productSubcategoriesClose" class="product-inline-close" type="button" aria-label="Alt kategorileri kapat">×</button>
+              </div>
+              <div id="productSubcategoryList" class="product-inline-subcategory-grid" aria-label="Alt kategoriler"></div>
+              <button id="productSubcategoriesAll" class="product-inline-all" type="button">Tüm Ürünleri Gör</button>
+            </section>
           </section>
         </section>
         <section id="productResults" hidden>
@@ -252,6 +270,11 @@
           <p id="catalogSource" class="settings-catalog-count">Katalog yükleniyor...</p>
         </section>
       </section>
+      <!-- Desktop uses native page sections, exactly like Home/Products/Stock/Settings.
+           The existing sale/history controls move here with their event listeners.
+           On touch devices they return to their original modal dialogs. -->
+      <section id="saleView" class="workspace-page sale-sheet" aria-label="Satış" hidden></section>
+      <section id="reportsView" class="workspace-page reports-page" aria-label="Raporlar" hidden></section>
     </main>
 
     <div class="bottom-shell">
@@ -681,7 +704,7 @@
     </div>
   </dialog>
   <dialog id="historyDialog" class="sheet" aria-labelledby="historyTitle">
-    <div class="sheet-header"><h2 id="historyTitle">Satış Geçmişi</h2><button type="button" class="closebutton" data-close="historyDialog" aria-label="Kapat">×</button></div>
+    <div class="sheet-header"><h2 id="historyTitle">Satış Geçmişi</h2><button type="button" class="closebutton" data-close="historyDialog" aria-label="Raporlardan geri dön"><span class="report-close-symbol" aria-hidden="true">×</span><span class="report-back-label" aria-hidden="true">← Geri</span></button></div>
     <div class="history-actions"><span id="historyCount">0 satış</span><span class="history-device-note">Bu cihazın kayıtları · Diğer kasalar dahil değildir</span><button id="exportSales" class="smallbutton secondary" type="button">CSV Dışa Aktar</button></div>
     <section id="historySummary" class="history-summary" aria-label="Bu cihazın satış raporu" hidden>
       <div class="history-summary-metrics">

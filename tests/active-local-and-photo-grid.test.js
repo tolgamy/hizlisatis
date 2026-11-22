@@ -57,7 +57,8 @@ test('the approved passive subcategory uses exactly four photographic columns',(
  const manager=readFileSync(new URL('../public/product-management.js',import.meta.url),'utf8');
  const css=readFileSync(new URL('../public/styles.css',import.meta.url),'utf8');
  const app=readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
- assert.match(manager,/const photoGrid=isPassiveList\(\)&&Boolean\(manageCategorySub\)&&!q/);
+ assert.match(manager,/const photoGrid=hasCategoryNavigation\(\)&&Boolean\(manageCategorySub\)&&!q/);
+ assert.match(manager,/const hasCategoryNavigation=\(\)=>filter==='active'\|\|isPassiveList\(\)/);
  assert.match(manager,/results\.classList\.toggle\('manage-photo-grid',photoGrid\)/);
  assert.match(manager,/picture\.loading='lazy'/);
  assert.match(manager,/offerManualActivation\(product\)/);

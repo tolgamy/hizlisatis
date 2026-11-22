@@ -36,9 +36,9 @@ const state = {
   search: '', meta: null, sales: [], lastSale: null, pendingCreditSale:null,
   saving: false, scanner: null, scanPurpose: 'sale',
   excelCount: 0, bundleCount: 0, bundleLoading: false, categoryPage: '', excelPreview: null, excelUploading: false, browseAll: false,
-  view: 'home', catalogMode: 'categories', catalogEntry: 'categories', categoryTreeData: [],
+  view: 'home', catalogMode: 'categories', catalogEntry: 'categories', categoryTreeData: [], expandedProductCategory: '',
   productLayout: 'grid', stockOnly: false, sort: 'name', visibleLimit: 48, detailProduct: null, manageSelection: null,
-  stockOverviewFilter:'all',stockOverviewLimit:60
+  stockOverviewFilter:'all',stockOverviewLimit:60,previousWorkspaceHash:'#home'
 };
 const dom = {
   search: $('search'), productList: $('productList'), count: $('resultCount'),
@@ -176,31 +176,93 @@ function setCatalog(products, adjustments, meta, excelCount = 0, bundleCount = 0
   renderAll();
 }
 
+/** Desktop uses the same native section/page system as Home, Products,
+ * Stock and Settings. Sale/Reports keep their ONE set of existing form controls.
+ * Their nodes move between page sections and original mobile-only dialogs;
+ * their listeners, input values and device data are preserved. */
+const desktopWorkspaceMedia = '(min-width:1024px) and (min-height:600px) and (orientation:landscape) and (hover:hover) and (pointer:fine)';
+function useDesktopWorkspace() {
+  return window.matchMedia(desktopWorkspaceMedia).matches;
+}
+function isSaleActive() {
+  return dom.cartDialog.open || (useDesktopWorkspace() && state.view==='sale');
+}
+function isReportsActive() {
+  return dom.historyDialog.open || (useDesktopWorkspace() && state.view==='reports');
+}
+function placeNativeWorkspacePages() {
+  const desktop=useDesktopWorkspace();
+  for(const [dialog,section] of [[dom.cartDialog,$('saleView')],[dom.historyDialog,$('reportsView')]]) {
+    const target=desktop?section:dialog;
+    const source=desktop?dialog:section;
+    if(source.childNodes.length)target.append(...Array.from(source.childNodes));
+  }
+}
+function returnToPreviousWorkspace() {
+  const previous=state.previousWorkspaceHash;
+  return previous && !['#sale','#reports'].includes(previous)?previous:'#home';
+}
+function closeDesktopWorkspaceForNavigation() {
+  // Unlike the old window overlays, these two page sections are hidden by
+  // normal route navigation. No cart state is destroyed by a page change.
+  if(useDesktopWorkspace()){
+    if(dom.cartDialog.open)dom.cartDialog.close();
+    if(dom.historyDialog.open)dom.historyDialog.close();
+  }
+}
 /** Navigation and home dashboard never replace IndexedDB records. */
 function updateNavigation() {
-  document.body.classList.toggle('view-home', state.view === 'home');
+  const sale=isSaleActive(),reports=isReportsActive();
+  document.body.classList.toggle('view-home', state.view==='home');
   document.body.classList.toggle('view-settings', state.view === 'settings');
-  document.body.classList.toggle('view-stock', state.view === 'stock');
+  document.body.classList.toggle('view-stock', state.view==='stock');
+  document.body.classList.toggle('view-sale', sale);
+  document.body.classList.toggle('view-reports', reports);
+  // Existing diagnostics and earlier UI modes use these classes; only
+  // native pages (not dialogs) are rendered on desktop.
+  document.body.classList.toggle('desktop-workspace', useDesktopWorkspace()&&(sale||reports));
+  document.body.classList.toggle('desktop-sale-workspace', useDesktopWorkspace()&&sale);
+  document.body.classList.toggle('desktop-reports-workspace', useDesktopWorkspace()&&reports);
   $('homeView').hidden = state.view !== 'home';
   $('catalogView').hidden = state.view !== 'catalog';
   $('settingsView').hidden = state.view !== 'settings';
   $('stockView').hidden = state.view !== 'stock';
+  $('saleView').hidden=!useDesktopWorkspace()||state.view!=='sale';
+  $('reportsView').hidden=!useDesktopWorkspace()||state.view!=='reports';
   $('sidebarStock').classList.toggle('active',state.view==='stock');
   if(state.view==='stock')$('sidebarStock').setAttribute('aria-current','page');
   else $('sidebarStock').removeAttribute('aria-current');
-  // The approved mobile navigation has four destinations only; all category
-  // levels remain inside Products, and desktop uses the same routes.
-  const active = dom.cartDialog.open ? 'sale' :
-    state.view==='catalog' ? 'products' : state.view;
+  $('sidebarReports').classList.toggle('active',reports);
+  if(reports)$('sidebarReports').setAttribute('aria-current','page');
+  else $('sidebarReports').removeAttribute('aria-current');
+  const standardView = state.view==='catalog' ? 'products' : state.view;
+  const active=sale?'sale':reports?'reports':standardView;
   for (const [id,value] of [['navHome','home'],['navSale','sale'],['navProducts','products'],['navSettings','settings']]) {
-    const el=$(id); const yes=active===value; el.classList.toggle('active',yes);
-    if(yes) el.setAttribute('aria-current','page'); else el.removeAttribute('aria-current');
+    const el=$(id),yes=active===value;
+    el.classList.toggle('active',yes);
+    if(yes)el.setAttribute('aria-current','page');else el.removeAttribute('aria-current');
   }
 }
 function navigate(hash) { if(location.hash!==hash) location.hash=hash; else applyRoute(); }
 function applyRoute() {
+  if(typeof closeDesktopWorkspaceForNavigation==='function')
+    closeDesktopWorkspaceForNavigation();
+  if(typeof placeNativeWorkspacePages==='function')placeNativeWorkspacePages();
+  const desktop=typeof useDesktopWorkspace==='function' && useDesktopWorkspace();
   const fragment=decodeURIComponent(location.hash.slice(1));
-  if(fragment==='product-categories'){
+  if(fragment==='sale' && desktop){
+    state.view='sale';
+    renderCart();
+  } else if(fragment==='reports' && desktop){
+    state.view='reports';
+    if(!reportsPageLoaded)showHistory().catch(error=>announce('Rapor yüklenemedi: '+error.message,'error'));
+  } else if(fragment==='sale' && !desktop){
+    state.view='home';
+    if(!dom.cartDialog.open)dom.cartDialog.showModal();
+  } else if(fragment==='reports' && !desktop){
+    state.view='home';
+    if(!dom.historyDialog.open)showHistory().catch(error=>announce('Rapor yüklenemedi: '+error.message,'error'));
+  } else if(fragment==='product-categories'){
     state.view='catalog';state.catalogMode='category-home';state.catalogEntry='products';state.categoryPage='';
   } else if (fragment.startsWith('categories')) {
     state.view='catalog';state.catalogMode='categories';state.catalogEntry='products';
@@ -213,6 +275,9 @@ function applyRoute() {
   else if (fragment==='stock') state.view='stock';
   else state.view='home';
   updateNavigation();renderProducts();
+  // hashchange is asynchronous: focus the scanner only after the native Sale
+  // section has become visible, so a USB barcode reader works immediately.
+  if(state.view==='sale')focusSaleBarcode();
   if(state.view==='stock')renderStockOverview();
   if(state.view==='home'){
     if(typeof renderHomeStockInsights==='function')renderHomeStockInsights();
@@ -230,16 +295,26 @@ function setView(view,showAll=false) {
  * EAN/UPC immediately, without a second tap. Do not steal focus from overlays.
  */
 function focusSaleBarcode(){
-  if(!dom.cartDialog.open || $('receiptActionsDialog').open ||
+  if(!(typeof isSaleActive==='function' ? isSaleActive() : dom.cartDialog.open) || $('receiptActionsDialog').open ||
      $('scanQuantityDialog').open || dom.scanDialog.open || $('pickProductDialog').open ||
      $('weightDialog').open) return;
   $('saleBarcode').focus({preventScroll:true});
 }
 function openSale({preferCamera=false}={}) {
   renderCart();
-  if (!dom.cartDialog.open) dom.cartDialog.showModal();
+  const desktop=typeof useDesktopWorkspace==='function' && useDesktopWorkspace();
+  if(desktop){
+    placeNativeWorkspacePages();
+    if(state.view!=='sale'){
+      if(!['#sale','#reports'].includes(location.hash))state.previousWorkspaceHash=location.hash||'#home';
+      navigate('#sale');
+    }else updateNavigation();
+  }else{
+    if(typeof placeNativeWorkspacePages==='function')placeNativeWorkspacePages();
+    if(!dom.cartDialog.open)dom.cartDialog.showModal();
+    updateNavigation();
+  }
   $('saleBarcode').value='';
-  updateNavigation();
   if(!preferCamera)focusSaleBarcode();
 }
 // A closed sale never destroys the cart unless the operator explicitly
@@ -261,6 +336,8 @@ function finishSaleExit({discard=false}={}) {
   }
   if(dom.cartDialog.open)dom.cartDialog.close();
   if(pendingSaleExitTarget==='home')setView('home');
+  else if(typeof useDesktopWorkspace==='function' && useDesktopWorkspace() && state.view==='sale')
+    navigate(returnToPreviousWorkspace());
 }
 function requestSaleExit(target='previous') {
   if(state.saving)return;
@@ -541,6 +618,7 @@ function categoryCover(path) {
 function categoryTile(node, hasChildren = false) {
   const button = document.createElement('button');
   button.type = 'button'; button.className = 'photo-category-tile';
+  button.dataset.categoryPath = node.path;
   button.setAttribute('aria-label', `${node.name}, ${node.count} ürün`);
   button.title = node.name;
   const photo = document.createElement('span'); photo.className = 'photo-category-image';
@@ -575,8 +653,48 @@ function categoryTile(node, hasChildren = false) {
   name.className = 'photo-category-name';
   name.textContent = node.name;
   button.append(photo, name);
-  button.addEventListener('click', () => hasChildren ? openCategoryMenu(node.path) : selectCategory(node.path));
+  button.addEventListener('click', () => {
+    // On desktop Products, opening a main category reveals its real
+    // subcategories below the 6×2 grid; mobile retains the original browser.
+    if(hasChildren && !node.path.includes(' > ') &&
+       state.view==='catalog' && state.catalogMode==='category-home' &&
+       useDesktopWorkspace()) {
+      toggleProductInlineCategory(node.path);
+      return;
+    }
+    hasChildren ? openCategoryMenu(node.path) : selectCategory(node.path);
+  });
   return button;
+}
+/** The desktop category landing page is a single workspace: each of the
+ * twelve main cards expands its actual D1-backed subcategories in place.
+ * Never build example categories or change the underlying product dataset. */
+function renderInlineProductSubcategories() {
+  const panel=$('productSubcategoriesPanel');
+  const list=$('productSubcategoryList');
+  const root=state.categoryTreeData.find(node=>node.path===state.expandedProductCategory);
+  const children=root?sortCategoryNodes(root.children.filter(showCategoryInBrowse),root.path):[];
+  const visible=useDesktopWorkspace() && state.view==='catalog' &&
+    state.catalogMode==='category-home' && children.length>0;
+  panel.hidden=!visible;
+  for(const tile of $('homeCategoryShortcuts').querySelectorAll('.photo-category-tile')) {
+    const selected=visible&&tile.dataset.categoryPath===state.expandedProductCategory;
+    tile.classList.toggle('is-inline-selected',selected);
+    tile.setAttribute('aria-controls','productSubcategoriesPanel');
+    tile.setAttribute('aria-expanded',String(selected));
+  }
+  list.replaceChildren();
+  if(!visible)return;
+  $('productSubcategoriesTitle').textContent=root.name+' Alt Kategorileri';
+  $('productSubcategoriesCount').textContent=children.length.toLocaleString('tr-TR')+' alt kategori';
+  $('productSubcategoriesAll').textContent=root.name+' – Tüm Ürünleri Gör';
+  for(const child of children) list.append(categoryTile(child,false));
+}
+function toggleProductInlineCategory(path) {
+  state.expandedProductCategory=state.expandedProductCategory===path?'':path;
+  renderInlineProductSubcategories();
+  if(state.expandedProductCategory && !$('productSubcategoriesPanel').hidden)
+    $('productSubcategoriesPanel').scrollIntoView({block:'nearest',behavior:'smooth'});
 }
 function renderHomeStockInsights(){
   $('homeRecentSalesCard').hidden=!userCan('reports');
@@ -639,6 +757,7 @@ function renderHome() {
     card.append(arrow);
     desktop.append(card);
   }
+  renderInlineProductSubcategories();
   // A deleted record should not inflate the central catalogue count.
   $('homeTotalProducts').textContent=state.products.length?
     state.products.filter(product=>productStatus(product)!=='deleted').length.toLocaleString('tr-TR'):'—';
@@ -744,6 +863,7 @@ function renderProducts() {
   $('catalogCategoryNavigator').hidden=state.catalogMode!=='categories';
   $('productCategoryHome').hidden=state.catalogMode!=='category-home';
   $('productResults').hidden=state.catalogMode!=='products';
+  renderInlineProductSubcategories();
   if(state.view!=='catalog'||state.catalogMode!=='products') return;
   const query=fold(state.search);
   const items=state.products.filter(p=>{
@@ -917,7 +1037,7 @@ function addToCart(product, quantity=1,{separate=false,grams=null}={}) {
       unitPrice:product.satisFiyati,discountPct:0});
   }
   renderCartBar();
-  if(dom.cartDialog.open)renderCart();
+  if((typeof isSaleActive==='function'?isSaleActive():dom.cartDialog.open))renderCart();
   playCartSound(existingWeighed||(current&&!separate)?'increase':'add');
   showCartConfirmation(product);
   return true;
@@ -1115,12 +1235,12 @@ function confirmScannedQuantity() {
     pendingScanProduct=null;
     $('scanQuantityDialog').close();
     chirp();
-    if(!dom.cartDialog.open)openSale();
+    if(!isSaleActive())openSale();
     // Even the legacy quantity editor must never automatically restart camera.
     focusSaleBarcode();
   }
 }
-function renderAll() { renderHome(); if(typeof renderHomeStockInsights==='function')renderHomeStockInsights(); renderFilters(); renderProducts(); if(state.view==='stock')renderStockOverview(); renderCartBar(); setSyncStatus(); updateNavigation(); if (dom.cartDialog.open) renderCart(); }
+function renderAll() { renderHome(); if(typeof renderHomeStockInsights==='function')renderHomeStockInsights(); renderFilters(); renderProducts(); if(state.view==='stock')renderStockOverview(); renderCartBar(); setSyncStatus(); updateNavigation(); if (isSaleActive()) renderCart(); }
 function exactProduct(raw) {
   const code = String(raw ?? '').trim();
   return findBarcodeProduct(state.byBarcode, code) || state.products.find(p => p.urunKodu && fold(p.urunKodu) === fold(code));
@@ -1271,7 +1391,8 @@ async function completeSale() {
     document.querySelector('input[name="payment"][value="Nakit"]').checked=true;
     dom.cash.value='';customerManager?.clearSelection();
     if($('cashPaymentDialog').open)$('cashPaymentDialog').close();
-    dom.cartDialog.close();
+    if(useDesktopWorkspace() && state.view==='sale')navigate('#home');
+    else if(dom.cartDialog.open)dom.cartDialog.close();
     renderProducts(); renderCartBar(); renderHome();
     refreshHomeSales().catch(()=>{});
     channel?.postMessage('sale-updated');
@@ -1513,6 +1634,7 @@ function renderHistorySummary(sales){
   $('historySummaryPlot').hidden=empty;
   $('historySummary').hidden=false;
 }
+let reportsPageLoaded=false;
 async function showHistory() {
   try {
     state.sales = (await getSales()).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
@@ -1531,7 +1653,18 @@ async function showHistory() {
       item.querySelector('button').addEventListener('click', () => printSale(sale));
       dom.historyItems.append(item);
     }
-    dom.historyDialog.showModal();
+    reportsPageLoaded=true;
+    if(useDesktopWorkspace()){
+      placeNativeWorkspacePages();
+      if(state.view!=='reports'){
+        if(!['#sale','#reports'].includes(location.hash))state.previousWorkspaceHash=location.hash||'#home';
+        navigate('#reports');
+      } else updateNavigation();
+    }else{
+      placeNativeWorkspacePages();
+      if(!dom.historyDialog.open)dom.historyDialog.showModal();
+      updateNavigation();
+    }
   } catch (error) { announce(`Satış geçmişi açılamadı: ${error.message}`, 'error'); }
 }
 function csvCell(value) {
@@ -2201,6 +2334,15 @@ async function setup() {
   });
   $('categorySearch').addEventListener('input',()=>renderCategoryTree($('categorySearch').value));
   $('categoryAllProducts').addEventListener('click',()=>state.categoryPage?selectCategory(state.categoryPage):showAllProducts());
+  $('productCategoryBrowseAll').addEventListener('click',showAllProducts);
+  $('productCategoryBrowseCategories').addEventListener('click',openCategoryBrowser);
+  $('productSubcategoriesAll').addEventListener('click',()=>{
+    if(state.expandedProductCategory)selectCategory(state.expandedProductCategory);
+  });
+  $('productSubcategoriesClose').addEventListener('click',()=>{
+    state.expandedProductCategory='';
+    renderInlineProductSubcategories();
+  });
   $('viewGrid').addEventListener('click',()=>{state.productLayout='grid';renderProducts();});
   $('viewList').addEventListener('click',()=>{state.productLayout='list';renderProducts();});
   $('onlyInStock').addEventListener('click',()=>{state.stockOnly=!state.stockOnly;renderProducts();});
@@ -2240,7 +2382,7 @@ async function setup() {
     const barcode=$('saleBarcode').value.trim();
     if(!/^(?:\d{8}|\d{12,14})$/.test(barcode))return;
     barcodeInputIdle=setTimeout(()=>{
-      if(!dom.cartDialog.open || $('saleBarcode').value.trim()!==barcode ||
+      if(!isSaleActive() || $('saleBarcode').value.trim()!==barcode ||
         $('scanQuantityDialog').open || dom.scanDialog.open)return;
       if(exactProduct(barcode))addHardwareBarcode(barcode,$('saleBarcode'));
     },220);
@@ -2295,7 +2437,11 @@ async function setup() {
     catch(error) { console.warn('Merkezi katalog hâlâ kullanılamıyor:',error); }
     finally { button.disabled=false; }
   });
-  document.querySelectorAll('[data-close]').forEach(button=>button.addEventListener('click',()=>$(button.dataset.close).close()));
+  document.querySelectorAll('[data-close]').forEach(button=>button.addEventListener('click',()=>{
+    if(button.dataset.close==='historyDialog' && useDesktopWorkspace() && state.view==='reports')
+      navigate(returnToPreviousWorkspace());
+    else $(button.dataset.close).close();
+  }));
   dom.scanDialog.addEventListener('close',()=>{
     // A queued close event from a previous scan must not stop the camera
     // already reopened for the next barcode.
@@ -2309,6 +2455,25 @@ async function setup() {
   });
   window.addEventListener('pagehide',()=>{stopScanner();scaleConnection?.disconnect();});
   dom.cartDialog.addEventListener('close',updateNavigation);
+  dom.historyDialog.addEventListener('close',updateNavigation);
+  // Preserve the active cashier/report while changing between desktop
+  // native pages and handheld dialogs. Move the SAME controls, never clone.
+  window.matchMedia(desktopWorkspaceMedia).addEventListener('change',()=>{
+    const sale=state.view==='sale'||dom.cartDialog.open;
+    const reports=state.view==='reports'||dom.historyDialog.open;
+    if(dom.cartDialog.open)dom.cartDialog.close();
+    if(dom.historyDialog.open)dom.historyDialog.close();
+    placeNativeWorkspacePages();
+    if(useDesktopWorkspace()){
+      if(sale){state.view='sale';if(location.hash!=='#sale')location.hash='#sale';}
+      else if(reports){state.view='reports';if(location.hash!=='#reports')location.hash='#reports';}
+    }else{
+      if(sale||reports)state.view='home';
+      if(sale)dom.cartDialog.showModal();
+      else if(reports)dom.historyDialog.showModal();
+    }
+    updateNavigation();
+  });
   // iOS swipe-back / Android back / Escape must not silently lose an active sale.
   dom.cartDialog.addEventListener('cancel',event=>{
     event.preventDefault();requestSaleExit('previous');

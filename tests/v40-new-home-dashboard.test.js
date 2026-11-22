@@ -49,7 +49,7 @@ test('approved four-tab mobile footer has no duplicate Categories button',()=>{
   assert.doesNotMatch(html,/id="navCategories"/);
   assert.match(app,/\$\('navProducts'\)\.addEventListener\('click',openProductCategoryHome\)/);
   assert.match(app,/\$\('navSale'\)\.addEventListener\('click',openSale\)/);
-  assert.match(app,/\$\('navSettings'\)\.addEventListener\('click',\(\)=>setView\('settings'\)\)/);
+  assert.match(app,/\$\('navSettings'\)\.addEventListener\('click',openSettingsMenu\)/);
 });
 
 test('home buttons open existing workflows, not nonfunctional placeholders',()=>{

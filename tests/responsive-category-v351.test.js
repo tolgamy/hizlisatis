@@ -46,7 +46,8 @@ test('passive statuses open a hierarchical 12-main, subcategory product navigati
   assert.match(manager,/MAIN_CATEGORY_ORDER\.map\(name/);
   assert.match(manager,/productCategoryPath\(product\)/);
   assert.match(manager,/if\(manageCategoryRoot\)manageCategorySub=choice\.name/);
-  assert.match(manager,/if\(isPassiveList\(\)&&manageCategoryRoot\)/);
+  assert.match(manager,/if\(hasCategoryNavigation\(\)&&manageCategoryRoot\)/);
+  assert.match(manager,/const hasCategoryNavigation=\(\)=>filter==='active'\|\|isPassiveList\(\)/);
   assert.match(manager,/offerManualActivation\(product\)/);
   assert.match(manager,/if\(!\(product\.lifecycleStatus==='active'&&isPassiveList\(\)\)\)/);
 });
