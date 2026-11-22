@@ -387,10 +387,11 @@
         <p class="manage-help">Varsayılan KDV dahildir. Hariç seçildiğinde satış fiyatına KDV eklenerek kaydedilir.</p>
         <label>Stok miktarı (boş = takip yok)<input id="manageStock" type="number" min="0" step="any" inputmode="decimal"></label>
         <label>Ürün fotoğrafı<input id="manageImageFile" type="file" accept="image/*"></label>
+        <p id="manageImageStatus" class="manage-image-status" role="status" aria-live="polite">Fotoğraf seçebilirsiniz. Görsel kaydedilmeden önce hazırlanır.</p>
         <img id="manageImagePreview" class="manage-image-preview" alt="Seçili ürün görseli" hidden>
         <label>Görsel URL (isteğe bağlı)<input id="manageImage" type="url" placeholder="https://..."></label>
         <label class="manage-checkbox"><input id="manageRemoveImage" type="checkbox"> Mevcut görseli kaldır</label>
-        <p class="manage-help">Yüklenen fotoğraf küçültülür ve bu cihazda saklanır.</p>
+        <p class="manage-help">Seçilen fotoğraf uygun boyuta getirilir; Kaydet ile merkezi veritabanına yüklenir ve diğer cihazlarda da görünür.</p>
         <div class="manage-form-actions">
           <button id="manageCancel" type="button">‹ Listeye Dön</button>
           <button type="submit">Kaydet</button>

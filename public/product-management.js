@@ -5,6 +5,7 @@ import { getLocalSnapshot, getManagedProductHistory, saveManagedProduct, initial
 import { fetchRemoteProducts, deactivateRemoteProducts, importRemoteProducts  ,logoutAdminSession } from './remote-products.js';
 import { PRODUCT_STATUS, productStatus, isActive, countStatuses, nextProductStatus, priceWithVat } from './product-lifecycle.js';
 import { verifyPassivePin } from './passive-auth.js';
+import { prepareProductPhoto } from './product-photo.js';
 
 const $ = id => document.getElementById(id);
 const text = value => String(value ?? '');
@@ -25,29 +26,11 @@ function fillOptions(element,values,placeholder) {
     option.value=value||''; option.textContent=value||'Seçiniz'; element.append(option);
   }
 }
-function compressImage(file) {
-  if(!file || !file.type.startsWith('image/')) return Promise.reject(Error('Görsel dosyası seçiniz.'));
-  if(file.size>12*1024*1024) return Promise.reject(Error('Görsel en fazla 12 MB olabilir.'));
-  return new Promise((resolve,reject)=>{
-    const blob=URL.createObjectURL(file), img=new Image();
-    img.onload=()=>{
-      URL.revokeObjectURL(blob);
-      const maxSide=512,scale=Math.min(1,maxSide/Math.max(img.naturalWidth,img.naturalHeight));
-      const canvas=document.createElement('canvas');
-      canvas.width=Math.max(1,Math.round(img.naturalWidth*scale));
-      canvas.height=Math.max(1,Math.round(img.naturalHeight*scale));
-      canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
-      const result=canvas.toDataURL('image/webp',0.68);
-      if(!/^data:image\/webp;base64,/.test(result) || result.length>320000)
-        reject(Error('Görsel sıkıştırılamadı; daha küçük fotoğraf seçiniz.'));
-      else resolve(result);
-    };
-    img.onerror=()=>{URL.revokeObjectURL(blob);reject(Error('Görsel açılamadı.'));};
-    img.src=blob;
-  });
-}
 export function createProductManager({state,serializeMutation,refresh,announce,channel,openManageScanner}) {
   let filter='active',selection=null,created=false,uploadImage='',pendingSale=null,pendingManualActivation=null;
+  // A selected photo may still be encoding when the operator taps Save.
+  // Keep that promise and its revision tied to the current edit form.
+  let imageTask=null,imageError=null,imageRevision=0,savingProduct=false;
   let manageCategoryRoot='',manageCategorySub='',manageVisibleLimit=40;
   const managementDialog=$('manageDialog'), activationDialog=$('passiveProductDialog');
   const search=$('manageSearch'), form=$('manageEditForm'), results=$('manageResults');
@@ -251,13 +234,21 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
   }
   function imagePreview(source) {
     const img=$('manageImagePreview');
-    const url=source && (/^data:image\/webp;base64,/.test(source)?source:safeImageUrl(source));
+    const url=source && (/^data:image\/(?:webp|jpeg|png);base64,/.test(source)?source:safeImageUrl(source));
     img.hidden=!url;
     if(url) img.src=url;
     else img.removeAttribute('src');
   }
+  function imageStatus(message,state=''){
+    const element=$('manageImageStatus');
+    element.textContent=message;
+    element.dataset.status=state;
+  }
   function editProduct(product=null,barcode='') {
+    imageRevision++;
     selection=product;created=!product;uploadImage='';
+    imageTask=null;imageError=null;
+    imageStatus('Fotoğraf seçebilirsiniz. Görsel kaydedilmeden önce hazırlanır.');
     $('manageFormTitle').textContent=created?'Yeni Ürün Ekle':'Ürünü Düzenle';
     $('manageBarcodeInput').value=product?.barkod||barcode;
     $('manageName').value=product?.baslik||'';
@@ -292,7 +283,8 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
     $('manageOverview').hidden=true;form.hidden=false;results.hidden=true;
   }
   function showOverview() {
-    selection=null;created=false;
+    imageRevision++;
+    selection=null;created=false;uploadImage='';imageTask=null;imageError=null;
     form.hidden=true;$('manageOverview').hidden=false;results.hidden=false;
     countsView();
   }
@@ -342,6 +334,11 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
       const verified=snapshot.products.find(item=>item.id===product.id);
       if(!verified || productStatus(verified)!==productStatus(product))
         throw Error('Kaydedilen ürün durumu yeniden okunamadı. Ürün değiştirilmedi.');
+      // A successful product write is not sufficient: verify the photo that
+      // the next phone or PC will actually read from central D1.
+      if((action==='create'||action.startsWith('edit')) &&
+         (verified.gorsel||'')!==(product.gorsel||''))
+        throw Error('Ürün kaydedildi ancak fotoğraf merkezden doğrulanamadı. Sayfayı yenileyip yeniden deneyin.');
       channel?.postMessage('product-managed');
       // When activating from a passive subcategory, stay in that folder for
       // the next product instead of sending the operator to Active Products.
@@ -353,42 +350,68 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
   }
   async function saveForm(event,activate=false) {
     event?.preventDefault?.();
-    const barcode=$('manageBarcodeInput').value.trim(),baslik=$('manageName').value.trim(),
-      main=$('manageMainCategory').value,sub=$('manageSubCategory').value.trim();
-    if(!baslik||!main||!sub||!barcode) {announce('Barkod, ad, ana ve alt kategori gerekli.','error');return;}
-    if(state.products.some(p=>p.barkod===barcode && p.id!==selection?.id)){
-      announce('Bu barkod başka bir üründe kayıtlı.','error');return;
+    if(savingProduct)return;
+    savingProduct=true;
+    const saveButton=form.querySelector('button[type="submit"]');
+    const activateButton=$('manageSaveActivate');
+    saveButton.disabled=true;
+    activateButton.disabled=true;
+    try{
+      if(imageTask){
+        imageStatus('Seçilen fotoğrafın hazırlanması tamamlanıyor…','pending');
+        await imageTask;
+      }
+      if(imageError){
+        announce('Fotoğraf hazırlanamadı: '+imageError.message+' Başka bir fotoğraf seçin.','error');
+        imageStatus('Fotoğraf hazırlanamadı. Yeniden seçin.','error');
+        return;
+      }
+      // Do not silently create a photo-less product while a file is selected.
+      if($('manageImageFile').files?.length && !uploadImage){
+        announce('Seçilen fotoğraf hazırlanmadı. Görseli tekrar seçip kaydedin.','error');
+        return;
+      }
+      const barcode=$('manageBarcodeInput').value.trim(),baslik=$('manageName').value.trim(),
+        main=$('manageMainCategory').value,sub=$('manageSubCategory').value.trim();
+      if(!baslik||!main||!sub||!barcode){announce('Barkod, ad, ana ve alt kategori gerekli.','error');return;}
+      if(state.products.some(p=>p.barkod===barcode && p.id!==selection?.id)){
+        announce('Bu barkod başka bir üründe kayıtlı.','error');return;
+      }
+      const priceString=$('managePrice').value.trim();
+      const entered=parseLocaleNumber(priceString,NaN),vat=Number($('manageVat').value),
+        excluded=$('manageVatExcluded').checked;
+      if(!Number.isFinite(entered)||entered<0){announce('Geçerli satış fiyatı girin.','error');return;}
+      const stockString=$('manageStock').value.trim(),stock=stockString?Number(stockString):0;
+      if(!Number.isFinite(stock)||stock<0){announce('Stok miktarı geçersiz.','error');return;}
+      const purchaseString=$('managePurchase').value.trim();
+      const purchase=purchaseString?parseLocaleNumber(purchaseString,NaN):null;
+      if(purchase!==null&&(!Number.isFinite(purchase)||purchase<0)){
+        announce('Alış fiyatı geçersiz.','error');return;
+      }
+      const url=$('manageImage').value.trim();
+      if(url&&!safeImageUrl(url)){announce('Geçerli HTTPS görsel adresi giriniz.','error');return;}
+      const old=selection,finalStatus=activate?'active':old?.lifecycleStatus||'active';
+      const updated={...(old||{}),id:old?.id||newId(),barkod:barcode,baslik,
+        marka:$('manageBrand').value.trim(),alisFiyati:purchase,
+        satisFiyati:priceWithVat(entered,vat,excluded).gross,
+        girisFiyati:entered,kdv:vat,kdvBelirsiz:false,kdvExcluded:excluded,
+        fiyatBelirsiz:false,stok:stock,stokBelirsiz:!stockString,
+        birim:$('manageUnit').value,
+        kategoriAna:main,kategoriAlt:sub,kategoriYolu:[main,sub],
+        kategori:main+' > '+sub,kaynakKategori:main+' > '+sub,
+        gorsel:$('manageRemoveImage').checked?'':uploadImage||url||old?.gorsel||'',
+        lifecycleStatus:finalStatus,everActivated:old?.everActivated||activate,
+        statusChangedAt:activate?now():old?.statusChangedAt,source:'excel',
+        importFormat:'hizlisatis',
+        paraBirimi:old?.paraBirimi||'TRY',urunKodu:old?.urunKodu||barcode,
+        variantKey:old?.variantKey||barcode};
+      if(uploadImage)imageStatus('Görsel merkezi veritabanına kaydediliyor…','pending');
+      await persist(updated,old?'edit'+(activate?'-activate':''):'create');
+    }finally{
+      savingProduct=false;
+      saveButton.disabled=false;
+      activateButton.disabled=false;
     }
-    const priceString=$('managePrice').value.trim();
-    const entered=parseLocaleNumber(priceString,NaN),vat=Number($('manageVat').value),
-      excluded=$('manageVatExcluded').checked;
-    if(!Number.isFinite(entered)||entered<0) {announce('Geçerli satış fiyatı girin.','error');return;}
-    const stockString=$('manageStock').value.trim(),stock=stockString?Number(stockString):0;
-    if(!Number.isFinite(stock)||stock<0) {announce('Stok miktarı geçersiz.','error');return;}
-    const purchaseString=$('managePurchase').value.trim();
-    const purchase=purchaseString?parseLocaleNumber(purchaseString,NaN):null;
-    if(purchase!==null&&(!Number.isFinite(purchase)||purchase<0)){
-      announce('Alış fiyatı geçersiz.','error');return;
-    }
-    const url=$('manageImage').value.trim();
-    if(url&&!safeImageUrl(url)) {announce('Geçerli HTTPS görsel adresi giriniz.','error');return;}
-    const old=selection,finalStatus=activate?'active':old?.lifecycleStatus||'active';
-    // No on-device PIN on product activation; secure admin session protects writes.
-    const updated={...(old||{}),id:old?.id||newId(),barkod,baslik,
-      marka:$('manageBrand').value.trim(),alisFiyati:purchase,
-      satisFiyati:priceWithVat(entered,vat,excluded).gross,
-      girisFiyati:entered,kdv:vat,kdvBelirsiz:false,kdvExcluded:excluded,
-      fiyatBelirsiz:false,stok,stokBelirsiz:!stockString,
-      birim:$('manageUnit').value,
-      kategoriAna:main,kategoriAlt:sub,kategoriYolu:[main,sub],
-      kategori:main+' > '+sub,kaynakKategori:main+' > '+sub,
-      gorsel:uploadImage||url||($('manageRemoveImage').checked?'':old?.gorsel||''),
-      lifecycleStatus:finalStatus,everActivated:old?.everActivated||activate,
-      statusChangedAt:activate?now():old?.statusChangedAt,source:'excel',
-      importFormat:'hizlisatis',
-      paraBirimi:old?.paraBirimi||'TRY',urunKodu:old?.urunKodu||barcode,
-      variantKey:old?.variantKey||barcode};
-    await persist(updated,old?'edit'+(activate?'-activate':''):'create');
   }
   function manageScannedBarcode(barcode) {
     const exact=state.products.find(p=>p.barkod===barcode||p.urunKodu===barcode);
@@ -543,11 +566,38 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
       const url=safeImageUrl($('manageImage').value);
       if(url)imagePreview(url);
     });
-    $('manageImageFile').addEventListener('change',async event=>{
-      if(!event.target.files?.[0])return;
-      try{ uploadImage=await compressImage(event.target.files[0]);imagePreview(uploadImage);
-        announce('Görsel küçültülüp hazırlandı.','success');}
-      catch(error){announce(error.message,'error');}
+    $('manageImageFile').addEventListener('change',event=>{
+      const file=event.target.files?.[0],revision=++imageRevision;
+      uploadImage='';imageTask=null;imageError=null;
+      if(!file){
+        imageStatus('Fotoğraf seçilmedi.');
+        return;
+      }
+      $('manageRemoveImage').checked=false;
+      imageStatus('Fotoğraf hazırlanıyor… Kaydet düğmesi hazırlanmasını bekler.','pending');
+      imageTask=(async()=>{
+        try{
+          const result=await prepareProductPhoto(file);
+          if(revision!==imageRevision)return;
+          uploadImage=result;
+          imagePreview(result);
+          imageStatus('Fotoğraf hazır. Kaydet ile merkezi veritabanına yüklenecek.','ready');
+        }catch(error){
+          if(revision!==imageRevision)return;
+          imageError=error instanceof Error?error:Error(String(error));
+          imageStatus('Görsel hazırlanamadı: '+imageError.message,'error');
+          announce(imageError.message,'error');
+        }
+      })();
+    });
+    $('manageRemoveImage').addEventListener('change',event=>{
+      if(!event.target.checked)return;
+      imageRevision++;
+      imageTask=null;imageError=null;uploadImage='';
+      $('manageImageFile').value='';
+      $('manageImage').value='';
+      imagePreview('');
+      imageStatus('Fotoğraf kaldırılacak. Kaydet ile onaylayın.','ready');
     });
     $('manageScan').addEventListener('click',openManageScanner);
     $('passiveActivate').addEventListener('click',confirmSaleActivation);
