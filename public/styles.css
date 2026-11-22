@@ -2154,3 +2154,222 @@ body.view-home .clean-topbar .searchline{display:flex!important}
 @media(min-width:680px){
   .sale-sheet[open]{height:min(90dvh,790px);max-height:90dvh}
 }
+
+/* v4.7 — approved settings 2-by-4 tile grid and product-image sale layout. */
+body.view-settings .settings-view{
+  width:100%;max-width:760px;margin:0 auto;
+  padding:16px 12px 26px;border-radius:22px;
+  background:linear-gradient(142deg,#0f304f 0%,#0b5378 55%,#1b568c 100%);
+  box-shadow:0 12px 28px #173d5a19;
+}
+body.view-settings .settings-view>h1{
+  color:#fff;font-size:clamp(21px,5vw,27px);margin:4px 4px 17px;
+  letter-spacing:-.03em;
+}
+.settings-view .settings-card-grid{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;background:transparent;border:0;border-radius:0;overflow:visible;
+}
+.settings-view .settings-card-grid>.settings-tile{
+  --tile-ink:#177e5a;--tile-start:#f2fff8;--tile-end:#c9f4db;
+  --tile-edge:#46c986;
+  box-sizing:border-box;min-width:0;width:100%;height:clamp(151px,43vw,191px);
+  min-height:0;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;position:relative;isolation:isolate;
+  text-align:center;gap:7px;padding:13px 13px 22px;
+  color:#142d49;background:linear-gradient(146deg,var(--tile-start),var(--tile-end));
+  border:2px solid #ffffffed;border-radius:22px;
+  box-shadow:0 8px 15px #051f3c2a,inset 0 1px #ffffffc8;
+  overflow:hidden;transition:transform .15s ease,filter .15s ease;
+}
+.settings-view .settings-card-grid>.settings-tile::after{
+  content:'';position:absolute;z-index:-1;left:-10%;right:-10%;bottom:-34px;
+  height:51px;background:var(--tile-edge);border-radius:60% 45% 0 0;
+  transform:rotate(-3deg);opacity:.7;
+}
+.settings-view .settings-card-grid>.settings-tile:active{transform:scale(.975)}
+.settings-view .settings-card-grid>.settings-tile:focus-visible{outline:3px solid #7bd8ff;outline-offset:3px}
+.settings-view .settings-card-grid>.settings-tile .settings-tile-icon{
+  display:grid;place-items:center;flex:0 0 auto;
+  width:clamp(43px,12vw,59px);height:clamp(43px,12vw,59px);
+  color:var(--tile-ink);text-align:center;
+}
+.settings-view .settings-card-grid>.settings-tile .settings-tile-icon svg{
+  width:100%;height:100%;display:block;fill:none;stroke:none;
+}
+.settings-view .settings-card-grid>.settings-tile strong{
+  width:100%;font-size:clamp(13px,3.65vw,17px);
+  font-weight:920;line-height:1.17;letter-spacing:-.025em;
+  overflow-wrap:break-word;text-wrap:balance;color:#18314a;
+}
+.settings-view .settings-card-grid>.settings-tile small{
+  display:block;width:100%;font-size:clamp(10px,2.7vw,12px);
+  font-weight:600;line-height:1.2;color:#526c81;
+  text-wrap:balance;
+}
+.settings-view .settings-card-grid>.settings-tile b{
+  position:absolute;right:9px;bottom:10px;display:grid;place-items:center;
+  width:26px;height:26px;border-radius:50%;margin:0;
+  background:color-mix(in srgb,var(--tile-edge) 33%,white);
+  color:var(--tile-ink);font-size:24px;line-height:1;font-weight:700;
+}
+.settings-view .settings-card-grid>.settings-tile-excel{
+  --tile-ink:#0d9d54;--tile-start:#f5fff9;--tile-end:#dcf9e7;--tile-edge:#37c977;
+}
+.settings-view .settings-card-grid>.settings-tile-add{
+  --tile-ink:#1188e4;--tile-start:#f1faff;--tile-end:#d8eeff;--tile-edge:#11b8f3;
+}
+.settings-view .settings-card-grid>.settings-tile-manage{
+  --tile-ink:#ec880b;--tile-start:#fff8ef;--tile-end:#ffebd7;--tile-edge:#ffad36;
+}
+.settings-view .settings-card-grid>.settings-tile-category{
+  --tile-ink:#8047db;--tile-start:#f8f2ff;--tile-end:#e8d9ff;--tile-edge:#a16aee;
+}
+.settings-view .settings-card-grid>.settings-tile-customer{
+  --tile-ink:#ec4877;--tile-start:#fff5f8;--tile-end:#ffdeea;--tile-edge:#f6719c;
+}
+.settings-view .settings-card-grid>.settings-tile-history{
+  --tile-ink:#009cba;--tile-start:#f0fbff;--tile-end:#daf6ff;--tile-edge:#24c1e9;
+}
+.settings-view .settings-card-grid>.settings-tile-csv{
+  --tile-ink:#1d9c69;--tile-start:#f2fff8;--tile-end:#d9f7e5;--tile-edge:#62cda0;
+}
+.settings-view .settings-card-grid>.settings-tile-backup{
+  --tile-ink:#a9672a;--tile-start:#fff9ef;--tile-end:#ffe8cf;--tile-edge:#e7a96e;
+}
+.settings-view .settings-template-link{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:8px;min-height:44px;padding:10px 13px;margin-top:13px;
+  border:1px solid #bad0e8;border-radius:13px;
+  text-decoration:none;font-size:12px;font-weight:750;color:#fff;
+  background:#ffffff1b;
+}
+.settings-view .settings-template-link span{font-size:20px}
+body.view-settings .settings-view .settings-receipt{
+  margin-top:17px;border-color:#d9e4ec;
+}
+body.view-settings .settings-view .settings-catalog-count{color:#d3e7f2}
+@media(max-width:359px){
+  .settings-view .settings-card-grid{gap:8px}
+  .settings-view .settings-card-grid>.settings-tile{
+    height:160px;border-radius:17px;padding:10px 7px 20px;
+  }
+  .settings-view .settings-card-grid>.settings-tile strong{font-size:12px}
+  .settings-view .settings-card-grid>.settings-tile small{font-size:10px}
+}
+@media(prefers-reduced-motion:reduce){
+  .settings-view .settings-card-grid>.settings-tile{transition:none}
+}
+
+/* Sales header is deliberately a SINGLE ROW across compact phones. */
+.sale-sheet .sale-sheet-header{
+  display:flex;flex-direction:row;flex-wrap:nowrap;align-items:center;
+  justify-content:space-between;gap:clamp(3px,1vw,9px);
+  min-width:0;min-height:70px;padding:calc(11px + env(safe-area-inset-top)) 9px 10px;
+}
+.sale-sheet .sale-heading{display:flex;flex:0 1 auto;align-items:center;gap:4px;min-width:0;white-space:nowrap}
+.sale-sheet .sale-heading-icon{font-size:clamp(16px,3.8vw,23px);line-height:1;flex:none}
+.sale-sheet .sale-heading h2{font-size:clamp(16px,4.15vw,23px);white-space:nowrap}
+.sale-sheet .sale-count-pill{font-size:clamp(9px,2.45vw,12px);padding:5px 6px;gap:3px;flex:none}
+.sale-sheet .sale-count{font-size:inherit}
+.sale-sheet .sale-header-actions{display:flex;flex:0 0 auto;gap:clamp(2px,.7vw,6px);align-items:center;min-width:0;margin-left:auto}
+.sale-sheet .sale-header-actions button{
+  box-sizing:border-box;min-width:0;min-height:36px;height:36px;
+  padding:3px clamp(4px,1.1vw,9px);
+  font-size:clamp(12px,3vw,16px);border-radius:14px;gap:3px;
+  white-space:nowrap;line-height:1;
+}
+.sale-sheet .sale-header-actions .sale-header-back span,
+.sale-sheet .sale-header-actions .sale-header-close span,
+.sale-sheet .sale-header-actions .sale-header-cancel span{
+  font-size:clamp(9px,2.45vw,12px);font-weight:850;
+}
+.sale-sheet .sale-header-actions .sale-header-cancel{
+  border-radius:13px;background:linear-gradient(140deg,#d84f60,#ae3653);
+}
+@media(max-width:369px){
+  .sale-sheet .sale-heading-icon{display:none}
+  .sale-sheet .sale-header-actions .sale-header-back span,
+  .sale-sheet .sale-header-actions .sale-header-close span{display:none}
+  .sale-sheet .sale-header-actions button{min-width:34px;padding:3px 5px}
+}
+@media(min-width:500px){
+  .sale-sheet .sale-sheet-header{gap:10px;padding-left:15px;padding-right:15px}
+  .sale-sheet .sale-header-actions button{min-height:43px;height:43px;padding:5px 10px}
+}
+/* Product photos and editing buttons remain in a scrollable central list.
+   Only real catalog image sources are used; category emoji remains fallback. */
+.sale-sheet .cart-items{
+  display:block;min-height:0;overflow-y:auto;
+  padding:10px 11px 14px;
+  background:linear-gradient(170deg,#f7faff,#edf3fa);
+}
+.sale-sheet .cart-line{
+  display:grid;grid-template-columns:clamp(68px,20vw,98px) minmax(0,1fr);
+  align-items:center;gap:10px;padding:10px;
+  margin:0 0 8px;border:1px solid #dce7f3;border-radius:17px;
+  background:#fff;box-shadow:0 3px 12px #153d5b0d;
+}
+.sale-sheet .sale-cart-media{
+  position:relative;display:grid;place-items:center;
+  width:100%;height:clamp(77px,22vw,108px);
+  border-radius:12px;background:linear-gradient(140deg,#f5f9fe,#fff);
+  overflow:hidden;
+}
+.sale-sheet .sale-cart-emoji{font-size:35px;line-height:1}
+.sale-sheet .sale-cart-product-image{
+  position:absolute;inset:0;width:100%;height:100%;
+  object-fit:contain;border-radius:11px;background:#fff;
+}
+.sale-sheet .sale-cart-info{min-width:0}
+.sale-sheet .sale-product-row{
+  display:flex;align-items:flex-start;justify-content:space-between;
+  gap:6px;min-width:0;
+}
+.sale-sheet .sale-product-row .cart-line-name{
+  font-size:clamp(11px,3.25vw,14px);font-weight:850;
+  line-height:1.22;min-width:0;flex:1;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+  overflow:hidden;
+}
+.sale-sheet .sale-line-price{
+  font-size:clamp(11px,3.1vw,15px);flex:none;white-space:nowrap;
+  color:#08754f;font-weight:950;
+}
+.sale-sheet .sale-line-actions{display:flex;align-items:center;gap:7px;margin-top:9px;min-width:0}
+.sale-sheet .sale-line-actions .stepper{
+  width:clamp(112px,33vw,145px);max-width:58%;
+  height:38px;flex:0 1 auto;border-radius:10px;
+  border:1px solid #bacddd;
+}
+.sale-sheet .sale-line-actions .stepper button{flex:0 0 33px;height:37px;min-width:30px}
+.sale-sheet .sale-line-actions .stepper input{font-size:14px}
+.sale-sheet .sale-line-actions .sale-line-more{
+  display:flex;justify-content:flex-end;min-width:37px;
+}
+.sale-sheet .sale-line-more>summary{
+  height:38px;width:38px;margin-left:auto;
+  border-radius:11px;font-size:23px;
+}
+.sale-sheet .sale-line-actions .remove-button{
+  flex:none;width:38px;height:38px;margin:0;
+  border:1px solid #f3d8d8;border-radius:11px;
+  background:#fff2f2;color:#b92a32;font-size:24px;
+}
+/* Keep the approved four payment tiles and large checkout CTA, without
+   duplicating Home/Products/Settings navigation inside the sale modal. */
+.sale-sheet .checkout-area{padding-bottom:calc(15px + env(safe-area-inset-bottom))}
+.sale-sheet #completeSale{margin-top:11px}
+@media(max-width:410px){
+  .sale-sheet .cart-line{gap:7px;padding:8px}
+  .sale-sheet .sale-line-actions{gap:4px}
+  .sale-sheet .sale-line-actions .stepper{max-width:55%;width:108px}
+  .sale-sheet .sale-line-more>summary{width:33px}
+  .sale-sheet .sale-line-actions .remove-button{width:33px}
+}
+.device-backup-dialog{max-width:min(93vw,480px);width:100%;padding:0 0 17px;max-height:88dvh;overflow-y:auto}
+.device-backup-body{padding:16px;display:grid;gap:12px}
+.device-backup-body>p{font-size:12px;line-height:1.5;color:#4d647b;margin:0}
+.device-backup-body>label{font-size:13px;font-weight:800;color:#1f4862}
+.device-backup-body>input{font-size:13px;max-width:100%;border:1px solid #cfdeea;padding:12px;border-radius:10px}
+.device-backup-body>#backupStatus{font-weight:750;color:#146955}
