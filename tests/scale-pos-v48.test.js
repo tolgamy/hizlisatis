@@ -7,6 +7,8 @@ import {
   calculateWeightTotal,parseScaleReading,ScaleSerialConnection
 } from '../public/scale-serial.js';
 import {receiptAsText} from '../public/receipt-share.js';
+import 'fake-indexeddb/auto';
+import {openDB,saveSale} from '../public/idb.js';
 
 const read=name=>readFileSync(new URL('../public/'+name,import.meta.url),'utf8');
 const app=read('app.js'),html=read('index.html'),css=read('styles.css'),
@@ -113,4 +115,31 @@ test('Weight modal, receipt and checkout preserve distinct measured line values'
   ],total:118.44,currency:'TRY',payment:'Kart'};
   const text=receiptAsText(sale);
   assert.match(text,/0,564 kg x 210,00\/kg = 118,44/);
+});
+
+test('saving two weighed packages of the same D1 product records one summed stock movement',async()=>{
+  const id='scale::stock::integration';
+  const product={id,barkod:'9780010000234',baslik:'Muz KG',
+    birim:'kg',satisFiyati:210,stok:2,stokBelirsiz:false,
+    lifecycleStatus:'active',paraBirimi:'TRY'};
+  const originalFetch=globalThis.fetch;
+  let askedIds;
+  globalThis.fetch=async url=>{
+    const u=new URL(url,'https://example.com');
+    askedIds=JSON.parse(u.searchParams.get('ids'));
+    return Response.json({products:[product],bulkAt:null});
+  };
+  try{
+    const sale={id:'scale-sale-integration',payment:'Kart',createdAt:new Date().toISOString(),
+      items:[{id,quantity:.564,unitPrice:210,total:118.44},
+        {id,quantity:.750,unitPrice:210,total:157.50}],total:275.94};
+    await saveSale(sale);
+    assert.deepEqual(askedIds,[id],'remote reads unique products only');
+    const db=await openDB();
+    const req=db.transaction('adjustments','readonly').objectStore('adjustments').get(id);
+    const row=await new Promise((resolve,reject)=>{
+      req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);
+    });
+    assert.equal(row.soldQuantity,1.314,'no lost stock update from two rows sharing an id');
+  }finally{globalThis.fetch=originalFetch;}
 });
