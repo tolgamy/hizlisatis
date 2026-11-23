@@ -5803,3 +5803,71 @@ body.auth-locked #app{display:none!important}
     line-height:1;
   }
 }
+
+
+/* v79 — desktop payment-stack continue button.
+   Relocate the ORIGINAL live cart action under Other Payment; mobile retains
+   its existing bottom bar. Exact 58px geometry matches the checkout controls. */
+.desktop-continue-slot{display:none}
+@media (min-width:1024px) and (min-height:600px) and (orientation:landscape) and (hover:hover) and (pointer:fine) {
+  #saleView .desktop-continue-slot{
+    display:block;
+    width:100%;
+    min-width:0;
+    flex:0 0 auto;
+    margin:-1px 0 0;
+  }
+  #saleView .desktop-continue-slot > #openCart.cart-summary{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto 13px;
+    align-items:center;
+    column-gap:7px;
+    width:100%!important;
+    max-width:none!important;
+    height:58px!important;
+    min-height:58px!important;
+    max-height:58px!important;
+    margin:0!important;
+    padding:7px 12px!important;
+    border:0;
+    border-radius:12px!important;
+    color:#fff;
+    background:linear-gradient(112deg,#198cf0,#0862dc)!important;
+    box-shadow:0 3px 10px #0c5cbe22;
+    pointer-events:auto;
+    text-align:left;
+  }
+  #saleView .desktop-continue-slot > #openCart.cart-summary .cart-icon{
+    display:none!important;
+  }
+  #saleView .desktop-continue-slot > #openCart.cart-summary .cart-label{
+    min-width:0;
+    margin:0;
+    gap:2px;
+  }
+  #saleView .desktop-continue-slot > #openCart.cart-summary .cart-label strong{
+    font-size:clamp(12px,.98vw,15px);
+    line-height:1.1;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  #saleView .desktop-continue-slot > #openCart.cart-summary .cart-label small{
+    font-size:10px;
+    line-height:1.15;
+    white-space:nowrap;
+  }
+  #saleView .desktop-continue-slot > #openCart.cart-summary .cart-total{
+    margin-left:0;
+    font-size:clamp(12px,.98vw,17px);
+    font-weight:900;
+    white-space:nowrap;
+    font-variant-numeric:tabular-nums;
+    letter-spacing:-.04em;
+  }
+  #saleView .desktop-continue-slot > #openCart.cart-summary .chevron{
+    justify-self:end;
+    font-size:20px;
+    line-height:1;
+  }
+}
