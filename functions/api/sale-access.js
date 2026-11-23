@@ -7,6 +7,10 @@ import {accessEnabled,accessConfigError,currentAccessUser,hasPermission} from '.
 const headers={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'};
 const reply=(v,status=200)=>Response.json(v,{status,headers});
 export async function onRequestPost({request,env}){
+  // When central receipts are required, block cached pre-upgrade clients.
+  // The new checkout uses /api/sales so it cannot bypass atomic receipt+credit.
+  if(env?.CENTRAL_SALES_ENABLED==='true')
+    return reply({error:'Satış ekranı güncellendi. Sayfayı yenileyin.'},409);
   if(!allowAdminRequestOrigin(request))return reply({error:'Kaynak doğrulanamadı.'},403);
   if(!accessEnabled(env)||accessConfigError(env))
     return reply({error:'Güvenli giriş henüz etkin değil veya kurulumu eksik.'},503);
