@@ -344,7 +344,7 @@ function finishSaleExit({discard=false}={}) {
     state.cart.clear();
     state.basketDiscountPct=0;state.basketDiscountInvalid=false;
     $('basketDiscountPct').value='';$('basketDiscountError').hidden=true;
-    state.pendingCreditSale=null;
+    state.pendingSale=null;
     dom.cash.value='';
     customerManager?.clearSelection();
     document.querySelector('input[name="payment"][value="Nakit"]').checked=true;
