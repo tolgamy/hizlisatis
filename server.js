@@ -21,6 +21,7 @@ import * as catalogSeed from './functions/api/catalog-seed.js';
 import * as adminSession from './functions/api/admin-session.js';
 import * as image from './functions/api/image.js';
 import * as centralSales from './veridyen/central-sales.js';
+import * as creditPayments from './veridyen/credit-payments.js';
 
 const ROOT=resolve(fileURLToPath(new URL('./public/',import.meta.url)));
 const API=new Map([
@@ -28,7 +29,8 @@ const API=new Map([
   ['/api/customers',customers],['/api/category-images',categoryImages],
   ['/api/central-health',centralHealth],['/api/sale-access',saleAccess],
   ['/api/catalog-seed',catalogSeed],['/api/admin-session',adminSession],
-  ['/api/image',image],['/api/sales',centralSales]
+  ['/api/image',image],['/api/sales',centralSales],
+  ['/api/credit-payments',creditPayments]
 ]);
 const MIME={
   '.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8',
