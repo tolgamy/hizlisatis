@@ -8,10 +8,14 @@
     "build": "node scripts/build.mjs",
     "dev": "wrangler pages dev public",
     "test": "node --test tests/*.test.js",
-    "check": "npm test && npm run build"
+    "check": "npm test && npm run build",
+    "veridyen:inspect": "node veridyen/import-d1.mjs",
+    "veridyen:server": "node server.js"
   },
   "dependencies": {
-    "html5-qrcode": "2.3.8"
+    "html5-qrcode": "2.3.8",
+    "mysql2": "^3.15.3",
+    "sql.js": "^1.13.0"
   },
   "devDependencies": {
     "wrangler": "^4.0.0",
