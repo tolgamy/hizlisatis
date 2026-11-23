@@ -75,6 +75,10 @@ async function ready(){
       DB.prepare('SELECT COUNT(*) AS n FROM app_users').first()
     ]);
     checkCache.valid=Number(count?.n)>=19096&&Number(seed?.value)===19096&&Number(user?.n)>=1;
+    // When central receipts are enabled, fail closed if the additive schema
+    // was not installed, instead of accepting checkout into nowhere.
+    if(process.env.CENTRAL_SALES_ENABLED==='true')
+      await DB.prepare('SELECT id FROM pos_sales LIMIT 1').first();
   }catch{checkCache.valid=false;}
   checkCache.until=Date.now()+5000;
   return checkCache.valid;
