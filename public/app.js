@@ -211,6 +211,21 @@ function closeDesktopWorkspaceForNavigation() {
     if(dom.historyDialog.open)dom.historyDialog.close();
   }
 }
+/** Reuse the original cart-continue button in the desktop checkout stack.
+ * The control is never cloned: all existing listeners and live totals survive.
+ * Other pages and handheld views keep the existing bottom-bar placement. */
+function placeCartContinueForViewport() {
+  const button=$('openCart');
+  const slot=$('desktopContinueSlot');
+  const shell=document.querySelector('#app .bottom-shell');
+  const nav=shell?.querySelector('.bottom-nav');
+  if(!button||!slot||!shell||!nav)return;
+  if(useDesktopWorkspace()&&state.view==='sale'){
+    if(button.parentElement!==slot)slot.append(button);
+  }else if(button.parentElement!==shell){
+    shell.insertBefore(button,nav);
+  }
+}
 /** Navigation and home dashboard never replace IndexedDB records. */
 function updateNavigation() {
   const sale=isSaleActive(),reports=isReportsActive();
@@ -243,6 +258,7 @@ function updateNavigation() {
     el.classList.toggle('active',yes);
     if(yes)el.setAttribute('aria-current','page');else el.removeAttribute('aria-current');
   }
+  placeCartContinueForViewport();
 }
 function navigate(hash) { if(location.hash!==hash) location.hash=hash; else applyRoute(); }
 function applyRoute() {
