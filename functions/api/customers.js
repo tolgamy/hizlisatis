@@ -64,8 +64,8 @@ export async function onRequestPost({request,env}) {
     await ensure(db);
     const action=data?.action;
     // Veresiye borcu merkezi fişle aynı InnoDB transaction içinde yazılmalı.
-    if(action==='sale'&&env?.CENTRAL_SALES_ENABLED==='true')
-      return fail('Veresiye satışlar merkezi fiş kaydı üzerinden yapılmalıdır.',409);
+    if((action==='sale'||action==='collect')&&env?.CENTRAL_SALES_ENABLED==='true')
+      return fail('Eski veresiye işlemi devre dışı. Sayfayı yenileyin.',409);
     if(action==='upsert') {
       const p=data.customer||{},name=trim(p.name,150),phone=trim(p.phone,25),key=phoneKey(phone);
       if(!name||!key)return fail('Ad/işletme adı ve geçerli telefon zorunludur.');
