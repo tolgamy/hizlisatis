@@ -4,8 +4,8 @@
 -- Character set and case-insensitive collation preserve Turkish names.
 -- Import the D1 data snapshot AFTER this schema is installed.
 CREATE TABLE IF NOT EXISTS app_meta (
-  \`key\` VARCHAR(255) COLLATE utf8mb4_bin NOT NULL PRIMARY KEY,
-  \`value\` LONGTEXT NOT NULL
+  `key` VARCHAR(255) COLLATE utf8mb4_bin NOT NULL PRIMARY KEY,
+  `value` LONGTEXT NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS app_users (
