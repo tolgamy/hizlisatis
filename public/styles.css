@@ -1189,10 +1189,11 @@ body.view-home .clean-topbar .searchline{display:flex!important}
   text-align:left;
   box-shadow:0 3px 14px #12294310;
 }
+/* Both summary cards share the same neutral surface. No filled blue sales tile. */
 .dashboard-metric-sales{
-  color:#fff;
-  border-color:#176edf;
-  background:linear-gradient(125deg,#2c9bf4,#0753cf);
+  color:#16304d;
+  border-color:#e7e9ed;
+  background:#fff;
 }
 .dashboard-metric-icon{
   flex:none;
