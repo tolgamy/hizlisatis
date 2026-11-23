@@ -5774,7 +5774,7 @@ body.auth-locked #app{display:none!important}
     display:block;
     width:100%;
     min-width:0;
-    font-size:clamp(14px,4.1vw,22px);
+    font-size:clamp(15px,5vw,24px);
     font-weight:950;
     line-height:1.18;
     letter-spacing:-.04em;
