@@ -20,6 +20,7 @@ import * as saleAccess from './functions/api/sale-access.js';
 import * as catalogSeed from './functions/api/catalog-seed.js';
 import * as adminSession from './functions/api/admin-session.js';
 import * as image from './functions/api/image.js';
+import * as centralSales from './veridyen/central-sales.js';
 
 const ROOT=resolve(fileURLToPath(new URL('./public/',import.meta.url)));
 const API=new Map([
@@ -27,7 +28,7 @@ const API=new Map([
   ['/api/customers',customers],['/api/category-images',categoryImages],
   ['/api/central-health',centralHealth],['/api/sale-access',saleAccess],
   ['/api/catalog-seed',catalogSeed],['/api/admin-session',adminSession],
-  ['/api/image',image]
+  ['/api/image',image],['/api/sales',centralSales]
 ]);
 const MIME={
   '.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8',
@@ -57,7 +58,9 @@ const env={
   ADMIN_INITIAL_USER:process.env.ADMIN_INITIAL_USER||'admin',
   AUTH_V2_ENABLED:process.env.AUTH_V2_ENABLED,
   // Cloudflare image transformations are not available on generic Node hosting.
-  ENABLE_IMAGE_RESIZE:'false'
+  ENABLE_IMAGE_RESIZE:'false',
+  MYSQL_POOL:pool,
+  CENTRAL_SALES_ENABLED:process.env.CENTRAL_SALES_ENABLED
 };
 const HEADERS={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'};
 const json=(data,status=200)=>Response.json(data,{status,headers:HEADERS});
