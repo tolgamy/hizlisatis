@@ -20,6 +20,7 @@ import { createProductManager } from './product-management.js';
 import { checkRemoteProductStates } from './remote-products.js';
 import { createCustomerManager } from './customer-ui.js';
 import { recordCustomerCredit } from './customer-api.js';
+import { isCentralSalesEnabled,saveCentralSale,getSalesForReports } from './central-sales.js';
 import { readReceiptSettings,saveReceiptSettings,receiptPrintLayout,readReceiptAction,saveReceiptAction } from './receipt-settings.js';
 import { parseBasketDiscountPercent,calculateBasketTotals } from './basket-pricing.js';
 import { readPickerMode,savePickerMode } from './picker-preferences.js';
@@ -34,7 +35,7 @@ const state = {
   products: [], byId: new Map(), byBarcode: new Map(), categoryProductPhotos: new Map(), lifecycleMeta: null, legacyPending: false,
   catalogLoading:true,catalogProgress:0,catalogError:'',centralReadOnly:false,
   sold: new Map(), cart: new Map(), basketDiscountPct:0, basketDiscountInvalid:false, category: '', brand: '',
-  search: '', meta: null, sales: [], lastSale: null, pendingCreditSale:null,
+  search: '', meta: null, sales: [], lastSale: null, pendingSale:null,
   saving: false, scanner: null, scanPurpose: 'sale',
   excelCount: 0, bundleCount: 0, bundleLoading: false, categoryPage: '', excelPreview: null, excelUploading: false, browseAll: false,
   view: 'home', catalogMode: 'categories', catalogEntry: 'categories', categoryTreeData: [], expandedProductCategory: '',
@@ -806,8 +807,12 @@ async function refreshHomeSales() {
   const requestId=++homeSalesReadId;
   $('homeTodaySales').textContent='…';
   try {
-    const sales=await getSales();
+    const {sales,central}=await getSalesForReports(getSales);
     if(requestId!==homeSalesReadId)return;
+    const homeNote=document.querySelector('#homeTodaySalesButton small');
+    if(homeNote)homeNote.textContent=central?'Tüm cihazların merkezi satışları':'Bu cihazdaki satışlar';
+    const recentNote=document.querySelector('#homeRecentSalesCard .home-insight-heading span');
+    if(recentNote)recentNote.textContent=central?'Merkezi satışlar':'Yalnızca bu cihaz';
     const today=new Date().toDateString();
     const amount=sales.reduce((sum,sale)=>{
       const date=new Date(sale.createdAt);
@@ -1492,16 +1497,16 @@ async function completeSale() {
       announce((current?.baslik||'Ürün')+' için yeterli stok yok.','error');return;
     }
   }
-  // Keep the same id if a central credit write succeeded but local storage failed;
-  // the server ledger rejects duplicates and avoids double-charging a customer.
-  const creditFingerprint=payment==='Veresiye'?
-    JSON.stringify([creditCustomer.id,sum.total,sum.basketDiscountPct,[...state.cart.values()].map(x=>[x.id,x.quantity,x.unitPrice,x.discountPct])]):'';
-  if(payment==='Veresiye'&&state.pendingCreditSale?.fingerprint!==creditFingerprint)
-    state.pendingCreditSale={fingerprint:creditFingerprint,id:crypto.randomUUID()};
+  // Preserve exactly the same receipt on uncertain network retries (all payments).
+  // Changing the cart creates a new immutable receipt ID.
+  const saleFingerprint=JSON.stringify([payment,creditCustomer?.id||'',cash,
+    sum.total,sum.basketDiscountPct,[...state.cart.values()].map(x=>
+      [x.id,x.quantity,x.unitPrice,x.discountPct])]);
   const {allocations,...saleTotals}=sum;
-  const record = {
-    id: payment==='Veresiye'?state.pendingCreditSale.id:
-      typeof crypto.randomUUID === 'function' ? crypto.randomUUID() :
+  const previousReceipt=state.pendingSale?.fingerprint===saleFingerprint?
+    state.pendingSale.record:null;
+  const record = previousReceipt||{
+    id: typeof crypto.randomUUID === 'function' ? crypto.randomUUID() :
       `sale-${Date.now()}-${Math.random().toString(36).slice(2)}`,
     createdAt: new Date().toISOString(), payment,
     currency: cartCurrency(),creditName:payment==='Veresiye'?creditName:'',
@@ -1518,14 +1523,25 @@ async function completeSale() {
       netTotal:allocations[index].netTotal,vat:allocations[index].vat
     }))
   };
+  state.pendingSale={fingerprint:saleFingerprint,record};
   state.saving = true; dom.complete.disabled = true;
   try {
     // Check server-side account/discount/veresiye rights before any central
     // customer ledger write or this device's IndexedDB sale mutation.
-    await authorizeCheckout(record);
-    if(payment==='Veresiye')await recordCustomerCredit(creditCustomer.id,record);
-    await serializeMutation(() => saveSale(record));
-    state.pendingCreditSale=null;
+    let localMirrorFailed=false;
+    if(await isCentralSalesEnabled()){
+      // Central receipt and credit ledger commit atomically; only then update
+      // optional device cache. Never redo the debt if local mirroring fails.
+      await saveCentralSale(record);
+      try{await serializeMutation(() => saveSale(record));}
+      catch{localMirrorFailed=true;}
+    }else{
+      // Legacy route stays available until explicit, tested central cutover.
+      await authorizeCheckout(record);
+      if(payment==='Veresiye')await recordCustomerCredit(creditCustomer.id,record);
+      await serializeMutation(() => saveSale(record));
+    }
+    state.pendingSale=null;
     for (const line of record.items) state.sold.set(line.id, (state.sold.get(line.id) || 0) + line.quantity);
     state.lastSale = record; state.cart.clear();
     state.basketDiscountPct=0;state.basketDiscountInvalid=false;
@@ -1540,7 +1556,7 @@ async function completeSale() {
     renderProducts(); renderCartBar(); renderHome();
     refreshHomeSales().catch(()=>{});
     channel?.postMessage('sale-updated');
-    announce(`Satış kaydedildi: ${money(record.total, record.currency)}`, 'success');
+    announce(localMirrorFailed?'Satış merkezi kaydedildi; bu cihazdaki kopya güncellenemedi.':'Satış kaydedildi: '+money(record.total,record.currency),localMirrorFailed?'error':'success');
     $('receiptActionsTotal').textContent = money(record.total, record.currency);
     $('receiptActionStatus').textContent = '';
     applyReceiptActionPreference();
@@ -1735,8 +1751,8 @@ async function shareReceiptPdf(sale) {
     button.disabled=false;
   }
 }
-/** Compact read-only report from THIS device's real local sales only.
- * Never claim company-wide turnover or invent KPI values from mockups.
+/** Compact report sourced centrally when central sales is enabled.
+ * Otherwise report only this device's receipts; never fabricate values.
  * Non-TRY currencies are excluded from sums, not converted or combined.
  */
 function renderHistorySummary(sales){
@@ -1781,7 +1797,11 @@ function renderHistorySummary(sales){
 let reportsPageLoaded=false;
 async function showHistory() {
   try {
-    state.sales = (await getSales()).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    const {sales,central}=await getSalesForReports(getSales);
+    state.sales = sales.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    const note=document.querySelector('.history-device-note');
+    if(note)note.textContent=central?'Merkezi satışlar · Tüm cihazlar · Eski yerel fişler dahil değil':'Bu cihazın kayıtları · Diğer kasalar dahil değildir';
+    $('historySummary').setAttribute('aria-label',central?'Merkezi satış raporu':'Bu cihazın satış raporu');
     renderHistorySummary(state.sales);
     $('historyCount').textContent = `${state.sales.length} satış`;
     dom.historyItems.replaceChildren();
@@ -1818,7 +1838,7 @@ function csvCell(value) {
 }
 async function exportHistory() {
   try {
-  const savedSales=await getSales();
+  const savedSales=(await getSalesForReports(getSales)).sales;
   const header = ['Fiş No','Tarih','Ödeme','Müşteri','Para Birimi','Toplam','Ürün Kodu',
     'Barkod','Ürün','Adet','Birim Fiyat','İskonto %','Satır Toplamı','KDV',
     'Sepet İskontosu %','Sepet İskontosu Tutarı','Toplam İskonto'];
