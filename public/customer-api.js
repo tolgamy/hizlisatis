@@ -1,3 +1,4 @@
+import {isCentralSalesEnabled} from './central-sales.js';
 /** Authenticated D1 customer account requests, sharing the existing 30-day
  * signed HttpOnly administration session with product editing.
  */
@@ -38,6 +39,29 @@ export async function recordCustomerCredit(customerId,sale) {
   return requestCustomer('POST',{action:'sale',id:sale.id,customerId,amount:sale.total,
     notes:'Fiş: '+sale.id.slice(0,12)});
 }
+// Hold an immutable transaction ID across ambiguous network errors.
+// Once the server confirms success, a fresh collection gets a fresh ID.
+let pendingCollection=null;
 export async function collectCustomerDebt(customerId,amount,payment,notes) {
-  return requestCustomer('POST',{action:'collect',id:crypto.randomUUID(),customerId,amount,payment,notes});
+  const fingerprint=JSON.stringify([customerId,amount,payment,notes]);
+  if(pendingCollection?.fingerprint!==fingerprint)
+    pendingCollection={fingerprint,id:crypto.randomUUID()};
+  const id=pendingCollection.id;
+  let result;
+  if(await isCentralSalesEnabled()){
+    let response;
+    try{
+      response=await fetch('/api/credit-payments',{
+        method:'POST',credentials:'same-origin',cache:'no-store',
+        headers:{'Content-Type':'application/json','Accept':'application/json'},
+        body:JSON.stringify({id,customerId,amount,payment,notes})
+      });
+    }catch{throw Error('Tahsilatın sunucuya ulaşıp ulaşmadığı bilinmiyor. Aynı işlemi tekrar deneyin.');}
+    result=await response.json().catch(()=>({}));
+    if(!response.ok)throw Error(result.error||'Merkezi tahsilat hatası.');
+  }else{
+    result=await requestCustomer('POST',{action:'collect',id,customerId,amount,payment,notes});
+  }
+  pendingCollection=null;
+  return result;
 }
