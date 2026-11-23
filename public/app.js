@@ -740,6 +740,25 @@ function renderHomeRecentSales(sales){
     row.append(date,price);list.append(row);
   }
 }
+// Scale long live totals to their actual mobile card width, not to mockup data.
+// CSS gives normal amounts the largest readable size; only overflow is reduced.
+function fitHomeMetricNumbers() {
+  const mobile=window.matchMedia('(max-width:679px)').matches;
+  for(const id of ['homeTodaySales','homeTotalProducts']) {
+    const element=$(id);
+    if(!element)continue;
+    element.style.removeProperty('font-size');
+    if(!mobile||!element.clientWidth)continue;
+    let size=Number.parseFloat(window.getComputedStyle(element).fontSize);
+    let steps=0;
+    while(element.scrollWidth>element.clientWidth+1&&size>10&&steps++<40) {
+      size=Math.max(10,size-0.5);
+      element.style.fontSize=`${size}px`;
+    }
+  }
+}
+window.addEventListener('resize',fitHomeMetricNumbers);
+
 function renderHome() {
   // Both devices display the SAME twelve categories from the one D1-backed
   // category tree. CSS switches from mobile Products to desktop Home; no
@@ -762,6 +781,7 @@ function renderHome() {
   // A deleted record should not inflate the central catalogue count.
   $('homeTotalProducts').textContent=state.products.length?
     state.products.filter(product=>productStatus(product)!=='deleted').length.toLocaleString('tr-TR'):'—';
+  fitHomeMetricNumbers();
 }
 let homeSalesReadId=0;
 async function refreshHomeSales() {
@@ -780,9 +800,11 @@ async function refreshHomeSales() {
         ? sum+Number(sale.total):sum;
     },0);
     $('homeTodaySales').textContent=money(round2(amount),'TRY');
+    fitHomeMetricNumbers();
     if(typeof renderHomeRecentSales==='function')renderHomeRecentSales(sales);
   } catch {
     if(requestId===homeSalesReadId)$('homeTodaySales').textContent='—';
+    fitHomeMetricNumbers();
   }
 }
 function openProductDetail(product) {
