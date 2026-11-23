@@ -21,7 +21,7 @@ import * as catalogSeed from './functions/api/catalog-seed.js';
 import * as adminSession from './functions/api/admin-session.js';
 import * as image from './functions/api/image.js';
 
-const ROOT=fileURLToPath(new URL('./public/',import.meta.url));
+const ROOT=resolve(fileURLToPath(new URL('./public/',import.meta.url)));
 const API=new Map([
   ['/api/auth',auth],['/api/users',users],['/api/product-state',productState],
   ['/api/customers',customers],['/api/category-images',categoryImages],
@@ -148,4 +148,4 @@ async function app(req,res){
 const server=createServer((req,res)=>{app(req,res).catch(()=>{
   if(!res.headersSent)res.writeHead(500,HEADERS);res.end('Internal error');
 });});
-server.listen(process.env.PORT||3000,()=>console.log('HızlıSatış Veridyen staging adapter started'));
+server.listen(Number(process.env.PORT||3000),()=>console.log('HızlıSatış Veridyen staging adapter started'));
