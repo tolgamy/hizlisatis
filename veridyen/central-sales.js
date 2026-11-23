@@ -103,14 +103,26 @@ export async function onRequestPost({request,env}){
   try{
     conn=await env.MYSQL_POOL.getConnection();
     await conn.beginTransaction();
-    // Lock customer before reading credit-limit and ledger balance.
-    if(details.credit)await lockCreditCustomer(conn,details.customerId,details.totalCents);
+    // Check idempotency BEFORE credit limit: retrying an already accepted
+    // credit sale must not fail because the customer balance later changed.
     const before=await existingReceipt(conn,record.id);
     if(before){
       await conn.commit();
       return before.payload_hash===hash?
         reply({ok:true,id:record.id,duplicate:true}):
         reply({error:'Fiş numarası başka bir satışta kullanılmış.'},409);
+    }
+    // Serialize credit limits across devices using the customer row lock.
+    // Re-check the receipt after acquiring it to handle concurrent retries.
+    if(details.credit){
+      await lockCreditCustomer(conn,details.customerId,details.totalCents);
+      const concurrent=await existingReceipt(conn,record.id);
+      if(concurrent){
+        await conn.commit();
+        return concurrent.payload_hash===hash?
+          reply({ok:true,id:record.id,duplicate:true}):
+          reply({error:'Fiş numarası başka bir satışta kullanılmış.'},409);
+      }
     }
     await verifyProducts(conn,record,details.ids,user);
     await conn.execute(
