@@ -5734,39 +5734,71 @@ body.auth-locked #app{display:none!important}
     padding-bottom:calc(130px + env(safe-area-inset-bottom));
   }
 
+  /* Approved two-card mobile summary: no icons, equal-width side-by-side
+     cards, values and captions kept on a single readable line. */
+  #homeView .dashboard-metrics {
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    align-items:stretch;
+    gap:clamp(7px,2vw,12px);
+  }
   #homeView .dashboard-metric {
     position:relative;
-    padding:10px 11px;
+    display:flex;
+    align-items:center;
+    width:100%;
+    min-width:0;
+    min-height:110px;
+    padding:clamp(10px,2.7vw,14px);
     gap:0;
-    min-height:105px;
-  }
-  #homeView .dashboard-metric-icon {
-    position:absolute;
-    top:10px;
-    right:11px;
-    width:28px;
-    height:28px;
-    font-size:20px;
+    overflow:hidden;
+    border-radius:clamp(14px,3.7vw,20px);
   }
   #homeView .dashboard-metric-body {
-    width:100%;
+    display:flex;
     flex:1 1 auto;
+    flex-direction:column;
     justify-content:center;
+    gap:5px;
+    width:100%;
+    min-width:0;
+    padding-right:12px;
   }
   #homeView .dashboard-metric-body>span {
-    padding-right:26px;
-    font-size:clamp(11px,3.1vw,15px);
+    min-width:0;
+    padding-right:0;
+    font-size:clamp(11px,3.25vw,16px);
+    line-height:1.18;
+    white-space:nowrap;
   }
   #homeView .dashboard-metric-body>strong {
+    display:block;
+    width:100%;
+    min-width:0;
+    font-size:clamp(14px,4.1vw,22px);
+    font-weight:950;
+    line-height:1.18;
+    letter-spacing:-.04em;
+    font-variant-numeric:tabular-nums;
     white-space:nowrap;
     overflow-wrap:normal;
-    font-size:clamp(17px,4.3vw,22px);
-    letter-spacing:-.04em;
+    overflow:visible;
+  }
+  #homeView .dashboard-metric-products .dashboard-metric-body>strong {
+    font-size:clamp(17px,5vw,26px);
   }
   #homeView .dashboard-metric-body>small {
-    font-size:clamp(9px,2.4vw,11px);
+    min-width:0;
+    font-size:clamp(9px,2.45vw,11px);
+    line-height:1.18;
+    white-space:nowrap;
   }
   #homeView .dashboard-metric-arrow {
-    display:none;
+    position:absolute;
+    top:50%;
+    right:8px;
+    display:block;
+    transform:translateY(-50%);
+    font-size:clamp(18px,4.2vw,23px);
+    line-height:1;
   }
 }
