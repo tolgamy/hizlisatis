@@ -5516,3 +5516,180 @@ body.auth-locked #app{display:none!important}
   #pickProductDialog.product-picker .picker-product img,
   #pickProductDialog.product-picker .picker-product .picker-emoji{height:75px}
 }
+
+
+/* v74 — focused account / logout flow. Keeps every dashboard, Settings,
+   category, sale, stock, report and navigation layout unchanged. */
+#app .clean-topbar .access-identity-actions.has-session #accessIdentity:not([hidden]) {
+  display:none!important;
+}
+#app .clean-topbar .access-identity-actions.has-session {
+  position:relative;
+  flex-wrap:nowrap;
+  z-index:25;
+}
+#app .clean-topbar #accessLogout:not([hidden]) {
+  min-height:42px;
+  border:1px solid #bdcfe2;
+  border-radius:11px;
+  background:#f6faff;
+  color:#183955;
+  font-size:13px;
+  font-weight:900;
+  padding:8px 12px;
+  white-space:nowrap;
+}
+#app .clean-topbar #accessLogout[aria-expanded="true"] {
+  background:#e4f1ff!important;
+  border-color:#71ade5!important;
+}
+#app .access-account-menu[hidden] {display:none!important}
+#app .access-account-menu {
+  box-sizing:border-box;
+  position:absolute;
+  top:calc(100% + 10px);
+  right:0;
+  width:min(304px,calc(100vw - 24px));
+  min-width:0;
+  z-index:50;
+  display:grid;
+  gap:13px;
+  padding:19px;
+  border:1px solid #d5e4f0;
+  border-radius:19px;
+  background:#fff;
+  color:#132f4d;
+  box-shadow:0 14px 40px #0b254b44;
+  text-align:left;
+}
+#app .access-account-menu::before {
+  content:"";position:absolute;
+  top:-8px;right:29px;
+  width:14px;height:14px;
+  transform:rotate(45deg);
+  background:#fff;
+  border-left:1px solid #d5e4f0;border-top:1px solid #d5e4f0;
+}
+#app .access-account-person {
+  display:flex;
+  align-items:center;
+  gap:12px;
+  min-width:0;
+  padding-bottom:15px;
+  border-bottom:1px solid #dce7f2;
+}
+#app .access-account-avatar {
+  display:grid;place-items:center;
+  width:49px;height:49px;flex:0 0 49px;
+  border-radius:13px;
+  color:#1c5986;background:#dcedff;
+}
+#app .access-account-avatar svg {width:29px;height:29px}
+#app .access-account-person>div {display:grid;gap:3px;min-width:0}
+#app .access-account-person strong {
+  color:#142f4e;font-size:17px;font-weight:900;line-height:1.16;
+}
+#app .access-account-person #accessMenuUsername {
+  font-size:14px;color:#5e7390;
+  overflow-wrap:anywhere;
+}
+#app .access-account-logout-action {
+  box-sizing:border-box;
+  display:flex;align-items:center;gap:11px;
+  width:100%;min-height:46px;
+  margin:0;padding:7px 8px;
+  background:#fff;
+  border:0;border-radius:10px;
+  color:#193754;font-weight:900;font-size:16px;
+  text-align:left;cursor:pointer;
+}
+#app .access-account-logout-action:hover,
+#app .access-account-logout-action:focus-visible {
+  background:#fff0f2;
+}
+#app .access-account-logout-action>span {
+  font-size:26px;line-height:1;color:#d52343;
+}
+.access-logout-confirm {
+  box-sizing:border-box;
+  position:fixed;
+  top:0;left:0;right:0;bottom:0;
+  margin:auto;
+  width:min(92vw,430px);
+  max-width:430px;max-height:min(85dvh,560px);
+  padding:24px 22px 22px;
+  border:1px solid #d9e5ef;border-radius:22px;
+  background:#fff;color:#122c4d;
+  box-shadow:0 22px 70px #091e3d66;
+  text-align:center;
+  overflow-y:auto;
+}
+.access-logout-confirm::backdrop {background:#0c203b99;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
+.access-logout-confirm .access-logout-confirm-icon {
+  display:grid;place-items:center;
+  margin:0 auto 12px;
+  width:65px;height:65px;
+  border-radius:19px;background:#ffebed;color:#cf2748;
+  font-size:40px;font-weight:900;line-height:1;
+}
+.access-logout-confirm h2 {
+  margin:0 0 8px;
+  font-size:clamp(20px,5.5vw,25px);
+  font-weight:950;line-height:1.24;
+}
+.access-logout-confirm p {
+  margin:0;color:#597089;font-size:14px;line-height:1.5;
+}
+.access-logout-confirm #accessLogoutError {
+  min-height:0;
+  margin:7px 0 0;
+  color:#ad263c;
+  font-weight:750;
+}
+.access-logout-confirm #accessLogoutError:empty {display:none}
+.access-logout-confirm-actions {
+  display:grid;
+  grid-template-columns:1fr 1fr;gap:11px;
+  margin-top:22px;
+}
+.access-logout-confirm-actions button {
+  min-width:0;min-height:47px;
+  padding:10px 7px;
+  border:0;border-radius:13px;
+  font:inherit;font-size:15px;font-weight:900;
+  cursor:pointer;
+}
+.access-logout-confirm-actions #accessLogoutCancel {
+  background:#e8edf4;color:#19354e;
+}
+.access-logout-confirm-actions #accessLogoutApprove {
+  background:#db2844;color:#fff;
+}
+.access-logout-confirm-actions button:disabled {opacity:.55;cursor:wait}
+@media (max-width:430px) {
+  /* Only the account/header row needs to fit the narrow phone viewport. */
+  #app .clean-topbar .brandline {gap:6px}
+  #app .clean-topbar .brand-home {min-width:0;gap:5px}
+  #app .clean-topbar .brandmark {
+    width:clamp(31px,9vw,36px);height:clamp(31px,9vw,36px);
+    min-width:clamp(31px,9vw,36px);padding:3px;
+  }
+  #app .clean-topbar .brandline strong {font-size:clamp(14px,4vw,17px)}
+  #app .clean-topbar .brandline small {font-size:clamp(6px,1.8vw,9px);letter-spacing:.65px}
+  #app .clean-topbar #connectionStatus {
+    flex:0 0 auto;
+    padding:5px 7px;
+    margin-left:auto;
+    font-size:clamp(9px,2.6vw,11px);
+  }
+  #app .clean-topbar .access-identity-actions {flex:0 0 auto}
+  #app .clean-topbar #accessLogout:not([hidden]) {
+    min-width:60px;min-height:39px;
+    font-size:12px;padding:6px 8px;
+  }
+  #app .access-account-menu {width:min(294px,calc(100vw - 22px));padding:16px}
+  .access-logout-confirm {padding:21px 17px 19px}
+}
+@media (prefers-reduced-motion:reduce) {
+  .access-logout-confirm::backdrop {backdrop-filter:none;-webkit-backdrop-filter:none}
+}

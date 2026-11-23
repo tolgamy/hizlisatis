@@ -20,7 +20,10 @@ test('connection, identity and logout are the SAME existing elements, grouped on
   }
   assert.ok(!before.includes('accessUserButton'),'Users remains under Settings');
   assert.match(auth,/\$\('accessIdentity'\)\.textContent=user\.username/);
-  assert.match(auth,/\$\('accessLogout'\)\.addEventListener\('click',async\(\)=>/);
+  assert.match(auth,/toggle\.addEventListener\('click',\(\)=>/);
+  assert.match(auth,/\$\('accessMenuLogout'\)\.addEventListener\('click'/);
+  assert.match(auth,/approve\.addEventListener\('click',async\(\)=>/);
+  assert.match(auth,/await call\('\/api\/auth',\{method:'DELETE'\}\)/);
   assert.match(app,/function setConnection\(\)/);
   assert.match(app,/navigator\.onLine \? '● Çevrimiçi' : '● Çevrimdışı'/);
 });
