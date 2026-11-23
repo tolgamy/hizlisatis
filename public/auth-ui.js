@@ -31,12 +31,21 @@ function showGate(message=''){
   document.body.classList.add('auth-locked');
   $('loginGate').hidden=false;
   $('loginError').textContent=message;
+  const menu=$('accessAccountMenu');
+  if(menu)menu.hidden=true;
+  $('accessLogout')?.setAttribute('aria-expanded','false');
+  if($('accessLogoutConfirm')?.open)$('accessLogoutConfirm').close();
 }
 function applyUser(user){
   activeUser=user;
   $('accessIdentity').textContent=user.username+' · '+(user.role==='admin'?'Yönetici':'Çalışan');
   $('accessIdentity').hidden=false;
   $('accessLogout').hidden=false;
+  document.querySelector('.access-identity-actions')?.classList.add('has-session');
+  $('accessMenuRole').textContent=user.role==='admin'?'Yönetici':'Çalışan';
+  $('accessMenuUsername').textContent=user.username;
+  $('accessAccountMenu').hidden=true;
+  $('accessLogout').setAttribute('aria-expanded','false');
   const setPermission=(id,p)=>{
     const node=$(id);if(node)node.hidden=!can(p);
   };
@@ -124,10 +133,58 @@ function setupUserManager(){
     }catch(error){$('accessUserFormStatus').textContent=error.message}
     finally{button.disabled=false}
   });
-  $('accessLogout').addEventListener('click',async()=>{
-    try{await call('/api/auth',{method:'DELETE'})}
-    catch(error){$('loginError').textContent=error.message;return}
-    location.reload();
+  // First tap opens account details; signing out requires a separate
+  // deliberate confirmation. Do not change the secure server logout API.
+  const toggle=$('accessLogout');
+  const menu=$('accessAccountMenu');
+  const dialog=$('accessLogoutConfirm');
+  const approve=$('accessLogoutApprove');
+  const cancel=$('accessLogoutCancel');
+  const errorMessage=$('accessLogoutError');
+  let pendingLogout=false;
+  const closeMenu=(restoreFocus=false)=>{
+    menu.hidden=true;
+    toggle.setAttribute('aria-expanded','false');
+    if(restoreFocus&&!toggle.hidden)toggle.focus();
+  };
+  toggle.addEventListener('click',()=>{
+    const opening=menu.hidden;
+    menu.hidden=!opening;
+    toggle.setAttribute('aria-expanded',String(opening));
+    if(opening)$('accessMenuLogout').focus();
+  });
+  $('accessMenuLogout').addEventListener('click',()=>{
+    closeMenu();
+    errorMessage.textContent='';
+    if(!dialog.open)dialog.showModal();
+    cancel.focus();
+  });
+  document.addEventListener('pointerdown',event=>{
+    if(!menu.hidden&&!menu.contains(event.target)&&!toggle.contains(event.target))
+      closeMenu();
+  });
+  document.addEventListener('keydown',event=>{
+    if(event.key==='Escape'&&!menu.hidden)closeMenu(true);
+  });
+  cancel.addEventListener('click',()=>{if(!pendingLogout)dialog.close()});
+  dialog.addEventListener('cancel',event=>{if(pendingLogout)event.preventDefault()});
+  dialog.addEventListener('close',()=>{
+    errorMessage.textContent='';
+    if(!toggle.hidden)toggle.focus();
+  });
+  approve.addEventListener('click',async()=>{
+    if(pendingLogout)return;
+    pendingLogout=true;
+    approve.disabled=true;cancel.disabled=true;
+    errorMessage.textContent='';
+    try{
+      await call('/api/auth',{method:'DELETE'});
+      location.reload();
+    }catch(error){
+      errorMessage.textContent=error.message;
+      pendingLogout=false;
+      approve.disabled=false;cancel.disabled=false;
+    }
   });
   window.addEventListener('hizlisatis:auth-required',()=>{
     showGate('Oturumunuz sona erdi. Kullanıcı adı ve şifrenizle yeniden giriş yapın.');
