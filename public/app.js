@@ -20,7 +20,7 @@ import { createProductManager } from './product-management.js';
 import { checkRemoteProductStates } from './remote-products.js';
 import { createCustomerManager } from './customer-ui.js';
 import { recordCustomerCredit } from './customer-api.js';
-import { isCentralSalesEnabled,saveCentralSale,getSalesForReports,voidCentralTestSale } from './central-sales.js';
+import { isCentralSalesEnabled,saveCentralSale,getSalesForReports,voidCentralSale } from './central-sales.js';
 import { filterReportSales,quickReportRange } from './report-filters.js';
 import { readReceiptSettings,saveReceiptSettings,receiptPrintLayout,readReceiptAction,saveReceiptAction } from './receipt-settings.js';
 import { parseBasketDiscountPercent,calculateBasketTotals } from './basket-pricing.js';
@@ -1787,6 +1787,7 @@ function renderHistorySummary(sales){
 let reportsPageLoaded=false;
 let allReportSales=[];
 let centralReportMode=false;
+let pendingVoidSale=null;
 let currentReportFilters={};
 function readHistoryFilters(){
   return {
@@ -1837,23 +1838,12 @@ function renderFilteredHistory(filters=currentReportFilters){
       note.className='history-voided-note';
       note.textContent='İptal edildi · '+(sale.voidReason||'Test satışı')+' · Ciroya dahil değil';
       item.append(note);
-    }else if(centralReportMode && userCan('users') && sale.payment==='Nakit'){
+    }else if(centralReportMode && userCan('users') &&
+      ['Nakit','Veresiye'].includes(sale.payment)){
       const cancel=document.createElement('button');
       cancel.type='button';cancel.className='history-void-button';
-      cancel.textContent='Test Satışını İptal Et';
-      cancel.addEventListener('click',async()=>{
-        if(!confirm(money(sale.total,sale.currency)+' tutarındaki bu NAKİT fişi TEST olarak iptal etmek istiyor musunuz? Fiş silinmeyecek, yalnızca cirodan çıkarılacak.'))return;
-        cancel.disabled=true;
-        try{
-          await voidCentralTestSale(sale.id);
-          await showHistory();
-          await refreshHomeSales();
-          announce('Test fişi kayıtları korunarak iptal edildi.','success');
-        }catch(error){
-          announce('İptal doğrulanamadı: '+error.message,'error');
-          cancel.disabled=false;
-        }
-      });
+      cancel.textContent='Satışı İptal Et';
+      cancel.addEventListener('click',()=>openSaleVoidDialog(sale));
       item.append(cancel);
     }
     dom.historyItems.append(item);
@@ -1863,6 +1853,43 @@ function renderFilteredHistory(filters=currentReportFilters){
     notice.className='history-result-limit';
     notice.textContent='İlk 250 fiş gösteriliyor; CSV dışa aktarımı filtrelenen kayıtların tamamını içerir.';
     dom.historyItems.append(notice);
+  }
+}
+function openSaleVoidDialog(sale){
+  if(!sale?.id || sale.voided || !['Nakit','Veresiye'].includes(sale.payment))return;
+  pendingVoidSale={id:sale.id,payment:sale.payment};
+  $('saleVoidInfo').textContent=money(sale.total,sale.currency)+' · '+sale.payment+
+    ' · '+fmtDate(sale.createdAt);
+  $('saleVoidReason').value='wrong';
+  $('saleVoidWarning').textContent=sale.payment==='Veresiye'?
+    'Fiş silinmez. Müşterinin borcundan bu satış tutarı tek seferde düşülür. Tahsilat yapılmışsa işlem reddedilebilir.':
+    'Fiş silinmez, iptal kaydı saklanır ve tutar satış cirosundan çıkarılır. Varsa nakit iadesi kasada ayrıca yapılmalıdır.';
+  $('saleVoidError').textContent='';
+  $('saleVoidConfirm').disabled=false;
+  $('saleVoidDialog').showModal();
+}
+async function submitSaleVoid(event){
+  event.preventDefault();
+  if(!pendingVoidSale)return;
+  const {id}=pendingVoidSale;
+  const button=$('saleVoidConfirm');
+  if(button.disabled)return;
+  button.disabled=true;
+  $('saleVoidCancel').disabled=true;
+  $('saleVoidError').textContent='';
+  try{
+    await voidCentralSale(id,$('saleVoidReason').value);
+    $('saleVoidDialog').close();
+    pendingVoidSale=null;
+    await showHistory();
+    await refreshHomeSales();
+    announce('Satış kayıtları korunarak iptal edildi.','success');
+  }catch(error){
+    $('saleVoidError').textContent='İptal doğrulanamadı: '+error.message+
+      ' Sonucu kontrol etmeden tekrar denemeyin.';
+  }finally{
+    button.disabled=false;
+    $('saleVoidCancel').disabled=false;
   }
 }
 async function showHistory() {
@@ -2947,6 +2974,11 @@ async function setup() {
         button.setAttribute('aria-pressed','false');
     });
   $('exportSales').addEventListener('click',exportHistory);
+  $('saleVoidForm').addEventListener('submit',submitSaleVoid);
+  $('saleVoidCancel').addEventListener('click',()=>{
+    if(!$('saleVoidConfirm').disabled)$('saleVoidDialog').close();
+  });
+  $('saleVoidDialog').addEventListener('close',()=>{pendingVoidSale=null;});
   for(const dialog of [dom.cartDialog,dom.scanDialog,dom.historyDialog,$('backupDialog'),$('otherPaymentDialog'),$('saleExitDialog'),$('excelDialog'),$('manageDialog'),$('passiveProductDialog'),$('productDetailDialog'),$('pickProductDialog'),$('receiptActionsDialog'),$('cashPaymentDialog'),$('weightDialog'),$('scanQuantityDialog'),$('manageActivationDialog'),$('customerDialog'),$('categoryImageDialog'),$('stockEditDialog')]){
     dialog.addEventListener('click',event=>{
       if(event.target!==dialog)return;
