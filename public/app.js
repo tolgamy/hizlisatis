@@ -316,7 +316,7 @@ function setView(view,showAll=false) {
 function focusSaleBarcode(){
   if(!(typeof isSaleActive==='function' ? isSaleActive() : dom.cartDialog.open) || $('receiptActionsDialog').open ||
      $('scanQuantityDialog').open || dom.scanDialog.open || $('pickProductDialog').open ||
-     $('weightDialog').open || $('unknownBarcodeDialog').open) return;
+     $('weightDialog').open || $('unknownBarcodeDialog')?.open) return;
   $('saleBarcode').focus({preventScroll:true});
 }
 function openSale({preferCamera=false}={}) {
@@ -2683,7 +2683,7 @@ async function setup() {
   $('saleBarcode').addEventListener('input',()=>{
     clearTimeout(barcodeInputIdle);
     const barcode=$('saleBarcode').value.trim();
-    if(!/^(?:[0-9]{8}|[0-9]{12,14})$/.test(barcode))return;
+    if(!/^(?:\d{8}|\d{12,14})$/.test(barcode))return;
     barcodeInputIdle=setTimeout(()=>{
       if(!isSaleActive() || $('saleBarcode').value.trim()!==barcode ||
          $('scanQuantityDialog').open || dom.scanDialog.open ||
