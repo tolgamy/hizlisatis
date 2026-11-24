@@ -21,9 +21,9 @@ function harness(){
   };
   const ctx={
     $,dom:{scanDialog:{open:false}},state:{centralReadOnly:false,cart:new Map()},
-    productManager:{openNew:code=>calls.push(['new',code])},
+    productManager:{openNew:code=>calls.push(['new',code]),offerSaleActivation:()=>false},
     userCan:()=>true,focusSaleBarcode:()=>calls.push(['focus']),
-    stopScanner:()=>Promise.resolve(),announce:message=>calls.push(['toast',message]),
+    stopScanner:()=>Promise.resolve(),
     exactProduct:()=>null,isWeightProduct:()=>false,
     addBarcodeOnce:()=>calls.push(['add']),
     announce:message=>calls.push(['toast',message])
