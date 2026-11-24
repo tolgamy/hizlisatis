@@ -17,6 +17,6 @@ jobs:
           node-version-file: .node-version
       - run: npm install --no-audit --no-fund
       - name: Unknown barcode and no-stock tests
-        run: node --test tests/unknown-barcode-dialog.test.js tests/pos-no-stock-limits.test.js tests/general-sale-cancellation.test.js
+        run: node --test tests/unknown-barcode-dialog.test.js tests/price-label.test.js tests/pos-no-stock-limits.test.js tests/general-sale-cancellation.test.js
       - name: Build
         run: npm run build

@@ -12,6 +12,7 @@
   <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg">
   <style>body.auth-locked #app{display:none!important}.access-login-gate[hidden]{display:none!important}</style>
   <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/price-label-v89.css">
   <style id="receiptPaperSize"></style>
   <title>HızlıSatış · Mobil POS</title>
 </head>
@@ -85,6 +86,10 @@
           </button>
           <button id="homeQuickReports" class="dashboard-action dashboard-action-reports" type="button">
             <svg class="dashboard-action-icon" viewBox="0 0 64 64" aria-hidden="true"><path d="M15 6h34a5 5 0 0 1 5 5v44l-11-6-11 6-10-6-11 6V11a5 5 0 0 1 4-5Z" fill="currentColor"/><path d="M22 18h20M22 28h20M22 38h13" stroke="#fff" stroke-width="4" stroke-linecap="round"/></svg><strong>Raporlar</strong><small>Satış ve özetler</small>
+          </button>
+          <button id="homeQuickPriceLabel" class="dashboard-action dashboard-action-price-label" type="button" aria-haspopup="dialog" aria-controls="priceLabelDialog">
+            <svg class="dashboard-action-icon" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linejoin="round" aria-hidden="true"><path d="M6 26V9h21l30 30-18 18L6 26Z"/><circle cx="19" cy="21" r="4"/><path d="m30 31 12 12M27 34l12 12M34 28l12 12"/></svg>
+            <strong>Fiyat Gör / Etiket</strong><small>Barkod okut, fiyat gör, etiket yazdır</small>
           </button>
         </div>
         <div class="dashboard-metrics" aria-label="Güncel özet">
@@ -683,6 +688,40 @@
       <button id="passiveCancel" type="button">Vazgeç</button>
     </div>
   </dialog>
+  <dialog id="priceLabelDialog" class="price-label-dialog" aria-labelledby="priceLabelTitle">
+    <div class="pl-head"><h2 id="priceLabelTitle">Fiyat Gör / Etiket Yazdır</h2><button id="priceLabelClose" type="button" aria-label="Kapat">×</button></div>
+    <div class="pl-body">
+      <p class="pl-intro">Barkod okutun veya ürün adıyla arayın. Fiyatı görüntülemek satış sepetini değiştirmez.</p>
+      <form id="priceLabelForm" class="pl-form" autocomplete="off">
+        <input id="priceLabelInput" type="search" inputmode="search" placeholder="Barkod veya ürün adı" aria-label="Barkod veya ürün adı" enterkeyhint="search">
+        <button id="priceLabelSearch" type="submit">Ara</button>
+      </form>
+      <div class="pl-actions">
+        <button id="priceLabelScan" type="button">▥ Kamera ile Barkod Okut</button>
+        <button id="priceLabelClear" type="button">Temizle / Yeni Okutma</button>
+      </div>
+      <p id="priceLabelStatus" class="pl-status" role="status" aria-live="polite">Barkod okutun veya ürün adı yazın.</p>
+      <div id="priceLabelMatches" class="pl-matches" aria-label="Ürün arama sonuçları"></div>
+      <section id="priceLabelResult" class="pl-result" aria-label="Bulunan ürün" hidden>
+        <div class="pl-result-info"><div><h3 id="priceLabelName"></h3><small id="priceLabelCode"></small></div><strong id="priceLabelPrice" class="pl-amount"></strong></div>
+        <div class="pl-preview-wrap">
+          <div class="pl-preview-head"><strong>Argox Etiket Önizleme</strong><small>38 × 100 mm</small></div>
+          <div id="priceLabelTicketPreview" class="pl-ticket-preview"></div>
+        </div>
+        <div class="pl-print-row">
+          <label for="priceLabelCopies">Etiket adedi <input id="priceLabelCopies" type="number" value="1" min="1" max="50" step="1"></label>
+          <button id="priceLabelPrint" class="pl-print" type="button" disabled>▣ Etiket Yazdır</button>
+        </div>
+      </section>
+      <p class="pl-printer-hint">Windows yazdırma ekranında Argox OS-214 Plus'ı seçin. Kâğıt: 38 × 100 mm, ölçek: %100.</p>
+    </div>
+  </dialog>
+  <dialog id="priceLabelMissingDialog" class="price-label-missing" aria-labelledby="priceLabelMissingTitle">
+    <h2 id="priceLabelMissingTitle" class="pl-missing-title">Stokta ürün bulunamadı</h2>
+    <strong id="priceLabelMissingBarcode"></strong>
+    <p class="pl-missing-text">Stoğa eklemek istiyor musunuz? Evet, barkodu hazır yeni stok kartını açar; Hayır, barkodu temizler.</p>
+    <div class="pl-missing-buttons"><button id="priceLabelMissingNo" type="button">Hayır, Temizle</button><button id="priceLabelMissingYes" type="button">Evet, Stok Kartı Aç</button></div>
+  </dialog>
   <dialog id="unknownBarcodeDialog" class="modal activation-choice-dialog" aria-labelledby="unknownBarcodeTitle">
     <div class="sheet-header"><h2 id="unknownBarcodeTitle">Stok eklemek istiyor musunuz?</h2></div>
     <div class="activation-choice-body">
@@ -878,6 +917,6 @@
       <p id="accessUserFormStatus" role="status" aria-live="polite"></p>
     </form>
   </dialog>
-  <script type="module" src="/app-v88.js"></script>
+  <script type="module" src="/app-v89.js"></script>
 </body>
 </html>
