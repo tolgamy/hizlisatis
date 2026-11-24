@@ -12,8 +12,8 @@ test('home shortcut appears directly after reports on desktop and mobile grid',(
   assert.match(html,/Fiyat Gör \/ Etiket/);
   assert.match(html,/id="priceLabelDialog"/);
   assert.match(html,/id="priceLabelMissingDialog"/);
-  assert.match(html,/src="\/app-v91\.js"/);
-  assert.match(html,/href="\/price-label-v91\.css"/);
+  assert.match(html,/src="\/app-v92\.js"/);
+  assert.match(html,/href="\/price-label-v92\.css"/);
 });
 test('valid EAN13, EAN8 and Code128 have real bar geometry',()=>{
   assert.equal(makeEan13Bars('4006381333931')?.length,95);
@@ -60,7 +60,7 @@ test('sideways label is baked into 304x800px PNG, not print-CSS transform',()=>{
   assert.throws(()=>renderLabelImage({...product,barkod:''},()=>canvas),/Barkod/);
 });
 test('camera path returns to price dialog without adding anything to basket',()=>{
-  assert.match(app,/import \{ createPriceLabelFeature \} from '\.\/price-label-v91\.js'/);
+  assert.match(app,/import \{ createPriceLabelFeature \} from '\.\/price-label-v92\.js'/);
   assert.match(app,/purpose==='price-label'/);
   assert.match(app,/priceLabelFeature\?\.acceptScan\(text\)/);
   assert.match(app,/state\.scanPurpose='price-label'/);
@@ -68,7 +68,7 @@ test('camera path returns to price dialog without adding anything to basket',()=
   assert.match(app,/from '\.\/central-sales-v88\.js'/);
   assert.match(app,/from '\.\/product-management-v87\.js'/);
   assert.match(sw,/one-page-v92/);
-  assert.match(sw,/\/app-v91\.js/);
+  assert.match(sw,/\/app-v92\.js/);
 });
 
 
