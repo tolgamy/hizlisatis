@@ -71,7 +71,8 @@ test('dialog handles Yes/No/Escape; service worker cache version updated',()=>{
   for(const id of ['unknownBarcodeDialog','unknownBarcodeTitle','unknownBarcodeValue','unknownBarcodeYes','unknownBarcodeNo'])
     assert.ok(html.includes('id="'+id+'"'),id);
   assert.match(html,/Hayır, Barkodu Temizle/);
-  assert.match(html,/Evet, Yeni Ürün Ekle/);
+  assert.match(html,/Evet, Stok Kartı Aç/);
+  assert.match(html,/Stok eklemek istiyor musunuz\?/);
   assert.match(app,/unknownBarcodeDialog'\)\.addEventListener\('cancel'/);
   assert.match(sw,/unknown-barcode-v85/);
 });
