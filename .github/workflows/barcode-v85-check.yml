@@ -1,0 +1,22 @@
+name: v85 Barcode Creation and Stock Guard
+on:
+  push:
+    branches: [veyselbarkod]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    name: Barcode / unlimited sale smoke tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - run: npm install --no-audit --no-fund
+      - name: Unknown barcode and no-stock tests
+        run: node --test tests/unknown-barcode-dialog.test.js tests/pos-no-stock-limits.test.js tests/general-sale-cancellation.test.js
+      - name: Build
+        run: npm run build
