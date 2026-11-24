@@ -1,7 +1,7 @@
 name: POS PWA – Build and Tests
 on:
   push:
-    branches: [main, veyselbarkod]
+    branches: [main]
   pull_request:
     branches: [main]
 permissions:
