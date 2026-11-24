@@ -12,7 +12,7 @@
   <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg">
   <style>body.auth-locked #app{display:none!important}.access-login-gate[hidden]{display:none!important}</style>
   <link rel="stylesheet" href="/styles.css">
-  <link rel="stylesheet" href="/price-label-v94.css">
+  <link rel="stylesheet" href="/price-label-v95.css">
   <style id="receiptPaperSize"></style>
   <title>HızlıSatış · Mobil POS</title>
 </head>
@@ -252,8 +252,17 @@
           <div class="settings-inner-content"><div class="settings-inner-actions"><button id="settingsInnerManage" type="button" class="settings-inner-action">Ürün Yönetimi <span aria-hidden="true">›</span></button><button id="settingsInnerCategoryImages" type="button" class="settings-inner-action">Kategori Görselleri <span aria-hidden="true">›</span></button></div></div>
         </details>
         <details id="settingsPrintingGroup" class="settings-inner-section">
-          <summary><span aria-hidden="true" class="settings-section-symbol">▤</span><span class="settings-section-name"><strong>Yazıcı Ayarları</strong><small>Fiş yazdırma ve paylaşma tercihleri</small></span><span aria-hidden="true" class="settings-section-arrow">⌄</span></summary>
-          <div class="settings-inner-content"><section class="settings-device-receipt" aria-label="Bu cihazın fiş tercihi">
+          <summary><span aria-hidden="true" class="settings-section-symbol">▤</span><span class="settings-section-name"><strong>Yazıcı Ayarları</strong><small>Raf etiketi, fiş ve paylaşma tercihleri</small></span><span aria-hidden="true" class="settings-section-arrow">⌄</span></summary>
+          <div class="settings-inner-content"><section class="settings-receipt" aria-label="Cihaza özel yazıcı profilleri">
+<h2>Raf Etiketi / Satış Fişi Yazıcıları</h2>
+<label>Raf etiketi yazıcı adı <input id="settingsLabelPrinterName" type="text" maxlength="120"></label>
+<p>Kağıt: <strong>2×4</strong> · Etiket PDF ölçüsü: 38 × 100 mm</p>
+<label>Satış fişi yazıcı adı <input id="settingsReceiptPrinterName" type="text" maxlength="120"></label>
+<p>Fiş kağıdı aşağıdaki gelişmiş fiş ayarından seçilir (varsayılan 80 mm).</p>
+<button id="settingsPrinterProfilesSave" class="primary-button" type="button">Yazıcı Tercihlerini Kaydet</button>
+<p id="settingsPrinterProfilesStatus" role="status" aria-live="polite">Tercihler yalnızca bu tarayıcıda saklanır.</p>
+<small>Windows'ta mevcut Argox yazıcısını değiştirmeden aynı sürücü ve bağlantı noktası ile Argox Raf Etiketi adlı ikinci yazıcı ekleyip 2×4 seçin. Chrome yazıcı seçimini otomatik yapamaz; baskı ekranında belirtilen hedefi seçin.</small>
+</section><section class="settings-device-receipt" aria-label="Bu cihazın fiş tercihi">
           <h2>Bu Cihazın Fiş / Paylaşım Tercihi</h2>
           <label for="settingsReceiptAction">Satış tamamlandıktan sonra gösterilecek işlem</label>
           <select id="settingsReceiptAction">
@@ -713,7 +722,7 @@
           <button id="priceLabelPrint" class="pl-print" type="button" disabled>▣ Etiket Yazdır</button>
         </div>
       </section>
-      <p class="pl-printer-hint">Windows yazdırma ekranında Argox OS-214 Plus'ı seçin. Etiket PDF olarak açılır. PDF yazdırma simgesinden Argox OS-214 Plus, 38 × 100 mm, gerçek boyut (%100) seçin.</p>
+      <p id="priceLabelPrinterHint" class="pl-printer-hint">Hedef: Argox Raf Etiketi · Kağıt: 2×4</p>
     </div>
   </dialog>
   <dialog id="priceLabelMissingDialog" class="price-label-missing" aria-labelledby="priceLabelMissingTitle">
@@ -917,6 +926,6 @@
       <p id="accessUserFormStatus" role="status" aria-live="polite"></p>
     </form>
   </dialog>
-  <script type="module" src="/app-v94.js"></script>
+  <script type="module" src="/app-v95.js"></script>
 </body>
 </html>
