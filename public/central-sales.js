@@ -22,10 +22,10 @@ export async function saveCentralSale(record){
   if(!data.ok||data.id!==record.id)throw Error('Fişin merkezi kaydı doğrulanamadı.');
   return data;
 }
-export async function voidCentralTestSale(saleId){
+export async function voidCentralSale(saleId,reason){
   const data=await call('/api/sale-voids',{
     method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},
-    body:JSON.stringify({saleId,reason:'test'})
+    body:JSON.stringify({saleId,reason})
   });
   if(!data.ok||data.saleId!==saleId)throw Error('Satış iptali merkezi olarak doğrulanamadı.');
   return data;
