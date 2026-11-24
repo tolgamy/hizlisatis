@@ -20,7 +20,7 @@ import { createProductManager } from './product-management.js';
 import { checkRemoteProductStates } from './remote-products.js';
 import { createCustomerManager } from './customer-ui.js';
 import { recordCustomerCredit } from './customer-api.js';
-import { isCentralSalesEnabled,saveCentralSale,getSalesForReports } from './central-sales.js';
+import { isCentralSalesEnabled,saveCentralSale,getSalesForReports,voidCentralTestSale } from './central-sales.js';
 import { filterReportSales,quickReportRange } from './report-filters.js';
 import { readReceiptSettings,saveReceiptSettings,receiptPrintLayout,readReceiptAction,saveReceiptAction } from './receipt-settings.js';
 import { parseBasketDiscountPercent,calculateBasketTotals } from './basket-pricing.js';
@@ -741,7 +741,7 @@ function renderHomeRecentSales(sales){
   card.hidden=!userCan('reports');
   if(card.hidden)return;
   const list=$('homeRecentSalesList');list.replaceChildren();
-  const recent=sales.filter(s=>s&&s.createdAt&&
+  const recent=sales.filter(s=>s&&!s.voided&&s.createdAt&&
     Number.isFinite(Number(s.total))&&
     Number.isFinite(new Date(s.createdAt).getTime()))
     .sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))).slice(0,5);
@@ -816,6 +816,7 @@ async function refreshHomeSales() {
     if(recentNote)recentNote.textContent=central?'Merkezi satışlar':'Yalnızca bu cihaz';
     const today=new Date().toDateString();
     const amount=sales.reduce((sum,sale)=>{
+      if(sale.voided)return sum;
       const date=new Date(sale.createdAt);
       return Number.isFinite(date.getTime()) && date.toDateString()===today &&
         (!sale.currency||sale.currency==='TRY')&&Number.isFinite(Number(sale.total))
@@ -1736,7 +1737,7 @@ async function shareReceiptPdf(sale) {
  */
 function renderHistorySummary(sales){
   const localTrySales=sales.filter(s=>
-    (!s.currency||s.currency==='TRY')&&Number.isFinite(Number(s.total))&&
+    !s.voided&&(!s.currency||s.currency==='TRY')&&Number.isFinite(Number(s.total))&&
     s.createdAt&&Number.isFinite(new Date(s.createdAt).getTime()));
   const amount=round2(localTrySales.reduce((sum,s)=>sum+Number(s.total),0));
   $('historySummaryTotal').textContent=money(amount,'TRY');
@@ -1785,6 +1786,7 @@ function renderHistorySummary(sales){
 }
 let reportsPageLoaded=false;
 let allReportSales=[];
+let centralReportMode=false;
 let currentReportFilters={};
 function readHistoryFilters(){
   return {
@@ -1800,7 +1802,9 @@ function renderFilteredHistory(filters=currentReportFilters){
   currentReportFilters={...filters};
   state.sales=result;
   renderHistorySummary(state.sales);
+  const voidedCount=state.sales.filter(s=>s.voided).length;
   $('historyCount').textContent=state.sales.length.toLocaleString('tr-TR')+' satış'+
+    (voidedCount?' · '+voidedCount+' iptal':'')+
     (state.sales.length!==allReportSales.length?' (filtreli)':'');
   dom.historyItems.replaceChildren();
   if(!state.sales.length){
@@ -1812,9 +1816,10 @@ function renderFilteredHistory(filters=currentReportFilters){
   }
   for(const sale of state.sales.slice(0,250)){
     const item=document.createElement('article');item.className='history-card';
+    if(sale.voided)item.classList.add('history-card-voided');
     const head=document.createElement('div');head.className='history-head';
     const total=document.createElement('span');total.textContent=money(sale.total,sale.currency);
-    const method=document.createElement('span');method.textContent=sale.payment||'—';
+    const method=document.createElement('span');method.textContent=sale.voided?'İptal · '+(sale.payment||'—'):(sale.payment||'—');
     head.append(total,method);
     const detail=document.createElement('small');
     const lines=Array.isArray(sale.items)?sale.items:[];
@@ -1826,6 +1831,30 @@ function renderFilteredHistory(filters=currentReportFilters){
     print.type='button';print.textContent='Fişi Yazdır';
     print.addEventListener('click',()=>printSale(sale));
     item.append(head,detail,names,print);
+    if(sale.voided){
+      const note=document.createElement('p');
+      note.className='history-voided-note';
+      note.textContent='İptal edildi · '+(sale.voidReason||'Test satışı')+' · Ciroya dahil değil';
+      item.append(note);
+    }else if(centralReportMode && userCan('users') && sale.payment==='Nakit'){
+      const cancel=document.createElement('button');
+      cancel.type='button';cancel.className='history-void-button';
+      cancel.textContent='Test Satışını İptal Et';
+      cancel.addEventListener('click',async()=>{
+        if(!confirm(money(sale.total,sale.currency)+' tutarındaki bu NAKİT fişi TEST olarak iptal etmek istiyor musunuz? Fiş silinmeyecek, yalnızca cirodan çıkarılacak.'))return;
+        cancel.disabled=true;
+        try{
+          await voidCentralTestSale(sale.id);
+          await showHistory();
+          await refreshHomeSales();
+          announce('Test fişi kayıtları korunarak iptal edildi.','success');
+        }catch(error){
+          announce('İptal doğrulanamadı: '+error.message,'error');
+          cancel.disabled=false;
+        }
+      });
+      item.append(cancel);
+    }
     dom.historyItems.append(item);
   }
   if(state.sales.length>250){
@@ -1839,6 +1868,7 @@ async function showHistory() {
   try {
     const {sales,central}=await getSalesForReports(getSales);
     allReportSales=Array.isArray(sales)?sales:[];
+    centralReportMode=central;
     const note=document.querySelector('.history-device-note');
     if(note)note.textContent=central?'Merkezi satışlar · Tüm cihazlar · Eski yerel fişler dahil değil':
       'Bu cihazın kayıtları · Diğer kasalar dahil değildir';
@@ -1870,12 +1900,13 @@ async function exportHistory() {
   const savedSales=reportsPageLoaded && isReportsActive()?state.sales:(await getSalesForReports(getSales)).sales;
   const header = ['Fiş No','Tarih','Ödeme','Müşteri','Para Birimi','Toplam','Ürün Kodu',
     'Barkod','Ürün','Adet','Birim Fiyat','İskonto %','Satır Toplamı','KDV',
-    'Sepet İskontosu %','Sepet İskontosu Tutarı','Toplam İskonto'];
+    'Sepet İskontosu %','Sepet İskontosu Tutarı','Toplam İskonto','Durum','İptal Nedeni'];
   const rows = [header, ...savedSales.flatMap(sale => sale.items.map(item => [
     sale.id, sale.createdAt, sale.payment, sale.creditName, sale.currency, sale.total,
     item.urunKodu, item.barkod, item.baslik, item.quantity, item.unitPrice,
     item.discountPct, item.total, item.kdv,
-    sale.basketDiscountPct||0,sale.basketDiscount||0,sale.discount||0
+    sale.basketDiscountPct||0,sale.basketDiscount||0,sale.discount||0,
+    sale.voided?'İptal':'Geçerli',sale.voidReason||''
   ]))];
   const csv = '\ufeff' + rows.map(row => row.map(csvCell).join(';')).join('\r\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
