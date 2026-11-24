@@ -6091,3 +6091,33 @@ body.auth-locked #app{display:none!important}
 @media print {
   #receiptPrint[data-paper-mm="80"] {padding:1mm 0!important;}
 }
+
+/* v105: dedicated desktop subcategory page, not an inline root expansion.
+   Existing root grid, photos, product cards and mobile styles are preserved. */
+@media (min-width:1024px) and (min-height:600px) and (orientation:landscape) and (hover:hover) and (pointer:fine) {
+  #catalogView #catalogCategoryNavigator #categoryTree.category-grid-page {
+    grid-template-columns:repeat(4,minmax(0,1fr))!important;
+    grid-template-rows:none!important;
+    grid-auto-rows:clamp(125px,21dvh,230px)!important;
+    gap:clamp(8px,1vw,16px)!important;
+    align-items:stretch!important;
+    padding:0 0 10px!important;
+  }
+  #catalogView #catalogCategoryNavigator #categoryTree .photo-category-tile {
+    height:100%!important;min-height:0!important;max-height:none!important;
+    padding:8px!important;gap:3px!important;
+  }
+  #catalogView #catalogCategoryNavigator #categoryTree .photo-category-image {
+    flex:1 1 0!important;height:auto!important;min-height:0!important;
+    max-height:none!important;aspect-ratio:auto!important;
+  }
+  #catalogView #catalogCategoryNavigator #categoryTree .photo-category-image img {
+    object-fit:contain!important;transform:none!important;padding:0!important;
+  }
+  #catalogView #catalogCategoryNavigator #categoryTree .photo-category-name {
+    flex:0 0 auto!important;min-height:0!important;max-height:none!important;height:auto!important;
+    overflow:visible!important;-webkit-line-clamp:unset!important;
+    font-size:clamp(13px,1.15vw,19px)!important;line-height:1.15!important;
+    padding:0 2px 2px!important;
+  }
+}
