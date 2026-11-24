@@ -20,17 +20,17 @@ test('sale void migration is additive, retains immutable receipts, and requires 
   assert.match(server,/\['\/api\/sale-voids',saleVoids\]/);
 });
 
-test('only admin can cancel; cash only; existing row is checked for idempotency under transaction',()=>{
+test('only admin can cancel; cash and credit are supported with a transactional reversal',()=>{
   assert.match(cancelApi,/user\.role!=='admin'/);
-  assert.match(cancelApi,/sale\.payment!=='Nakit'/);
-  assert.match(cancelApi,/input\?\.reason!=='test'/);
+  assert.match(cancelApi,/!\['Nakit','Veresiye'\]\.includes\(sale\.payment\)/);
+  assert.match(cancelApi,/Object\.hasOwn\(reasons,reason\)/);
   assert.match(cancelApi,/FOR UPDATE/);
   assert.match(cancelApi,/SELECT sale_id FROM pos_sale_voids WHERE sale_id=\?/);
   assert.match(cancelApi,/INSERT INTO pos_sale_voids/);
   assert.match(cancelApi,/await conn\.commit\(\)/);
   assert.match(cancelApi,/await conn\.rollback\(\)/);
   assert.doesNotMatch(cancelApi,/DELETE\s+FROM\s+pos_sales|UPDATE\s+pos_sales/i);
-  assert.match(client,/voidCentralTestSale/);
+  assert.match(client,/voidCentralSale/);
   assert.match(app,/userCan\('users'\)/);
 });
 
@@ -91,10 +91,26 @@ test('historical cancelled receipt appears in central reports but does not infla
 test('cancelled receipt stays visible with audit text and CSV status but cannot be cancelled twice',()=>{
   assert.match(app,/if\(sale\.voided\)\{/);
   assert.match(app,/Ciroya dahil değil/);
-  assert.match(app,/Test Satışını İptal Et/);
-  assert.match(app,/await voidCentralTestSale\(sale\.id\)/);
+  assert.match(app,/Satışı İptal Et/);
+  assert.match(app,/await voidCentralSale\(id,\$\('saleVoidReason'\)\.value\)/);
   assert.match(app,/sale\.voided\?'İptal':'Geçerli'/);
   assert.match(app,/sale\.voidReason/);
   assert.match(cancelApi,/duplicate:true/);
   assert.match(file('public/sw.js'),/audited-void-v83/);
+});
+
+test('veresiye cancellation inserts an exact negative ledger movement in the same transaction',()=>{
+  assert.match(cancelApi,/SELECT id,opening_debt_cents FROM pos_customers WHERE id=\? FOR UPDATE/);
+  assert.match(cancelApi,/original\[0\]\.action!=='sale'/);
+  assert.match(cancelApi,/original\[0\]\.customer_id!==sale\.customer_id/);
+  assert.match(cancelApi,/original\[0\]\.amount_cents/);
+  assert.match(cancelApi,/balance<Number\(sale\.total_cents\)/);
+  assert.match(cancelApi,/INSERT INTO pos_customer_ledger/);
+  assert.match(cancelApi,/\-Number\(sale\.total_cents\)/);
+  assert.match(cancelApi,/INSERT INTO pos_sale_voids/);
+  assert.match(cancelApi,/await conn\.commit\(\)/);
+  assert.doesNotMatch(cancelApi,/DELETE FROM pos_customer_ledger|UPDATE pos_customer_ledger/i);
+  assert.match(app,/\['Nakit','Veresiye'\]\.includes\(sale\.payment\)/);
+  assert.match(file('public/index.html'),/id="saleVoidReason"/);
+  assert.match(file('public/index.html'),/Satışı Kesin İptal Et/);
 });
