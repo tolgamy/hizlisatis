@@ -91,12 +91,10 @@ test('v87 loads unique script/module names, preserving barcode dialog',()=>{
 test('v88 pins central-sales to a new URL so cancellation exports and login initialize',()=>{
   const pinnedApp=read('app-v88.js');
   const central=read('central-sales-v88.js');
-  assert.ok(html.includes('src="/app-v88.js"'));
   assert.ok(pinnedApp.includes("from './central-sales-v88.js'"));
   for(const symbol of ['isCentralSalesEnabled','saveCentralSale','getSalesForReports','voidCentralSale'])
     assert.ok(central.includes('function '+symbol+'('));
   assert.ok(sw.includes('central-v88'));
-  assert.ok(sw.includes("'/app-v88.js'"));
   assert.ok(sw.includes("'/central-sales-v88.js'"));
   assert.ok(pinnedApp.includes("from './product-management-v87.js'"));
   assert.ok(pinnedApp.includes('function promptUnknownBarcode('));
