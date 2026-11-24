@@ -1,3 +1,4 @@
+import {labelQueueRequest} from './label-queue.js';
 import {authorizedAdmin} from '../../lib/admin-auth.js';
 /** Cloudflare Pages + D1 authoritative product changes.
  * Static bundled catalogue is a read-only baseline; all edits and status
@@ -21,7 +22,7 @@ function validateProduct(product) {
   if(!Number.isFinite(product.satisFiyati)||product.satisFiyati<0) throw Error('Fiyat geçersiz.');
   if(product.kdv!==undefined && ![0,1,10,20].includes(Number(product.kdv))) throw Error('KDV oranı geçersiz.');
   if(typeof product.gorsel==='string'&&product.gorsel.length>350000) throw Error('Görsel çok büyük.');
-  return {...product, lifecycleStatus:status, everActivated:Boolean(product.everActivated),
+  return {...product,baslik:product.baslik.toLocaleUpperCase('tr-TR'),...(typeof product.marka==='string'?{marka:product.marka.toLocaleUpperCase('tr-TR')}:{}), lifecycleStatus:status, everActivated:Boolean(product.everActivated),
     statusChangedAt: new Date().toISOString()};
 }
 function productStatement(db, product) {
@@ -33,6 +34,7 @@ function productStatement(db, product) {
   ).bind(saved.id,saved.barkod,JSON.stringify(saved),saved.statusChangedAt) };
 }
 export async function onRequestGet({request,env}) {
+  if(new URL(request.url).searchParams.has('labelQueue'))return labelQueueRequest({request,env});
   const db=database(env);
   if(!db) return error('D1 veritabanı bağlı değil. DB binding gerekli.',503);
   try {
@@ -77,18 +79,38 @@ export async function onRequestGet({request,env}) {
   }
 }
 export async function onRequestPost({request,env}) {
+  if(new URL(request.url).searchParams.has('labelQueue'))return labelQueueRequest({request,env});
   const db=database(env);
   if(!db) return error('D1 veritabanı bağlı değil.',503);
   const seeded=await db.prepare("SELECT value FROM app_meta WHERE key='catalog_seed_count'").first().catch(()=>null);
   if(!seeded || Number(seeded.value)!==19096)
     return error('D1 katalog başlangıç verisi yüklenmemiş.',503);
-  if(!await authorizedAdmin(request,env)) return error('Yönetim oturumu gerekli.',401);
   if(Number(request.headers.get('content-length')||0)>3500000)
     return error('Tek istekte çok fazla veri var.',413);
   let body;
   try {body=await request.json();} catch {return error('Geçersiz JSON.');}
   const action=body?.action;
+  if(action==='label-queue')return labelQueueRequest({request,env,queueBody:body.queue??null});
+  if(!await authorizedAdmin(request,env)) return error('Yönetim oturumu gerekli.',401);
   try {
+    if(action==='names-v99'){
+      if(!await authorizedAdmin(request,env,'products'))return error('Ürün yönetim yetkisi gerekli.',403);
+      const cursor=String(body.cursor||'');if(cursor.length>180)return error('Geçersiz imleç.');
+      const rows=await db.prepare('SELECT id,payload FROM product_changes WHERE id > ? ORDER BY id LIMIT 41').bind(cursor).all();
+      const page=(rows.results||[]).slice(0,40);let changed=0,conflicts=0,needed=0;
+      for(const row of page){
+        const old=typeof row.payload==='string'?JSON.parse(row.payload):row.payload;
+        const next={...old};
+        for(const field of ['baslik','marka'])if(typeof old[field]==='string')next[field]=old[field].toLocaleUpperCase('tr-TR');
+        if(next.baslik===old.baslik&&next.marka===old.marka)continue;
+        needed++;
+        if(body.apply===true){
+          const r=await db.prepare('UPDATE product_changes SET payload=? WHERE id=? AND payload=?').bind(JSON.stringify(next),row.id,typeof row.payload==='string'?row.payload:JSON.stringify(row.payload)).run();
+          if(Number(r.meta?.changes)===1)changed++;else conflicts++;
+        }
+      }
+      return json({version:99,scanned:page.length,needed,changed,conflicts,next:(rows.results||[]).length>40?page.at(-1).id:null});
+    }
     if(action==='upsert') {
       const {saved,statement}=productStatement(db,body.product);
       await db.batch([statement,db.prepare(

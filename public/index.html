@@ -12,6 +12,7 @@
   <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg">
   <style>body.auth-locked #app{display:none!important}.access-login-gate[hidden]{display:none!important}</style>
   <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/price-label-v99.css">
   <style id="receiptPaperSize"></style>
   <title>HızlıSatış · Mobil POS</title>
 </head>
@@ -86,7 +87,12 @@
           <button id="homeQuickReports" class="dashboard-action dashboard-action-reports" type="button">
             <svg class="dashboard-action-icon" viewBox="0 0 64 64" aria-hidden="true"><path d="M15 6h34a5 5 0 0 1 5 5v44l-11-6-11 6-10-6-11 6V11a5 5 0 0 1 4-5Z" fill="currentColor"/><path d="M22 18h20M22 28h20M22 38h13" stroke="#fff" stroke-width="4" stroke-linecap="round"/></svg><strong>Raporlar</strong><small>Satış ve özetler</small>
           </button>
+          <button id="homeQuickPriceLabel" class="dashboard-action dashboard-action-price-label" type="button" aria-haspopup="dialog" aria-controls="priceLabelDialog">
+            <svg class="dashboard-action-icon" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linejoin="round" aria-hidden="true"><path d="M6 26V9h21l30 30-18 18L6 26Z"/><circle cx="19" cy="21" r="4"/><path d="m30 31 12 12M27 34l12 12M34 28l12 12"/></svg>
+            <strong>Fiyat Gör / Etiket</strong><small>Fiyat değiştir, yazdır veya listeye ekle</small>
+          </button>
         </div>
+        <button id="homeLabelQueue" type="button" class="primary-button" hidden style="display:none!important;width:100%;margin:8px 0">▣ Yazdırılacak Etiketler</button>
         <div class="dashboard-metrics" aria-label="Güncel özet">
           <button id="homeTodaySalesButton" class="dashboard-metric dashboard-metric-sales" type="button" aria-label="Bugünkü satışları aç">
             <span class="dashboard-metric-body"><span>Bugünkü Satış</span><strong id="homeTodaySales" aria-live="polite">—</strong><small>Bu cihazdaki satışlar</small></span>
@@ -244,11 +250,20 @@
         </details>
         <details id="settingsProductGroup" class="settings-inner-section">
           <summary><span aria-hidden="true" class="settings-section-symbol">⬡</span><span class="settings-section-name"><strong>Ürün ve Kategori Ayarları</strong><small>Ürün yönetimi ve kategori görselleri</small></span><span aria-hidden="true" class="settings-section-arrow">⌄</span></summary>
-          <div class="settings-inner-content"><div class="settings-inner-actions"><button id="settingsInnerManage" type="button" class="settings-inner-action">Ürün Yönetimi <span aria-hidden="true">›</span></button><button id="settingsInnerCategoryImages" type="button" class="settings-inner-action">Kategori Görselleri <span aria-hidden="true">›</span></button></div></div>
+          <div class="settings-inner-content"><button id="exportProducts100" type="button" class="primary-button">Tüm Ürünleri Excel’e Aktar</button><p id="exportProductsStatus100" role="status" aria-live="polite"></p><button id="namesPreview99" type="button">Ürün / Marka Büyük Harf Önizle</button><button id="namesApply99" type="button" class="primary-button">Tüm Ürün ve Markaları Büyük Harfe Çevir</button><p id="namesStatus99" role="status"></p><div class="settings-inner-actions"><button id="settingsInnerManage" type="button" class="settings-inner-action">Ürün Yönetimi <span aria-hidden="true">›</span></button><button id="settingsInnerCategoryImages" type="button" class="settings-inner-action">Kategori Görselleri <span aria-hidden="true">›</span></button></div></div>
         </details>
         <details id="settingsPrintingGroup" class="settings-inner-section">
-          <summary><span aria-hidden="true" class="settings-section-symbol">▤</span><span class="settings-section-name"><strong>Yazıcı Ayarları</strong><small>Fiş yazdırma ve paylaşma tercihleri</small></span><span aria-hidden="true" class="settings-section-arrow">⌄</span></summary>
-          <div class="settings-inner-content"><section class="settings-device-receipt" aria-label="Bu cihazın fiş tercihi">
+          <summary><span aria-hidden="true" class="settings-section-symbol">▤</span><span class="settings-section-name"><strong>Yazıcı Ayarları</strong><small>Raf etiketi, fiş ve paylaşma tercihleri</small></span><span aria-hidden="true" class="settings-section-arrow">⌄</span></summary>
+          <div class="settings-inner-content"><section class="settings-receipt" aria-label="Cihaza özel yazıcı profilleri">
+<h2>Raf Etiketi / Satış Fişi Yazıcıları</h2>
+<label>Raf etiketi yazıcı adı <input id="settingsLabelPrinterName" type="text" maxlength="120"></label>
+<p>Kağıt: <strong>2×4</strong> · Etiket PDF ölçüsü: 38 × 100 mm</p>
+<label>Satış fişi yazıcı adı <input id="settingsReceiptPrinterName" type="text" maxlength="120"></label>
+<p>Fiş kağıdı aşağıdaki gelişmiş fiş ayarından seçilir (varsayılan 80 mm).</p>
+<label><input id="localPrintEnabled" type="checkbox"> Windows otomatik yazıcı yönlendirmesi</label><label>Bağlantı kodu <input id="localPrintToken" type="password" maxlength="64" autocomplete="off"></label><button id="testLabelPrint" type="button">Etiket test baskısı</button><button id="testReceiptPrint" type="button">Fiş test baskısı</button><button id="settingsPrinterProfilesSave" class="primary-button" type="button">Yazıcı Tercihlerini Kaydet</button>
+<p id="settingsPrinterProfilesStatus" role="status" aria-live="polite">Tercihler yalnızca bu tarayıcıda saklanır.</p>
+<small>Windows'ta mevcut Argox yazıcısını değiştirmeden aynı sürücü ve bağlantı noktası ile Argox Raf Etiketi adlı ikinci yazıcı ekleyip 2×4 seçin. Chrome yazıcı seçimini otomatik yapamaz; baskı ekranında belirtilen hedefi seçin.</small>
+</section><section class="settings-device-receipt" aria-label="Bu cihazın fiş tercihi">
           <h2>Bu Cihazın Fiş / Paylaşım Tercihi</h2>
           <label for="settingsReceiptAction">Satış tamamlandıktan sonra gösterilecek işlem</label>
           <select id="settingsReceiptAction">
@@ -449,10 +464,7 @@
       <strong id="weightProductName" class="weight-product-name">Ürün</strong>
       <p id="weightUnitPrice" class="weight-unit-price">KG fiyatı: ₺0,00</p>
       <div id="weightSerialPanel" class="weight-serial-panel" hidden>
-        <div class="weight-connection-head">
-          <span>CAS ER PLUS-2 · Windows seri bağlantı</span>
-          <strong id="weightConnectionState">Bağlı değil</strong>
-        </div>
+        <details id="weightConnectionDetails" class="weight-connection-details"><summary>Terazi bağlantısı · <strong id="weightConnectionState">Bağlı değil</strong></summary>
         <div class="weight-connection-actions">
           <button id="weightConnect" type="button">COM Portu Seç / Bağlan</button>
           <button id="weightDisconnect" type="button" disabled>Bağlantıyı Kes</button>
@@ -467,16 +479,16 @@
           </div>
           <small>COM5 portu açılan Windows izin penceresinden seçilir. Eski kasa programı açıkken port meşgul olabilir.</small>
         </details>
+        <small id="weightRaw" class="weight-raw">Ham seri veri henüz okunmadı.</small></details>
         <div class="weight-live-panel">
           <span>Teraziden canlı ağırlık</span>
           <strong id="weightLive" aria-live="polite">— kg</strong>
-          <small class="weight-live-help">Sabit ağırlık otomatik alınır. Yalnızca Sepete Ekle düğmesine basın.</small>
-          <small id="weightRaw" class="weight-raw">Ham seri veri henüz okunmadı.</small>
+
         </div>
         <p id="weightSerialStatus" role="status">Terazi bağlanmadı. Gramajı elle de girebilirsiniz.</p>
       </div>
       <div class="weight-manual-panel">
-        <label for="weightGrams">Gramaj (gram) — gerektiğinde elle değiştir</label>
+        <label for="weightGrams">Gramaj (g)</label>
         <input id="weightGrams" type="text" inputmode="numeric" autocomplete="off" placeholder="Örneğin: 564" aria-describedby="weightHelp">
         <small id="weightHelp">564 gram = 0,564 kg. Telefon ve tablette gramaj elle girilir.</small>
       </div>
@@ -485,9 +497,7 @@
         <div><span>Hesaplanan tutar</span><strong id="weightTotalPreview">—</strong></div>
       </div>
       <p id="weightError" class="weight-error" role="alert" hidden></p>
-      <button id="weightAdd" type="button" class="primary-button" disabled>Sepete Ekle</button>
-      <button id="weightCancel" type="button" class="sale-secondary-button">Vazgeç</button>
-    </div>
+    </div><div class="weight-footer"><button id="weightAdd" type="button" class="primary-button" disabled>Sepete Ekle</button><button id="weightCancel" type="button" class="sale-secondary-button">Vazgeç</button></div>
   </dialog>
   <dialog id="cashPaymentDialog" class="modal cash-payment-dialog" aria-labelledby="cashPaymentTitle">
     <div class="sheet-header"><h2 id="cashPaymentTitle">Nakit Ödeme</h2><button class="closebutton" type="button" data-close="cashPaymentDialog" aria-label="Kapat">×</button></div>
@@ -560,6 +570,7 @@
       </section>
     </div>
   </dialog>
+  <dialog id="quickPriceDialog" class="price-label-dialog"><div class="pl-head"><h2>Fiyat Değiştir</h2><button id="quickPriceClose" type="button" aria-label="Kapat">×</button></div><form id="quickPriceForm" class="pl-body"><strong id="quickPriceName"></strong><small id="quickPriceCode"></small><div>Mevcut fiyat: <strong id="quickPriceOld"></strong></div><label>Yeni satış fiyatı <input id="quickPriceValue" inputmode="decimal" autocomplete="off" required></label><label><input id="quickPriceQueue" type="checkbox" checked> Yazdırılacak etiketler listesine ekle</label><p id="quickPriceMessage" role="status"></p><button id="quickPriceSave" class="primary-button" type="submit">Fiyatı Kaydet</button></form></dialog>
   <dialog id="productDetailDialog" class="sheet product-detail-sheet" aria-labelledby="productDetailTitle">
     <div class="sheet-header"><h2 id="productDetailTitle">Ürün Detayı</h2><button type="button" class="closebutton" data-close="productDetailDialog" aria-label="Kapat">×</button></div>
     <div class="detail-body"><div class="detail-media"><span id="detailEmoji" class="detail-emoji" aria-hidden="true">🛒</span><img id="detailImage" alt="Ürün görseli" src="/icons/placeholder.svg"></div><div id="detailBrand" class="detail-brand"></div><h3 id="detailName"></h3><p id="detailBarcode" class="detail-barcode"></p><div id="detailMeta" class="detail-meta"></div><div class="detail-footer"><strong id="detailPrice"></strong><button id="detailAdd" class="primary-button" type="button">+ Sepete Ekle</button></div></div>
@@ -634,7 +645,7 @@
           <button id="manageScan" type="button">⌗ Oku</button>
         </div>
         <label>Ürün adı<input id="manageName" type="text" autocomplete="off" required maxlength="250"></label>
-        <label>Marka<input id="manageBrand" type="text" maxlength="120" placeholder="Marka girin"></label>
+        <label>Marka<input id="manageBrand" type="text" maxlength="120" placeholder="Marka girin"></label><fieldset class="origin-field"><legend>Üretim Menşei</legend><select id="manageOriginMode" aria-label="Üretim menşei"><option value="local">YERLİ ÜRETİM</option><option value="import">İTHAL ÜRÜN</option><option value="country">ÜLKE SEÇ</option><option value="unknown">BELİRTİLMEMİŞ</option></select><select id="manageOriginCountry" aria-label="Üretim ülkesi" hidden></select></fieldset>
         <div class="manage-two-col">
           <label>Ana kategori<select id="manageMainCategory" required></select></label>
           <label>Alt kategori<input id="manageSubCategory" list="manageSubSuggestions" required placeholder="Alt kategori seçin veya yazın"><datalist id="manageSubSuggestions"></datalist></label>
@@ -681,6 +692,47 @@
       <button id="passiveActivate" type="button" class="primary-button">Aktifleştir ve Adet Seç</button>
       <button id="passiveEdit" type="button">Önce Ürünü Düzenle</button>
       <button id="passiveCancel" type="button">Vazgeç</button>
+    </div>
+  </dialog>
+  <dialog id="priceLabelDialog" class="price-label-dialog" aria-labelledby="priceLabelTitle">
+    <div class="pl-head"><h2 id="priceLabelTitle">Fiyat Gör / Etiket Yazdır</h2><button id="priceLabelClose" type="button" aria-label="Kapat">×</button></div>
+    <div class="pl-body">
+      
+      <form id="priceLabelForm" class="pl-form" autocomplete="off">
+        <input id="priceLabelInput" type="search" inputmode="search" placeholder="Barkod veya ürün adı" aria-label="Barkod veya ürün adı" enterkeyhint="search">
+        <button id="priceLabelSearch" type="submit">Ara</button>
+      </form>
+      <div class="pl-actions">
+        <button id="priceLabelScan" type="button">▥ Kamera ile Barkod Okut</button>
+        <button id="priceLabelClear" type="button">Temizle / Yeni Okutma</button>
+      </div>
+      <p id="priceLabelStatus" class="pl-status" role="status" aria-live="polite">Barkod okutun veya ürün adı yazın.</p><p id="priceLabelQueueFeedback" class="pl-status" role="status" aria-live="polite" hidden></p>
+      <div id="priceLabelMatches" class="pl-matches" aria-label="Ürün arama sonuçları"></div>
+      <section id="priceLabelResult" class="pl-result" aria-label="Bulunan ürün" hidden>
+        <div class="pl-result-info"><div><h3 id="priceLabelName"></h3><small id="priceLabelCode"></small></div><strong id="priceLabelPrice" class="pl-amount"></strong></div>
+        
+        <div class="pl-print-row">
+          <label for="priceLabelCopies">Etiket adedi <input id="priceLabelCopies" type="number" value="1" min="1" max="20" step="1"></label>
+          <button id="priceLabelPrint" class="pl-print" type="button" disabled>▣ Etiket Yazdır</button><button id="priceLabelAddQueue" type="button" class="primary-button">Yazdırılacaklar Listesine Ekle</button><button id="priceLabelEdit" type="button">Fiyat Değiştir</button>
+        </div><details id="priceLabelPreviewDetails" class="pl-preview-wrap"><summary>Etiket önizlemesi · 38 × 100 mm</summary><div id="priceLabelTicketPreview" class="pl-ticket-preview"></div></details>
+      </section>
+      <button id="priceLabelQueueOpen" type="button" class="primary-button">Yazdırılacak Etiketler</button><p id="priceLabelPrinterHint" class="pl-printer-hint">Hedef: Argox Raf Etiketi · Kağıt: 2×4</p>
+    </div>
+  </dialog>
+  <dialog id="labelQueueDialog" class="price-label-dialog" aria-labelledby="labelQueueTitle"><div class="pl-head"><h2 id="labelQueueTitle">Yazdırılacak Etiketler</h2><button id="labelQueueClose" type="button" aria-label="Kapat">×</button></div><div style="padding:12px;display:grid;gap:10px"><p id="labelQueueStatus" role="status"></p><div class="lq-actions"><button id="labelQueueRefresh" type="button">Yenile</button><button id="labelQueueSelect" type="button">İlk 20 etiketi seç</button><strong id="labelQueueTotal">0 / 20 etiket</strong></div><div id="labelQueueItems" style="max-height:45vh;overflow:auto"></div><button id="labelQueuePrint" class="primary-button" type="button">Seçilenleri Toplu Yazdır</button><button id="labelQueueConfirm" type="button">Baskı Başarılı · Listeden Kaldır</button><button id="labelQueueCancel" type="button">Baskı Başarısız / İptal · Listede Tut</button></div></dialog>
+  <dialog id="priceLabelMissingDialog" class="price-label-missing" aria-labelledby="priceLabelMissingTitle">
+    <h2 id="priceLabelMissingTitle" class="pl-missing-title">Stokta ürün bulunamadı</h2>
+    <strong id="priceLabelMissingBarcode"></strong>
+    <p class="pl-missing-text">Stoğa eklemek istiyor musunuz? Evet, barkodu hazır yeni stok kartını açar; Hayır, barkodu temizler.</p>
+    <div class="pl-missing-buttons"><button id="priceLabelMissingNo" type="button">Hayır, Temizle</button><button id="priceLabelMissingYes" type="button">Evet, Stok Kartı Aç</button></div>
+  </dialog>
+  <dialog id="unknownBarcodeDialog" class="modal activation-choice-dialog" aria-labelledby="unknownBarcodeTitle">
+    <div class="sheet-header"><h2 id="unknownBarcodeTitle">Stok eklemek istiyor musunuz?</h2></div>
+    <div class="activation-choice-body">
+      <strong id="unknownBarcodeValue"></strong>
+      <p>Bu barkodla kayıtlı ürün bulunamadı. Evet derseniz barkodu hazır yeni stok kartı açılır. Hayır derseniz barkod temizlenir.</p>
+      <button id="unknownBarcodeYes" type="button" class="primary-button">Evet, Stok Kartı Aç</button>
+      <button id="unknownBarcodeNo" type="button" class="sale-secondary-button">Hayır, Barkodu Temizle</button>
     </div>
   </dialog>
   <dialog id="scanDialog" class="modal premium-scanner" aria-labelledby="scanTitle">
@@ -746,6 +798,7 @@
       <button id="receiptClose" type="button" class="receipt-action-close">Yeni Satış</button>
     </div>
   </dialog>
+  <dialog id="saleDetail101" class="price-label-dialog" aria-labelledby="saleDetailTitle101"><div class="pl-head"><h2 id="saleDetailTitle101">Satış Detayı</h2><button id="saleDetailClose101" type="button" aria-label="Kapat">×</button></div><div class="pl-body sale-detail-body101"><div id="saleDetailSummary101"></div><input id="saleDetailSearch101" type="search" placeholder="Ürün adı veya barkod ara" aria-label="Satışta ürün ara"><p id="saleDetailCount101" role="status"></p><div id="saleDetailRows101" class="sale-detail-rows101"></div><div class="sale-detail-footer101"><button id="saleDetailPrint101" class="primary-button" type="button">Fişi Yazdır</button></div></div></dialog>
   <dialog id="historyDialog" class="sheet" aria-labelledby="historyTitle">
     <div class="sheet-header"><h2 id="historyTitle">Satış Raporları</h2><button type="button" class="closebutton" data-close="historyDialog" aria-label="Raporlardan geri dön"><span class="report-close-symbol" aria-hidden="true">×</span><span class="report-back-label" aria-hidden="true">← Geri</span></button></div>
     <form id="historyFilters" class="history-filters" aria-label="Satış raporu filtreleri">
@@ -810,7 +863,7 @@
       </div>
     </section>
     <div class="history-actions"><strong class="history-list-title">Satış Geçmişi</strong><span id="historyCount">0 satış</span><span class="history-device-note">Bu cihazın kayıtları · Diğer kasalar dahil değildir</span><button id="exportSales" class="smallbutton secondary" type="button">CSV Dışa Aktar</button></div>
-    <div id="historyItems" class="history-items"></div>
+    <div id="historyItems" class="history-items"></div><nav id="historyPager101" aria-label="Satış sayfaları" class="history-pager101" hidden><button id="historyPrev101" type="button">← Önceki</button><span id="historyPage101" role="status"></span><button id="historyNext101" type="button">Sonraki →</button></nav>
   </dialog>
 
   <dialog id="saleVoidDialog" class="sale-void-dialog" aria-labelledby="saleVoidTitle">
@@ -869,6 +922,6 @@
       <p id="accessUserFormStatus" role="status" aria-live="polite"></p>
     </form>
   </dialog>
-  <script type="module" src="/app.js"></script>
+  <link rel="stylesheet" href="/reports-v101.css"><script type="module" src="/app-v105.js"></script>
 </body>
 </html>

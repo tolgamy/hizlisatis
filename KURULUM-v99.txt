@@ -1,0 +1,5 @@
+v99 KURULUM
+Önce yedek alın. public içindeki 11 dosyayı /home/kolaykasa/hizlisatis/public, functions/api 2 dosyayı /home/kolaykasa/hizlisatis/functions/api içine yükleyin. Node.js restart. Sayfayı yenileyin.
+Ayarlar > Ürün ve Kategori Ayarları > Büyük Harf Önizle, ardından onaylayıp dönüştür. Bu işlem yalnız bağlı veritabanında çalışır; Cloudflare D1 için ayrı dağıtım ve ayrı çalıştırma gerekir. GitHub ham katalog dosyaları bu pakette dönüştürülmedi; yeni API kayıtları büyük harfe çevrilir.
+Menşe: yeni ürün için Türkiye önerilir. Mevcut menşe bilgisi olmayan kayıtlar otomatik yerli kabul edilmez. Ürün Düzenle ekranında doğrulayarak seçin. Resmi Yerli Üretim logo dosyası bu pakette yoktur; etiket metinsel taslaktır, mevzuata uygunluğu doğrulanmamıştır. Gerçek kullanım öncesinde resmi logo ve menşe bilgisi doğrulanmalı.
+Windows v98 yardımcı programı ve bağlantı kodu korunur. v99 fiziksel baskı ve canlı sunucu testi yapılmadı.

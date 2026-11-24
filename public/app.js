@@ -316,7 +316,7 @@ function setView(view,showAll=false) {
 function focusSaleBarcode(){
   if(!(typeof isSaleActive==='function' ? isSaleActive() : dom.cartDialog.open) || $('receiptActionsDialog').open ||
      $('scanQuantityDialog').open || dom.scanDialog.open || $('pickProductDialog').open ||
-     $('weightDialog').open) return;
+     $('weightDialog').open || $('unknownBarcodeDialog')?.open) return;
   $('saleBarcode').focus({preventScroll:true});
 }
 function openSale({preferCamera=false}={}) {
@@ -593,11 +593,46 @@ function addBarcodeOnce(product,sourceInput=null){
   if(added)reset();
   return added;
 }
+// Unknown barcode means there is NO product record; zero stock never blocks a sale.
+let unknownBarcodeValue='';
+function looksLikeBarcode(code){
+  return /^(?:[0-9]{6,24}|(?=.*[0-9])[A-Za-z0-9._-]{6,64})$/.test(code);
+}
+function promptUnknownBarcode(raw){
+  const code=String(raw??'').trim();
+  if(!code||code.length>128)return false;
+  const dialog=$('unknownBarcodeDialog');
+  if(dialog.open)return true;
+  unknownBarcodeValue=code;
+  $('unknownBarcodeValue').textContent='Barkod: '+code;
+  if(dom.scanDialog.open){dom.scanDialog.close();stopScanner().catch(()=>{});}
+  dialog.showModal();
+  return true;
+}
+function resolveUnknownBarcode(create){
+  const code=unknownBarcodeValue;
+  unknownBarcodeValue='';
+  const dialog=$('unknownBarcodeDialog');
+  if(dialog.open)dialog.close();
+  $('saleBarcode').value='';
+  $('scanManualBarcode').value='';
+  if(create&&code){
+    if(state.centralReadOnly||!userCan('products')){
+      announce('Yeni ürün eklemek için merkezi bağlantı ve ürün düzenleme yetkisi gerekli.','error');
+      focusSaleBarcode();
+      return;
+    }
+    productManager.openNew(code);
+  }else focusSaleBarcode();
+}
 function barcodeAdd(raw,sourceInput){
   const code=String(raw??'').trim();
   if(!code)return false;
   const product=exactProduct(code);
-  if(!product){announce(code+' barkodlu ürün bulunamadı.','error');return false;}
+  if(!product){
+    if(looksLikeBarcode(code))return promptUnknownBarcode(code);
+    return false; // Searches with product names still use the product picker.
+  }
   if(state.cart.has(product.id)){addBarcodeOnce(product,sourceInput);return true;}
   if(productManager?.offerSaleActivation(product,active=>addBarcodeOnce(active,sourceInput)))return true;
   return addBarcodeOnce(product,sourceInput);
@@ -2118,10 +2153,14 @@ function scanned(raw,{source='camera',format='Barkod',force=false}={}) {
       if(productManager?.offerSaleActivation(product,active=>addBarcodeOnce(active,$('scanManualBarcode'))))return;
       addBarcodeOnce(product,$('scanManualBarcode'));
     }else{
-      $('saleBarcode').value=text;
-      dom.scanMessage.textContent='Barkod '+text+' okundu ancak katalogda ürün bulunamadı.';
-      if(dialogWasOpen)stopScanner().catch(()=>{});
+      // Camera and image/manual scans are definitely barcode inputs, not name search.
+      if(!promptUnknownBarcode(text)){
+        $('saleBarcode').value='';
+        $('scanManualBarcode').value='';
+        announce('Okunan barkod çok uzun veya geçersiz.','error');
+      }
     }
+
   };
   if(dialogWasOpen)setTimeout(deliver,540);
   else deliver();
@@ -2622,32 +2661,35 @@ async function setup() {
   $('backupDownload').addEventListener('click',downloadDeviceBackup);
   $('backupUpload').addEventListener('change',event=>importDeviceBackup(event.target.files?.[0]));
   // Receipt width/title/contact info are persisted in settings above, not in checkout.
+  let barcodeInputIdle=null;
   $('saleBarcodeForm').addEventListener('submit',event=>{
     event.preventDefault();
+    clearTimeout(barcodeInputIdle);
     const value=$('saleBarcode').value.trim();
     if(!value)openProductPicker();
     else if(!addHardwareBarcode(value,$('saleBarcode')))openProductPicker(value);
   });
-  // Barcode readers with a Tab terminator work like Enter-based readers.
+  // USB/Bluetooth scanner with Tab terminator must also handle unknown barcodes.
   $('saleBarcode').addEventListener('keydown',event=>{
-    if(event.key!=='Tab'||!$('saleBarcode').value.trim())return;
-    if(!exactProduct($('saleBarcode').value))return;
+    if(event.key!=='Tab')return;
+    const code=$('saleBarcode').value.trim();
+    if(!code||(!exactProduct(code)&&!looksLikeBarcode(code)))return;
     event.preventDefault();
-    addHardwareBarcode($('saleBarcode').value,$('saleBarcode'));
+    clearTimeout(barcodeInputIdle);
+    addHardwareBarcode(code,$('saleBarcode'));
   });
-  // Many USB readers do not append Enter/Tab. Recognize complete numeric
-  // retail codes after a brief input pause, but only when an exact SKU exists.
-  // Incomplete codes and text searches are never automatically added.
-  let barcodeInputIdle=null;
+  // USB readers without Enter/Tab: after input settles, distinguish
+  // a registered product from an unknown full EAN/UPC barcode.
   $('saleBarcode').addEventListener('input',()=>{
     clearTimeout(barcodeInputIdle);
     const barcode=$('saleBarcode').value.trim();
     if(!/^(?:\d{8}|\d{12,14})$/.test(barcode))return;
     barcodeInputIdle=setTimeout(()=>{
       if(!isSaleActive() || $('saleBarcode').value.trim()!==barcode ||
-        $('scanQuantityDialog').open || dom.scanDialog.open)return;
-      if(exactProduct(barcode))addHardwareBarcode(barcode,$('saleBarcode'));
-    },220);
+         $('scanQuantityDialog').open || dom.scanDialog.open ||
+         $('unknownBarcodeDialog').open)return;
+      addHardwareBarcode(barcode,$('saleBarcode'));
+    },550);
   });
   $('pickProductSearch').addEventListener('input',()=>{
     pickerVisibleLimit=60;renderProductPicker();
@@ -2679,6 +2721,14 @@ async function setup() {
     scanned($('scanManualBarcode').value,{source:'manual',format:'Elle Girildi',force:true});
   });
   $('scanPhotoFile').addEventListener('change',event=>{scanBarcodePhoto(event.target.files?.[0]);event.target.value='';});
+  $('unknownBarcodeNo').addEventListener('click',()=>resolveUnknownBarcode(false));
+  $('unknownBarcodeYes').addEventListener('click',()=>resolveUnknownBarcode(true));
+  $('unknownBarcodeDialog').addEventListener('cancel',event=>{
+    event.preventDefault();resolveUnknownBarcode(false);
+  });
+  $('unknownBarcodeDialog').addEventListener('click',event=>{
+    if(event.target===$('unknownBarcodeDialog'))resolveUnknownBarcode(false);
+  });
   $('detailAdd').addEventListener('click',()=>{
     const product=state.detailProduct;
     if(!product)return;
