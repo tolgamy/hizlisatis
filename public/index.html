@@ -798,6 +798,7 @@
       <button id="receiptClose" type="button" class="receipt-action-close">Yeni Satış</button>
     </div>
   </dialog>
+  <dialog id="saleDetail101" class="price-label-dialog" aria-labelledby="saleDetailTitle101"><div class="pl-head"><h2 id="saleDetailTitle101">Satış Detayı</h2><button id="saleDetailClose101" type="button" aria-label="Kapat">×</button></div><div class="pl-body sale-detail-body101"><div id="saleDetailSummary101"></div><input id="saleDetailSearch101" type="search" placeholder="Ürün adı veya barkod ara" aria-label="Satışta ürün ara"><p id="saleDetailCount101" role="status"></p><div id="saleDetailRows101" class="sale-detail-rows101"></div><div class="sale-detail-footer101"><button id="saleDetailPrint101" class="primary-button" type="button">Fişi Yazdır</button></div></div></dialog>
   <dialog id="historyDialog" class="sheet" aria-labelledby="historyTitle">
     <div class="sheet-header"><h2 id="historyTitle">Satış Raporları</h2><button type="button" class="closebutton" data-close="historyDialog" aria-label="Raporlardan geri dön"><span class="report-close-symbol" aria-hidden="true">×</span><span class="report-back-label" aria-hidden="true">← Geri</span></button></div>
     <form id="historyFilters" class="history-filters" aria-label="Satış raporu filtreleri">
@@ -862,7 +863,7 @@
       </div>
     </section>
     <div class="history-actions"><strong class="history-list-title">Satış Geçmişi</strong><span id="historyCount">0 satış</span><span class="history-device-note">Bu cihazın kayıtları · Diğer kasalar dahil değildir</span><button id="exportSales" class="smallbutton secondary" type="button">CSV Dışa Aktar</button></div>
-    <div id="historyItems" class="history-items"></div>
+    <div id="historyItems" class="history-items"></div><nav id="historyPager101" aria-label="Satış sayfaları" class="history-pager101" hidden><button id="historyPrev101" type="button">← Önceki</button><span id="historyPage101" role="status"></span><button id="historyNext101" type="button">Sonraki →</button></nav>
   </dialog>
 
   <dialog id="saleVoidDialog" class="sale-void-dialog" aria-labelledby="saleVoidTitle">
@@ -921,6 +922,6 @@
       <p id="accessUserFormStatus" role="status" aria-live="polite"></p>
     </form>
   </dialog>
-  <script type="module" src="/app-v100.js"></script>
+  <link rel="stylesheet" href="/reports-v101.css"><script type="module" src="/app-v101.js"></script>
 </body>
 </html>
