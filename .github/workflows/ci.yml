@@ -1,9 +1,9 @@
 name: POS PWA – Build and Tests
 on:
   push:
-    branches: [main, reports-filters-summary-2026-11-24]
+    branches: [main]
   pull_request:
-    branches: [main, reports-filters-summary-2026-11-24]
+    branches: [main]
 permissions:
   contents: read
 jobs:
