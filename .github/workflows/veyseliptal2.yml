@@ -1,0 +1,20 @@
+name: General Sale Cancellation
+on:
+  push:
+    branches: [veyseliptal2]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - run: npm install --no-audit --no-fund
+      - name: Verify cash and credit cancellation, idempotency, and reporting
+        run: node --test tests/general-sale-cancellation.test.js tests/audit-test-sale-void.test.js tests/pos-no-stock-limits.test.js tests/veridyen-central-sales.test.js tests/report-filters.test.js tests/report-ui-v81.test.js
+      - name: Build POS application
+        run: npm run build
