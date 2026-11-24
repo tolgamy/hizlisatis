@@ -747,13 +747,61 @@
     </div>
   </dialog>
   <dialog id="historyDialog" class="sheet" aria-labelledby="historyTitle">
-    <div class="sheet-header"><h2 id="historyTitle">Satış Geçmişi</h2><button type="button" class="closebutton" data-close="historyDialog" aria-label="Raporlardan geri dön"><span class="report-close-symbol" aria-hidden="true">×</span><span class="report-back-label" aria-hidden="true">← Geri</span></button></div>
-    <div class="history-actions"><span id="historyCount">0 satış</span><span class="history-device-note">Bu cihazın kayıtları · Diğer kasalar dahil değildir</span><button id="exportSales" class="smallbutton secondary" type="button">CSV Dışa Aktar</button></div>
+    <div class="sheet-header"><h2 id="historyTitle">Satış Raporları</h2><button type="button" class="closebutton" data-close="historyDialog" aria-label="Raporlardan geri dön"><span class="report-close-symbol" aria-hidden="true">×</span><span class="report-back-label" aria-hidden="true">← Geri</span></button></div>
+    <form id="historyFilters" class="history-filters" aria-label="Satış raporu filtreleri">
+      <div class="history-filters-heading">▦ Tarih ve Satış Filtreleri</div>
+      <div class="history-filter-dates">
+        <label>Başlangıç <input id="historyFrom" type="date"></label>
+        <label>Bitiş <input id="historyTo" type="date"></label>
+      </div>
+      <div class="history-filter-presets" role="group" aria-label="Hızlı tarih seçimi">
+        <button type="button" data-report-period="today">Bugün</button>
+        <button type="button" data-report-period="7">7 Gün</button>
+        <button type="button" data-report-period="30">30 Gün</button>
+        <button type="button" data-report-period="month">Bu Ay</button>
+      </div>
+      <div class="history-filter-primary">
+        <label>Ödeme Türü
+          <select id="historyPayment">
+            <option value="">Tüm Ödemeler</option><option value="Nakit">Nakit</option>
+            <option value="Kart">Kart</option><option value="Veresiye">Veresiye</option>
+            <option value="Havale / FAST">Havale / FAST</option>
+            <option value="Yemek Kartı">Yemek Kartı</option><option value="Diğer">Diğer</option>
+          </select>
+        </label>
+        <label>Ürün, Barkod, Müşteri veya Fiş
+          <input id="historyQuery" type="search" placeholder="Satışlarda ara..." autocomplete="off">
+        </label>
+        <label>Sırala
+          <select id="historySort">
+            <option value="newest">En Yeni</option><option value="oldest">En Eski</option>
+            <option value="highest">Tutar: Yüksekten</option><option value="lowest">Tutar: Düşükten</option>
+          </select>
+        </label>
+      </div>
+      <details class="history-filter-more">
+        <summary>Detaylı filtreler (tutar aralığı)</summary>
+        <div class="history-filter-amounts">
+          <label>En Az Tutar (₺)<input id="historyMin" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0,00"></label>
+          <label>En Çok Tutar (₺)<input id="historyMax" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0,00"></label>
+        </div>
+      </details>
+      <div class="history-filter-actions">
+        <button type="submit" class="history-filter-apply">Uygula</button>
+        <button id="historyReset" type="button" class="history-filter-reset">Temizle</button>
+      </div>
+    </form>
     <section id="historySummary" class="history-summary" aria-label="Bu cihazın satış raporu" hidden>
       <div class="history-summary-metrics">
         <div><span>Toplam Satış · ₺</span><strong id="historySummaryTotal">₺0,00</strong></div>
         <div><span>Satış Adedi</span><strong id="historySummaryCount">0</strong></div>
         <div><span>Ortalama Sepet · ₺</span><strong id="historySummaryAverage">₺0,00</strong></div>
+      </div>
+      <div class="history-payment-summary" aria-label="Ödeme türlerine göre tutarlar">
+        <div><span>Nakit</span><strong id="historyCashTotal">₺0,00</strong></div>
+        <div><span>Kart</span><strong id="historyCardTotal">₺0,00</strong></div>
+        <div><span>Veresiye</span><strong id="historyCreditTotal">₺0,00</strong></div>
+        <div><span>Diğer Ödemeler</span><strong id="historyOtherTotal">₺0,00</strong></div>
       </div>
       <p id="historySummaryEmpty" class="history-summary-empty" hidden>Bu cihazda henüz satış yok. İlk satıştan sonra günlük grafik ve fişler burada görünecek.</p>
       <div id="historySummaryPlot">
@@ -761,6 +809,7 @@
         <div id="historySummaryChart" class="history-summary-chart" aria-label="Yedi günlük cihaz satış grafiği"></div>
       </div>
     </section>
+    <div class="history-actions"><strong class="history-list-title">Satış Geçmişi</strong><span id="historyCount">0 satış</span><span class="history-device-note">Bu cihazın kayıtları · Diğer kasalar dahil değildir</span><button id="exportSales" class="smallbutton secondary" type="button">CSV Dışa Aktar</button></div>
     <div id="historyItems" class="history-items"></div>
   </dialog>
 
