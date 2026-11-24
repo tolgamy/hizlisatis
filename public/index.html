@@ -683,6 +683,15 @@
       <button id="passiveCancel" type="button">Vazgeç</button>
     </div>
   </dialog>
+  <dialog id="unknownBarcodeDialog" class="modal activation-choice-dialog" aria-labelledby="unknownBarcodeTitle">
+    <div class="sheet-header"><h2 id="unknownBarcodeTitle">Stokta Ürün Bulunamadı</h2></div>
+    <div class="activation-choice-body">
+      <strong id="unknownBarcodeValue"></strong>
+      <p>Bu barkodla kayıtlı ürün bulunamadı. Yeni ürün (stok kartı) oluşturmak ister misiniz?</p>
+      <button id="unknownBarcodeYes" type="button" class="primary-button">Evet, Yeni Ürün Ekle</button>
+      <button id="unknownBarcodeNo" type="button" class="sale-secondary-button">Hayır, Barkodu Temizle</button>
+    </div>
+  </dialog>
   <dialog id="scanDialog" class="modal premium-scanner" aria-labelledby="scanTitle">
     <div class="scanner-topbar">
       <div class="scanner-heading"><span class="scanner-heading-icon" aria-hidden="true">▥</span><div><span class="scanner-eyebrow">HIZLISATIŞ · KAMERA</span><h2 id="scanTitle">Barkod Okuyucu</h2></div></div>
