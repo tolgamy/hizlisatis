@@ -58,23 +58,23 @@ test('checkout and product browsing never block a registered item based on stock
   const checkout=section('async function completeSale()', 'function renderReceipt(');
   const browse=section('function renderProducts()', '/** Stock state derived');
   const detail=section('function openProductDetail(', '/** Install data');
-  assert.doesNotMatch(checkout,/remaining\\(|yeterli stok|stok yok/);
-  assert.match(checkout,/await saveCentralSale\\(record\\)/);
-  assert.match(checkout,/await recordCustomerCredit\\(creditCustomer.id,record\\)/);
-  assert.match(checkout,/state\\.centralReadOnly/);
+  assert.doesNotMatch(checkout,/remaining\(|yeterli stok|stok yok/);
+  assert.match(checkout,/await saveCentralSale\(record\)/);
+  assert.match(checkout,/await recordCustomerCredit\(creditCustomer.id,record\)/);
+  assert.match(checkout,/state\.centralReadOnly/);
   assert.match(checkout,/payment==='Veresiye'&&!creditCustomer/);
-  assert.doesNotMatch(browse,/if\\(state\\.stockOnly&&remaining\\(p\\)<1\\)/);
-  assert.match(browse,/const available=!state\\.centralReadOnly&&!p\\.fiyatBelirsiz/);
-  assert.match(detail,/state\\.centralReadOnly \\|\\| !isActive\\(product\\) \\|\\| product\\.fiyatBelirsiz/);
-  assert.doesNotMatch(detail,/remaining\\(product\\)/);
+  assert.doesNotMatch(browse,/if\(state\.stockOnly&&remaining\(p\)<1\)/);
+  assert.match(browse,/const available=!state\.centralReadOnly&&!p\.fiyatBelirsiz/);
+  assert.match(detail,/state\.centralReadOnly \|\| !isActive\(product\) \|\| product\.fiyatBelirsiz/);
+  assert.doesNotMatch(detail,/remaining\(product\)/);
 });
 
 test('stock inquiries are hidden but legacy product data and stock tools remain intact',()=>{
   for(const id of ['homeQuickStock','homeStockInsight','sidebarStock','onlyInStock']){
     assert.match(html,new RegExp('id="'+id+'"[^>]*hidden'));
-    assert.match(css,new RegExp('#'+id+'\\\\[hidden\\\\]'));
+    assert.ok(css.includes('#'+id+'[hidden]'),id+' CSS hiding rule');
   }
-  assert.doesNotMatch(html,/<option value="stock">Stok<\\/option>/);
+  assert.doesNotMatch(html,/<option value="stock">Stok<\/option>/);
   assert.match(html,/id="stockEditDialog"/);
   assert.match(html,/id="manageStock"/);
   assert.match(sw,/no-stock-limits-v82/);
