@@ -12,7 +12,7 @@
   <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg">
   <style>body.auth-locked #app{display:none!important}.access-login-gate[hidden]{display:none!important}</style>
   <link rel="stylesheet" href="/styles.css">
-  <link rel="stylesheet" href="/price-label-v96.css">
+  <link rel="stylesheet" href="/price-label-v97.css">
   <style id="receiptPaperSize"></style>
   <title>HızlıSatış · Mobil POS</title>
 </head>
@@ -464,10 +464,7 @@
       <strong id="weightProductName" class="weight-product-name">Ürün</strong>
       <p id="weightUnitPrice" class="weight-unit-price">KG fiyatı: ₺0,00</p>
       <div id="weightSerialPanel" class="weight-serial-panel" hidden>
-        <div class="weight-connection-head">
-          <span>CAS ER PLUS-2 · Windows seri bağlantı</span>
-          <strong id="weightConnectionState">Bağlı değil</strong>
-        </div>
+        <details id="weightConnectionDetails" class="weight-connection-details"><summary>Terazi bağlantısı · <strong id="weightConnectionState">Bağlı değil</strong></summary>
         <div class="weight-connection-actions">
           <button id="weightConnect" type="button">COM Portu Seç / Bağlan</button>
           <button id="weightDisconnect" type="button" disabled>Bağlantıyı Kes</button>
@@ -482,16 +479,16 @@
           </div>
           <small>COM5 portu açılan Windows izin penceresinden seçilir. Eski kasa programı açıkken port meşgul olabilir.</small>
         </details>
+        <small id="weightRaw" class="weight-raw">Ham seri veri henüz okunmadı.</small></details>
         <div class="weight-live-panel">
           <span>Teraziden canlı ağırlık</span>
           <strong id="weightLive" aria-live="polite">— kg</strong>
-          <small class="weight-live-help">Sabit ağırlık otomatik alınır. Yalnızca Sepete Ekle düğmesine basın.</small>
-          <small id="weightRaw" class="weight-raw">Ham seri veri henüz okunmadı.</small>
+
         </div>
         <p id="weightSerialStatus" role="status">Terazi bağlanmadı. Gramajı elle de girebilirsiniz.</p>
       </div>
       <div class="weight-manual-panel">
-        <label for="weightGrams">Gramaj (gram) — gerektiğinde elle değiştir</label>
+        <label for="weightGrams">Gramaj (g)</label>
         <input id="weightGrams" type="text" inputmode="numeric" autocomplete="off" placeholder="Örneğin: 564" aria-describedby="weightHelp">
         <small id="weightHelp">564 gram = 0,564 kg. Telefon ve tablette gramaj elle girilir.</small>
       </div>
@@ -500,9 +497,7 @@
         <div><span>Hesaplanan tutar</span><strong id="weightTotalPreview">—</strong></div>
       </div>
       <p id="weightError" class="weight-error" role="alert" hidden></p>
-      <button id="weightAdd" type="button" class="primary-button" disabled>Sepete Ekle</button>
-      <button id="weightCancel" type="button" class="sale-secondary-button">Vazgeç</button>
-    </div>
+    </div><div class="weight-footer"><button id="weightAdd" type="button" class="primary-button" disabled>Sepete Ekle</button><button id="weightCancel" type="button" class="sale-secondary-button">Vazgeç</button></div>
   </dialog>
   <dialog id="cashPaymentDialog" class="modal cash-payment-dialog" aria-labelledby="cashPaymentTitle">
     <div class="sheet-header"><h2 id="cashPaymentTitle">Nakit Ödeme</h2><button class="closebutton" type="button" data-close="cashPaymentDialog" aria-label="Kapat">×</button></div>
@@ -701,7 +696,7 @@
   <dialog id="priceLabelDialog" class="price-label-dialog" aria-labelledby="priceLabelTitle">
     <div class="pl-head"><h2 id="priceLabelTitle">Fiyat Gör / Etiket Yazdır</h2><button id="priceLabelClose" type="button" aria-label="Kapat">×</button></div>
     <div class="pl-body">
-      <p class="pl-intro">Barkod okutun veya ürün adıyla arayın. Fiyatı görüntülemek satış sepetini değiştirmez.</p>
+      
       <form id="priceLabelForm" class="pl-form" autocomplete="off">
         <input id="priceLabelInput" type="search" inputmode="search" placeholder="Barkod veya ürün adı" aria-label="Barkod veya ürün adı" enterkeyhint="search">
         <button id="priceLabelSearch" type="submit">Ara</button>
@@ -710,18 +705,15 @@
         <button id="priceLabelScan" type="button">▥ Kamera ile Barkod Okut</button>
         <button id="priceLabelClear" type="button">Temizle / Yeni Okutma</button>
       </div>
-      <p id="priceLabelStatus" class="pl-status" role="status" aria-live="polite">Barkod okutun veya ürün adı yazın.</p>
+      <p id="priceLabelStatus" class="pl-status" role="status" aria-live="polite">Barkod okutun veya ürün adı yazın.</p><p id="priceLabelQueueFeedback" class="pl-status" role="status" aria-live="polite" hidden></p>
       <div id="priceLabelMatches" class="pl-matches" aria-label="Ürün arama sonuçları"></div>
       <section id="priceLabelResult" class="pl-result" aria-label="Bulunan ürün" hidden>
         <div class="pl-result-info"><div><h3 id="priceLabelName"></h3><small id="priceLabelCode"></small></div><strong id="priceLabelPrice" class="pl-amount"></strong></div>
-        <div class="pl-preview-wrap">
-          <div class="pl-preview-head"><strong>Argox Etiket Önizleme</strong><small>38 × 100 mm</small></div>
-          <div id="priceLabelTicketPreview" class="pl-ticket-preview"></div>
-        </div>
+        
         <div class="pl-print-row">
           <label for="priceLabelCopies">Etiket adedi <input id="priceLabelCopies" type="number" value="1" min="1" max="20" step="1"></label>
-          <button id="priceLabelPrint" class="pl-print" type="button" disabled>▣ Etiket Yazdır</button><button id="priceLabelAddQueue" type="button" class="primary-button">Listeye Ekle</button><button id="priceLabelEdit" type="button">Fiyat Değiştir</button>
-        </div>
+          <button id="priceLabelPrint" class="pl-print" type="button" disabled>▣ Etiket Yazdır</button><button id="priceLabelAddQueue" type="button" class="primary-button">Yazdırılacaklar Listesine Ekle</button><button id="priceLabelEdit" type="button">Fiyat Değiştir</button>
+        </div><details id="priceLabelPreviewDetails" class="pl-preview-wrap"><summary>Etiket önizlemesi · 38 × 100 mm</summary><div id="priceLabelTicketPreview" class="pl-ticket-preview"></div></details>
       </section>
       <button id="priceLabelQueueOpen" type="button" class="primary-button">Yazdırılacak Etiketler</button><p id="priceLabelPrinterHint" class="pl-printer-hint">Hedef: Argox Raf Etiketi · Kağıt: 2×4</p>
     </div>
@@ -928,6 +920,6 @@
       <p id="accessUserFormStatus" role="status" aria-live="polite"></p>
     </form>
   </dialog>
-  <script type="module" src="/app-v96.js"></script>
+  <script type="module" src="/app-v97.js"></script>
 </body>
 </html>

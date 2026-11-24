@@ -1,13 +1,13 @@
 import {authorizedAdmin} from '../../lib/admin-auth.js';
 const prefix='label_queue:';
-const json=(data,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
+const json=(data,status=200)=>Response.json({...data,queueVersion:97},{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
 const idOk=id=>typeof id==='string'&&id.length>0&&id.length<=180;
 const countOk=n=>Number.isInteger(n)&&n>=1&&n<=20;
 const tokenOk=t=>typeof t==='string'&&/^[a-f0-9-]{36}$/.test(t);
 const key=id=>prefix+id;
 function cleanProduct(row){
   if(!row)return null;
-  const p=JSON.parse(row.payload);
+  const p=typeof row.payload==='string'?JSON.parse(row.payload):row.payload;
   return {id:p.id,baslik:p.baslik,barkod:p.barkod,urunKodu:p.urunKodu,satisFiyati:p.satisFiyati,fiyatBelirsiz:p.fiyatBelirsiz,birim:p.birim,kdv:p.kdv,mensei:p.mensei,menşei:p.menşei,lifecycleStatus:p.lifecycleStatus};
 }
 function validProduct(p){return p&&p.lifecycleStatus!=='deleted'&&!p.fiyatBelirsiz&&typeof p.satisFiyati==='number'&&Number.isFinite(p.satisFiyati)&&p.satisFiyati>=0&&String(p.barkod||p.urunKodu||'').trim();}
@@ -20,7 +20,7 @@ export async function labelQueueRequest({request,env}){
     if(!await authorizedAdmin(request,env,'products')&&!await authorizedAdmin(request,env,'sales'))return json({error:'Ürün veya satış yetkisi gerekli.'},403);
     if(request.method==='GET'){
       const rows=await db.prepare('SELECT key,value FROM app_meta WHERE key LIKE ? ORDER BY key').bind(prefix+'%').all();
-      const entries=(rows.results||[]).map(r=>JSON.parse(r.value));
+      const entries=(rows.results||[]).filter(r=>String(r.key).startsWith(prefix)).map(r=>JSON.parse(r.value));
       const products=[];
       for(let i=0;i<entries.length;i+=40){
         const ids=entries.slice(i,i+40).map(x=>x.id);
@@ -37,7 +37,10 @@ export async function labelQueueRequest({request,env}){
       if(!idOk(b.id)||!countOk(b.count))return json({error:'Ürün veya adet geçersiz.'},400);
       if(!validProduct(await product(db,b.id)))return json({error:'Ürün veya güncel fiyat geçersiz.'},409);
       const entry={id:b.id,count:b.count,version:crypto.randomUUID(),at:new Date().toISOString()};
-      await db.prepare('INSERT INTO app_meta(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value').bind(key(b.id),JSON.stringify(entry)).run();
+      const value=JSON.stringify(entry);
+      if(env.MYSQL_POOL){await env.MYSQL_POOL.execute('INSERT INTO app_meta (`key`, `value`) VALUES (?,?) ON DUPLICATE KEY UPDATE `value`=VALUES(`value`)',[key(b.id),value]);}
+      else await db.prepare('INSERT INTO app_meta(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value').bind(key(b.id),value).run();
+      const saved=await readEntry(db,b.id);if(saved?.version!==entry.version)return json({error:'Merkezi kayıt doğrulanamadı; tekrar deneyin.'},409);
       return json({ok:true,entry});
     }
     if(b?.action==='set'||b?.action==='remove'){
@@ -64,5 +67,5 @@ export async function labelQueueRequest({request,env}){
       return json({ok:true,removed:results.reduce((n,r)=>n+Number(r.meta?.changes||0),0)});
     }
     return json({error:'Bilinmeyen işlem.'},400);
-  }catch(e){return json({error:'Merkezi etiket listesi işlemi tamamlanamadı.'},503);}
+  }catch(e){console.error('Label queue v97 failure',e?.code||e?.name||'Error');return json({error:'Merkezi etiket listesi işlemi tamamlanamadı. Sunucu bağlantısını ve v97 kurulumunu kontrol edin.'},503);}
 }
