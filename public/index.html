@@ -12,7 +12,7 @@
   <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg">
   <style>body.auth-locked #app{display:none!important}.access-login-gate[hidden]{display:none!important}</style>
   <link rel="stylesheet" href="/styles.css">
-  <link rel="stylesheet" href="/price-label-v98.css">
+  <link rel="stylesheet" href="/price-label-v99.css">
   <style id="receiptPaperSize"></style>
   <title>HızlıSatış · Mobil POS</title>
 </head>
@@ -250,7 +250,7 @@
         </details>
         <details id="settingsProductGroup" class="settings-inner-section">
           <summary><span aria-hidden="true" class="settings-section-symbol">⬡</span><span class="settings-section-name"><strong>Ürün ve Kategori Ayarları</strong><small>Ürün yönetimi ve kategori görselleri</small></span><span aria-hidden="true" class="settings-section-arrow">⌄</span></summary>
-          <div class="settings-inner-content"><div class="settings-inner-actions"><button id="settingsInnerManage" type="button" class="settings-inner-action">Ürün Yönetimi <span aria-hidden="true">›</span></button><button id="settingsInnerCategoryImages" type="button" class="settings-inner-action">Kategori Görselleri <span aria-hidden="true">›</span></button></div></div>
+          <div class="settings-inner-content"><button id="namesPreview99" type="button">Ürün / Marka Büyük Harf Önizle</button><button id="namesApply99" type="button" class="primary-button">Tüm Ürün ve Markaları Büyük Harfe Çevir</button><p id="namesStatus99" role="status"></p><div class="settings-inner-actions"><button id="settingsInnerManage" type="button" class="settings-inner-action">Ürün Yönetimi <span aria-hidden="true">›</span></button><button id="settingsInnerCategoryImages" type="button" class="settings-inner-action">Kategori Görselleri <span aria-hidden="true">›</span></button></div></div>
         </details>
         <details id="settingsPrintingGroup" class="settings-inner-section">
           <summary><span aria-hidden="true" class="settings-section-symbol">▤</span><span class="settings-section-name"><strong>Yazıcı Ayarları</strong><small>Raf etiketi, fiş ve paylaşma tercihleri</small></span><span aria-hidden="true" class="settings-section-arrow">⌄</span></summary>
@@ -645,7 +645,7 @@
           <button id="manageScan" type="button">⌗ Oku</button>
         </div>
         <label>Ürün adı<input id="manageName" type="text" autocomplete="off" required maxlength="250"></label>
-        <label>Marka<input id="manageBrand" type="text" maxlength="120" placeholder="Marka girin"></label>
+        <label>Marka<input id="manageBrand" type="text" maxlength="120" placeholder="Marka girin"></label><fieldset class="origin-field"><legend>Üretim Menşei</legend><select id="manageOriginMode" aria-label="Üretim menşei"><option value="local">YERLİ ÜRETİM</option><option value="import">İTHAL ÜRÜN</option><option value="country">ÜLKE SEÇ</option><option value="unknown">BELİRTİLMEMİŞ</option></select><select id="manageOriginCountry" aria-label="Üretim ülkesi" hidden></select></fieldset>
         <div class="manage-two-col">
           <label>Ana kategori<select id="manageMainCategory" required></select></label>
           <label>Alt kategori<input id="manageSubCategory" list="manageSubSuggestions" required placeholder="Alt kategori seçin veya yazın"><datalist id="manageSubSuggestions"></datalist></label>
@@ -921,6 +921,6 @@
       <p id="accessUserFormStatus" role="status" aria-live="polite"></p>
     </form>
   </dialog>
-  <script type="module" src="/app-v98.js"></script>
+  <script type="module" src="/app-v99.js"></script>
 </body>
 </html>

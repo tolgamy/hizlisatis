@@ -1,6 +1,6 @@
 import {authorizedAdmin} from '../../lib/admin-auth.js';
 const prefix='label_queue:';
-const json=(data,status=200)=>Response.json({...data,queueVersion:98},{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
+const json=(data,status=200)=>Response.json({...data,queueVersion:99},{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
 const idOk=id=>typeof id==='string'&&id.length>0&&id.length<=180;
 const countOk=n=>Number.isInteger(n)&&n>=1&&n<=20;
 const tokenOk=t=>typeof t==='string'&&/^[a-f0-9-]{36}$/.test(t);
