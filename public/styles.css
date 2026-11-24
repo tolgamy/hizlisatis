@@ -6025,3 +6025,23 @@ body.auth-locked #app{display:none!important}
     line-height:1.15!important;
   }
 }
+
+/* v103 — PC Products root only: enlarge existing art and category labels.
+   Keep v102 grid geometry, card dimensions, ordering and all other screens. */
+@media (min-width:1024px) and (min-height:600px) and (orientation:landscape) and (hover:hover) and (pointer:fine) {
+  #catalogView #productCategoryHome #homeCategoryShortcuts .photo-category-image img {
+    object-fit:contain!important;
+    object-position:center!important;
+    transform:scale(1.55)!important;
+    transform-origin:center!important;
+  }
+  #catalogView #productCategoryHome #homeCategoryShortcuts .photo-category-name {
+    font-size:clamp(15px,1.55vw,25px)!important;
+    font-weight:900!important;
+    line-height:1.12!important;
+    padding:2px 1px!important;
+    min-height:0!important;
+    white-space:normal!important;
+    overflow-wrap:break-word!important;
+  }
+}
