@@ -5961,3 +5961,10 @@ body.auth-locked #app{display:none!important}
  * for compatibility, but hide stock queries/filters from everyday POS screens. */
 #homeQuickStock[hidden], #homeStockInsight[hidden], #sidebarStock[hidden],
 #onlyInStock[hidden] { display: none !important; }
+
+/* Auditable central test receipt cancellation (v83). */
+.history-card-voided { border: 1px dashed #b6becb !important; background: #f4f6f9 !important; }
+.history-card-voided .history-head > span:first-child { text-decoration: line-through; color: #697281; }
+.history-voided-note { color: #8c3940; font-weight: 700; margin: 9px 0 0; }
+.history-void-button { display: inline-flex; align-items: center; margin: 10px 0 0; padding: 8px 12px; border: 1px solid #bc6670; border-radius: 8px; color: #8e2b39; background: #fff; cursor: pointer; font-weight: 650; }
+.history-void-button:disabled { opacity: .55; cursor: wait; }
