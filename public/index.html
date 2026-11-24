@@ -813,6 +813,27 @@
     <div id="historyItems" class="history-items"></div>
   </dialog>
 
+  <dialog id="saleVoidDialog" class="sale-void-dialog" aria-labelledby="saleVoidTitle">
+    <form id="saleVoidForm">
+      <h2 id="saleVoidTitle">Satışı İptal Et</h2>
+      <p id="saleVoidInfo" class="sale-void-info"></p>
+      <label class="sale-void-field" for="saleVoidReason">İptal nedeni
+        <select id="saleVoidReason" required>
+          <option value="wrong">Hatalı satış</option>
+          <option value="returned">Tam ürün iadesi</option>
+          <option value="test">Test işlemi</option>
+          <option value="other">Diğer satış iptali</option>
+        </select>
+      </label>
+      <p id="saleVoidWarning" class="sale-void-warning"></p>
+      <p id="saleVoidError" class="sale-void-error" role="alert" aria-live="polite"></p>
+      <div class="sale-void-actions">
+        <button type="button" id="saleVoidCancel">Vazgeç</button>
+        <button type="submit" id="saleVoidConfirm">Satışı Kesin İptal Et</button>
+      </div>
+    </form>
+  </dialog>
+
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
   <div id="receiptPrint" aria-hidden="true"></div>
   <dialog id="accessLogoutConfirm" class="access-logout-confirm" aria-labelledby="accessLogoutConfirmTitle" aria-describedby="accessLogoutConfirmText">
