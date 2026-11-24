@@ -38,7 +38,8 @@ test('payment summary uses only actual TRY receipt amounts',()=>{
   const $=id=>{
     if(!map.has(id))map.set(id,{
       textContent:'',hidden:false,children:[],style:{},
-      replaceChildren(...nodes){this.children=nodes;}
+      replaceChildren(...nodes){this.children=nodes;},
+      append(...nodes){this.children.push(...nodes);}
     });
     return map.get(id);
   };
