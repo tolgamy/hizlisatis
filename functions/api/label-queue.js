@@ -1,6 +1,6 @@
 import {authorizedAdmin} from '../../lib/admin-auth.js';
 const prefix='label_queue:';
-const json=(data,status=200)=>Response.json({...data,queueVersion:97},{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
+const json=(data,status=200)=>Response.json({...data,queueVersion:98},{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
 const idOk=id=>typeof id==='string'&&id.length>0&&id.length<=180;
 const countOk=n=>Number.isInteger(n)&&n>=1&&n<=20;
 const tokenOk=t=>typeof t==='string'&&/^[a-f0-9-]{36}$/.test(t);
@@ -13,12 +13,15 @@ function cleanProduct(row){
 function validProduct(p){return p&&p.lifecycleStatus!=='deleted'&&!p.fiyatBelirsiz&&typeof p.satisFiyati==='number'&&Number.isFinite(p.satisFiyati)&&p.satisFiyati>=0&&String(p.barkod||p.urunKodu||'').trim();}
 async function readEntry(db,id){const row=await db.prepare('SELECT value FROM app_meta WHERE key=?').bind(key(id)).first();return row?JSON.parse(row.value):null;}
 async function product(db,id){return cleanProduct(await db.prepare('SELECT payload FROM product_changes WHERE id=?').bind(id).first());}
-export async function labelQueueRequest({request,env}){
+export async function labelQueueRequest({request,env,queueBody}){
   const db=env?.DB;
   if(!db)return json({error:'Merkezi bağlantı yok.'},503);
   try{
     if(!await authorizedAdmin(request,env,'products')&&!await authorizedAdmin(request,env,'sales'))return json({error:'Ürün veya satış yetkisi gerekli.'},403);
-    if(request.method==='GET'){
+    let b=queueBody;
+    if(request.method==='POST'&&b===undefined){const raw=await request.text();if(raw.length>20000)return json({error:'İstek çok büyük.'},413);try{b=JSON.parse(raw)}catch{return json({error:'Geçersiz istek.'},400)}}
+    if(b!==undefined&&(!b||typeof b!=='object'||JSON.stringify(b).length>20000))return json({error:'Geçersiz istek.'},400);
+    if(request.method==='GET'||(request.method==='POST'&&b?.action==='list')){
       const rows=await db.prepare('SELECT key,value FROM app_meta WHERE key LIKE ? ORDER BY key').bind(prefix+'%').all();
       const entries=(rows.results||[]).filter(r=>String(r.key).startsWith(prefix)).map(r=>JSON.parse(r.value));
       const products=[];
@@ -31,8 +34,6 @@ export async function labelQueueRequest({request,env}){
       return json({items:entries.sort((a,b)=>a.at.localeCompare(b.at)).map(e=>({...e,product:byId.get(e.id)||null}))});
     }
     if(request.method!=='POST')return json({error:'Yöntem geçersiz.'},405);
-    const raw=await request.text();if(raw.length>20000)return json({error:'İstek çok büyük.'},413);
-    let b;try{b=JSON.parse(raw)}catch{return json({error:'Geçersiz istek.'},400)}
     if(b?.action==='add'){
       if(!idOk(b.id)||!countOk(b.count))return json({error:'Ürün veya adet geçersiz.'},400);
       if(!validProduct(await product(db,b.id)))return json({error:'Ürün veya güncel fiyat geçersiz.'},409);
@@ -67,5 +68,5 @@ export async function labelQueueRequest({request,env}){
       return json({ok:true,removed:results.reduce((n,r)=>n+Number(r.meta?.changes||0),0)});
     }
     return json({error:'Bilinmeyen işlem.'},400);
-  }catch(e){console.error('Label queue v97 failure',e?.code||e?.name||'Error');return json({error:'Merkezi etiket listesi işlemi tamamlanamadı. Sunucu bağlantısını ve v97 kurulumunu kontrol edin.'},503);}
+  }catch(e){console.error('Label queue v98 failure',e?.code||e?.name||'Error');return json({error:'Merkezi etiket listesi işlemi tamamlanamadı. Sunucu bağlantısını ve v98 kurulumunu kontrol edin.'},503);}
 }

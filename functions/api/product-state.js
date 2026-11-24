@@ -85,12 +85,13 @@ export async function onRequestPost({request,env}) {
   const seeded=await db.prepare("SELECT value FROM app_meta WHERE key='catalog_seed_count'").first().catch(()=>null);
   if(!seeded || Number(seeded.value)!==19096)
     return error('D1 katalog başlangıç verisi yüklenmemiş.',503);
-  if(!await authorizedAdmin(request,env)) return error('Yönetim oturumu gerekli.',401);
   if(Number(request.headers.get('content-length')||0)>3500000)
     return error('Tek istekte çok fazla veri var.',413);
   let body;
   try {body=await request.json();} catch {return error('Geçersiz JSON.');}
   const action=body?.action;
+  if(action==='label-queue')return labelQueueRequest({request,env,queueBody:body.queue??null});
+  if(!await authorizedAdmin(request,env)) return error('Yönetim oturumu gerekli.',401);
   try {
     if(action==='upsert') {
       const {saved,statement}=productStatement(db,body.product);

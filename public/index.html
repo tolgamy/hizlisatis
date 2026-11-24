@@ -12,7 +12,7 @@
   <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg">
   <style>body.auth-locked #app{display:none!important}.access-login-gate[hidden]{display:none!important}</style>
   <link rel="stylesheet" href="/styles.css">
-  <link rel="stylesheet" href="/price-label-v97.css">
+  <link rel="stylesheet" href="/price-label-v98.css">
   <style id="receiptPaperSize"></style>
   <title>HızlıSatış · Mobil POS</title>
 </head>
@@ -260,7 +260,7 @@
 <p>Kağıt: <strong>2×4</strong> · Etiket PDF ölçüsü: 38 × 100 mm</p>
 <label>Satış fişi yazıcı adı <input id="settingsReceiptPrinterName" type="text" maxlength="120"></label>
 <p>Fiş kağıdı aşağıdaki gelişmiş fiş ayarından seçilir (varsayılan 80 mm).</p>
-<button id="settingsPrinterProfilesSave" class="primary-button" type="button">Yazıcı Tercihlerini Kaydet</button>
+<label><input id="localPrintEnabled" type="checkbox"> Windows otomatik yazıcı yönlendirmesi</label><label>Bağlantı kodu <input id="localPrintToken" type="password" maxlength="64" autocomplete="off"></label><button id="testLabelPrint" type="button">Etiket test baskısı</button><button id="testReceiptPrint" type="button">Fiş test baskısı</button><button id="settingsPrinterProfilesSave" class="primary-button" type="button">Yazıcı Tercihlerini Kaydet</button>
 <p id="settingsPrinterProfilesStatus" role="status" aria-live="polite">Tercihler yalnızca bu tarayıcıda saklanır.</p>
 <small>Windows'ta mevcut Argox yazıcısını değiştirmeden aynı sürücü ve bağlantı noktası ile Argox Raf Etiketi adlı ikinci yazıcı ekleyip 2×4 seçin. Chrome yazıcı seçimini otomatik yapamaz; baskı ekranında belirtilen hedefi seçin.</small>
 </section><section class="settings-device-receipt" aria-label="Bu cihazın fiş tercihi">
@@ -570,6 +570,7 @@
       </section>
     </div>
   </dialog>
+  <dialog id="quickPriceDialog" class="price-label-dialog"><div class="pl-head"><h2>Fiyat Değiştir</h2><button id="quickPriceClose" type="button" aria-label="Kapat">×</button></div><form id="quickPriceForm" class="pl-body"><strong id="quickPriceName"></strong><small id="quickPriceCode"></small><div>Mevcut fiyat: <strong id="quickPriceOld"></strong></div><label>Yeni satış fiyatı <input id="quickPriceValue" inputmode="decimal" autocomplete="off" required></label><label><input id="quickPriceQueue" type="checkbox" checked> Yazdırılacak etiketler listesine ekle</label><p id="quickPriceMessage" role="status"></p><button id="quickPriceSave" class="primary-button" type="submit">Fiyatı Kaydet</button></form></dialog>
   <dialog id="productDetailDialog" class="sheet product-detail-sheet" aria-labelledby="productDetailTitle">
     <div class="sheet-header"><h2 id="productDetailTitle">Ürün Detayı</h2><button type="button" class="closebutton" data-close="productDetailDialog" aria-label="Kapat">×</button></div>
     <div class="detail-body"><div class="detail-media"><span id="detailEmoji" class="detail-emoji" aria-hidden="true">🛒</span><img id="detailImage" alt="Ürün görseli" src="/icons/placeholder.svg"></div><div id="detailBrand" class="detail-brand"></div><h3 id="detailName"></h3><p id="detailBarcode" class="detail-barcode"></p><div id="detailMeta" class="detail-meta"></div><div class="detail-footer"><strong id="detailPrice"></strong><button id="detailAdd" class="primary-button" type="button">+ Sepete Ekle</button></div></div>
@@ -920,6 +921,6 @@
       <p id="accessUserFormStatus" role="status" aria-live="polite"></p>
     </form>
   </dialog>
-  <script type="module" src="/app-v97.js"></script>
+  <script type="module" src="/app-v98.js"></script>
 </body>
 </html>
