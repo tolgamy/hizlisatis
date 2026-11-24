@@ -76,3 +76,16 @@ test('dialog handles Yes/No/Escape; service worker cache version updated',()=>{
   assert.match(app,/unknownBarcodeDialog'\)\.addEventListener\('cancel'/);
   assert.match(sw,/unknown-barcode-v85/);
 });
+
+test('v87 loads unique script/module names, preserving barcode dialog',()=>{
+  const pinnedApp=read('app-v87.js');
+  const pinnedManager=read('product-management-v87.js');
+  assert.ok(html.includes('src="/app-v87.js"'));
+  assert.ok(pinnedApp.includes("from './product-management-v87.js'"));
+  assert.ok(pinnedApp.includes('function promptUnknownBarcode('));
+  assert.ok(pinnedApp.includes('if(looksLikeBarcode(code))return promptUnknownBarcode(code)'));
+  assert.ok(pinnedManager.includes("openNew:(barcode='')=>{openManage();editProduct(null,barcode);}"));
+  assert.ok(sw.includes('unique-js-v87'));
+  assert.ok(sw.includes("'/app-v87.js'"));
+  assert.ok(sw.includes("'/product-management-v87.js'"));
+});
