@@ -1,3 +1,4 @@
+import {labelQueueRequest} from './label-queue.js';
 import {authorizedAdmin} from '../../lib/admin-auth.js';
 /** Cloudflare Pages + D1 authoritative product changes.
  * Static bundled catalogue is a read-only baseline; all edits and status
@@ -33,6 +34,7 @@ function productStatement(db, product) {
   ).bind(saved.id,saved.barkod,JSON.stringify(saved),saved.statusChangedAt) };
 }
 export async function onRequestGet({request,env}) {
+  if(new URL(request.url).searchParams.has('labelQueue'))return labelQueueRequest({request,env});
   const db=database(env);
   if(!db) return error('D1 veritabanı bağlı değil. DB binding gerekli.',503);
   try {
@@ -77,6 +79,7 @@ export async function onRequestGet({request,env}) {
   }
 }
 export async function onRequestPost({request,env}) {
+  if(new URL(request.url).searchParams.has('labelQueue'))return labelQueueRequest({request,env});
   const db=database(env);
   if(!db) return error('D1 veritabanı bağlı değil.',503);
   const seeded=await db.prepare("SELECT value FROM app_meta WHERE key='catalog_seed_count'").first().catch(()=>null);

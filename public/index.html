@@ -12,7 +12,7 @@
   <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg">
   <style>body.auth-locked #app{display:none!important}.access-login-gate[hidden]{display:none!important}</style>
   <link rel="stylesheet" href="/styles.css">
-  <link rel="stylesheet" href="/price-label-v95.css">
+  <link rel="stylesheet" href="/price-label-v96.css">
   <style id="receiptPaperSize"></style>
   <title>HızlıSatış · Mobil POS</title>
 </head>
@@ -89,9 +89,10 @@
           </button>
           <button id="homeQuickPriceLabel" class="dashboard-action dashboard-action-price-label" type="button" aria-haspopup="dialog" aria-controls="priceLabelDialog">
             <svg class="dashboard-action-icon" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linejoin="round" aria-hidden="true"><path d="M6 26V9h21l30 30-18 18L6 26Z"/><circle cx="19" cy="21" r="4"/><path d="m30 31 12 12M27 34l12 12M34 28l12 12"/></svg>
-            <strong>Fiyat Gör / Etiket</strong><small>Barkod okut, fiyat gör, etiket yazdır</small>
+            <strong>Fiyat Gör / Etiket</strong><small>Fiyat değiştir, yazdır veya listeye ekle</small>
           </button>
         </div>
+        <button id="homeLabelQueue" type="button" class="primary-button" style="width:100%;margin:8px 0">▣ Yazdırılacak Etiketler</button>
         <div class="dashboard-metrics" aria-label="Güncel özet">
           <button id="homeTodaySalesButton" class="dashboard-metric dashboard-metric-sales" type="button" aria-label="Bugünkü satışları aç">
             <span class="dashboard-metric-body"><span>Bugünkü Satış</span><strong id="homeTodaySales" aria-live="polite">—</strong><small>Bu cihazdaki satışlar</small></span>
@@ -718,13 +719,14 @@
           <div id="priceLabelTicketPreview" class="pl-ticket-preview"></div>
         </div>
         <div class="pl-print-row">
-          <label for="priceLabelCopies">Etiket adedi <input id="priceLabelCopies" type="number" value="1" min="1" max="50" step="1"></label>
-          <button id="priceLabelPrint" class="pl-print" type="button" disabled>▣ Etiket Yazdır</button>
+          <label for="priceLabelCopies">Etiket adedi <input id="priceLabelCopies" type="number" value="1" min="1" max="20" step="1"></label>
+          <button id="priceLabelPrint" class="pl-print" type="button" disabled>▣ Etiket Yazdır</button><button id="priceLabelAddQueue" type="button" class="primary-button">Listeye Ekle</button><button id="priceLabelEdit" type="button">Fiyat Değiştir</button>
         </div>
       </section>
-      <p id="priceLabelPrinterHint" class="pl-printer-hint">Hedef: Argox Raf Etiketi · Kağıt: 2×4</p>
+      <button id="priceLabelQueueOpen" type="button" class="primary-button">Yazdırılacak Etiketler</button><p id="priceLabelPrinterHint" class="pl-printer-hint">Hedef: Argox Raf Etiketi · Kağıt: 2×4</p>
     </div>
   </dialog>
+  <dialog id="labelQueueDialog" class="price-label-dialog" aria-labelledby="labelQueueTitle"><div class="pl-head"><h2 id="labelQueueTitle">Yazdırılacak Etiketler</h2><button id="labelQueueClose" type="button" aria-label="Kapat">×</button></div><div style="padding:12px;display:grid;gap:10px"><p id="labelQueueStatus" role="status"></p><div class="lq-actions"><button id="labelQueueRefresh" type="button">Yenile</button><button id="labelQueueSelect" type="button">İlk 20 etiketi seç</button><strong id="labelQueueTotal">0 / 20 etiket</strong></div><div id="labelQueueItems" style="max-height:45vh;overflow:auto"></div><button id="labelQueuePrint" class="primary-button" type="button">Seçilenleri Toplu Yazdır</button><button id="labelQueueConfirm" type="button">Baskı Başarılı · Listeden Kaldır</button><button id="labelQueueCancel" type="button">Baskı Başarısız / İptal · Listede Tut</button></div></dialog>
   <dialog id="priceLabelMissingDialog" class="price-label-missing" aria-labelledby="priceLabelMissingTitle">
     <h2 id="priceLabelMissingTitle" class="pl-missing-title">Stokta ürün bulunamadı</h2>
     <strong id="priceLabelMissingBarcode"></strong>
@@ -926,6 +928,6 @@
       <p id="accessUserFormStatus" role="status" aria-live="polite"></p>
     </form>
   </dialog>
-  <script type="module" src="/app-v95.js"></script>
+  <script type="module" src="/app-v96.js"></script>
 </body>
 </html>
