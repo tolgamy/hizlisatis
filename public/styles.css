@@ -5983,3 +5983,45 @@ body.auth-locked #app{display:none!important}
 .sale-void-actions button { flex:1; min-height:43px; padding:8px; border-radius:9px; font-weight:750; border:1px solid #bbc4ce; background:#fff; cursor:pointer; }
 #saleVoidConfirm { border-color:#b53143; background:#b53143; color:#fff; }
 .sale-void-actions button:disabled { cursor:wait; opacity:.6; }
+
+/* v102 — PC Products root only: fit all 12 cards in 4 columns × 3 rows.
+   Preserve existing images, labels, category actions and all touch layouts.
+   Reserve vertical room for the existing top bar, padding and quick actions;
+   do not hide overflow, so expanded subcategories remain reachable. */
+@media (min-width:1024px) and (min-height:600px) and (orientation:landscape) and (hover:hover) and (pointer:fine) {
+  #catalogView #productCategoryHome #homeCategoryShortcuts.category-photo-grid {
+    --root-gap-v102:clamp(8px,1vw,16px);
+    --root-row-v102:calc((100dvh - 182px - 2 * var(--root-gap-v102)) / 3);
+    display:grid!important;
+    grid-template-columns:repeat(4,minmax(0,1fr))!important;
+    grid-template-rows:repeat(3,minmax(0,var(--root-row-v102)))!important;
+    grid-auto-rows:var(--root-row-v102)!important;
+    gap:var(--root-gap-v102)!important;
+    padding:0!important;
+    margin:0!important;
+    align-items:stretch!important;
+  }
+  #catalogView #productCategoryHome #homeCategoryShortcuts .photo-category-tile {
+    height:var(--root-row-v102)!important;
+    min-height:0!important;max-height:none!important;
+    padding:clamp(5px,.65vw,10px)!important;
+    gap:4px!important;
+    border-radius:14px!important;
+  }
+  #catalogView #productCategoryHome #homeCategoryShortcuts .photo-category-image {
+    flex:1 1 0!important;height:auto!important;
+    min-height:0!important;max-height:none!important;
+    aspect-ratio:auto!important;
+    background:#fff!important;
+  }
+  #catalogView #productCategoryHome #homeCategoryShortcuts .photo-category-image img {
+    object-fit:contain!important;
+    transform:none!important;
+  }
+  #catalogView #productCategoryHome #homeCategoryShortcuts .photo-category-name {
+    min-height:0!important;
+    padding:2px 1px!important;
+    font-size:clamp(11px,1.02vw,17px)!important;
+    line-height:1.15!important;
+  }
+}

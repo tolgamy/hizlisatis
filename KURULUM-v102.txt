@@ -1,0 +1,3 @@
+v102 — Yalnız PC Ürünler ana kategori görünümü.
+public klasöründeki iki dosyayı /home/kolaykasa/hizlisatis/public içine yükleyin. Önce mevcut dosyaların yedeğini alın. Node veya SQL değişikliği yok. Ctrl+F5 ile yenileyin.
+Masaüstü (mevcut 1024x600+, yatay, fare koşulu) 4 sütun × 3 satır. Görseller, adlar, sıralama ve alt kategori davranışı korunur. Telefon/terminal, diğer ekranlar ve yazıcılar değiştirilmedi. Çok kısa/dar pencere mevcut mobil kurallarına döner. Gerçek tarayıcı görsel testi henüz yapılmadı.
