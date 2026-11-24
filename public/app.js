@@ -837,9 +837,9 @@ function openProductDetail(product) {
   $('detailBrand').textContent = [product.marka, product.kategori].filter(Boolean).join(' · ');
   $('detailName').textContent = product.baslik;
   $('detailBarcode').textContent = `Barkod: ${product.barkod || '—'}  ·  SKU: ${product.urunKodu || '—'}`;
-  $('detailMeta').textContent = stockLabel(product);
+  $('detailMeta').textContent = 'Stok kontrolü olmadan satış yapılır';
   $('detailPrice').textContent = priceLabel(product);
-  $('detailAdd').disabled = state.centralReadOnly || !isActive(product) || remaining(product) < 1 || product.fiyatBelirsiz;
+  $('detailAdd').disabled = state.centralReadOnly || !isActive(product) || product.fiyatBelirsiz;
   $('productDetailDialog').showModal();
 }
 
@@ -913,16 +913,13 @@ function renderProducts() {
   const query=fold(state.search);
   const items=state.products.filter(p=>{
     if(!isActive(p))return false;
-    if(state.stockOnly&&remaining(p)<1)return false;
     if(query)return [p.barkod,p.urunKodu,p.baslik,p.marka].some(v=>fold(v).includes(query));
     return (!state.category||categoryMatches(p,state.category))&&(!state.brand||p.marka===state.brand);
   });
   items.sort((a,b)=>{
-    const av=Number(remaining(b)>0)-Number(remaining(a)>0);
     if(state.sort==='price-low')return a.satisFiyati-b.satisFiyati||a.baslik.localeCompare(b.baslik,'tr');
     if(state.sort==='price-high')return b.satisFiyati-a.satisFiyati||a.baslik.localeCompare(b.baslik,'tr');
-    if(state.sort==='stock')return (b.stokBelirsiz?-1:remaining(b))-(a.stokBelirsiz?-1:remaining(a));
-    return av||a.baslik.localeCompare(b.baslik,'tr');
+    return a.baslik.localeCompare(b.baslik,'tr');
   });
   renderProductBreadcrumb(state.category,query?'Arama Sonuçları':'Ürünler');
   dom.count.textContent=items.length.toLocaleString('tr-TR');
@@ -930,12 +927,12 @@ function renderProducts() {
     $(id).setAttribute('aria-pressed',String(state.productLayout===mode));$(id).classList.toggle('active',state.productLayout===mode);
   }
   $('onlyInStock').setAttribute('aria-pressed',String(state.stockOnly));
-  const isDesktopStockList=state.sort==='stock'&&state.productLayout==='list';
+  const isDesktopStockList=false; // Checkout browsing never uses inventory to rank or filter products.
   $('desktopStockHint').hidden=!isDesktopStockList;
   dom.productList.className=`products ${state.productLayout==='grid'?'grid-view':'list-view'}`;
   const frag=document.createDocumentFragment();
   for(const p of items.slice(0,state.visibleLimit)) {
-    const available=!state.centralReadOnly&&remaining(p)>0&&!p.fiyatBelirsiz;
+    const available=!state.centralReadOnly&&!p.fiyatBelirsiz;
     const row=document.createElement('article');row.className='product-card';
     const stockDetail=isDesktopStockList
       ? '<small class="product-stock-details">'+esc(p.kategori||'Ürün')+
@@ -1156,14 +1153,9 @@ function addToCart(product, quantity=1,{separate=false,grams=null}={}) {
   const existingWeighed=separate?[...state.cart.values()].find(
     line=>line.id===product.id&&line.weighed&&line.product.birim===product.birim
   ):null;
-  const already=[...state.cart.values()].filter(line=>line.id===product.id)
-    .reduce((sum,line)=>sum+line.quantity,0);
   if (product.fiyatBelirsiz) { announce('Bu ürünün satış fiyatı girilmemiş. Ayarlar’dan fiyatı düzenleyin.', 'error'); return false; }
   if (state.cart.size && product.paraBirimi !== cartCurrency()) {
     announce('Farklı para birimleri tek sepette birleştirilemez.', 'error'); return false;
-  }
-  if (remaining(product) + 0.000001 < already+quantity) {
-    announce('Bu ürün için yeterli yerel stok yok.', 'error'); return false;
   }
   if(separate&&(!Number.isInteger(grams)||grams<1||
       (product.birim==='kg'?Math.round(quantity*1000):quantity)!==grams)){
@@ -1202,11 +1194,6 @@ function updateCart(id, field, value) {
     if (num === 0) {
       if(!confirm(line.product.baslik+' sepetten silinsin mi?')){renderCart();return;}
       state.cart.delete(id);playCartSound('decrease');renderCartBar();renderCart();return;
-    }
-    const otherQuantity=[...state.cart.entries()].filter(([key,entry])=>key!==id&&entry.id===line.id)
-      .reduce((total,[,entry])=>total+entry.quantity,0);
-    if (num+otherQuantity>remaining(state.byId.get(line.id) || line.product)+0.000001) {
-      announce('İstenen adet kullanılabilir stoğu aşıyor.', 'error'); renderCart(); return;
     }
     if(num!==line.quantity)playCartSound(num>line.quantity?'increase':'decrease');
     line.quantity = num;
@@ -1489,15 +1476,6 @@ async function completeSale() {
     announce('Veresiye satış için kayıtlı bir müşteri seçmelisiniz.','error');return;
   }
   const creditName=creditCustomer?.name||'';
-  const requested=new Map();
-  for(const line of state.cart.values())
-    requested.set(line.id,(requested.get(line.id)||0)+line.quantity);
-  for(const [id,quantity] of requested){
-    const current=state.byId.get(id)||[...state.cart.values()].find(line=>line.id===id)?.product;
-    if(!current||quantity>remaining(current)+0.000001){
-      announce((current?.baslik||'Ürün')+' için yeterli stok yok.','error');return;
-    }
-  }
   // Preserve exactly the same receipt on uncertain network retries (all payments).
   // Changing the cart creates a new immutable receipt ID.
   const saleFingerprint=JSON.stringify([payment,creditCustomer?.id||'',cash,
