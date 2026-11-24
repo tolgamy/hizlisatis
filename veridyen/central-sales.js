@@ -69,9 +69,10 @@ export async function onRequestGet({request,env}){
   const offset=Number(rawOffset),limit=200;
   try{
     const [rows]=await env.MYSQL_POOL.execute(
-      'SELECT payload FROM pos_sales ORDER BY created_at DESC,id DESC LIMIT ? OFFSET ?',
+      'SELECT s.payload,v.sale_id AS voided_id,v.voided_at,v.reason AS void_reason FROM pos_sales s LEFT JOIN pos_sale_voids v ON v.sale_id=s.id ORDER BY s.created_at DESC,s.id DESC LIMIT ? OFFSET ?',
       [limit,offset]);
-    const receipts=rows.map(row=>JSON.parse(row.payload));
+    const receipts=rows.map(row=>({...JSON.parse(row.payload),voided:Boolean(row.voided_id),
+      voidedAt:row.voided_at||'',voidReason:row.void_reason||''}));
     return reply({sales:receipts,next:rows.length===limit?offset+limit:null});
   }catch(error){
     console.error('Central sales listing:',error?.code||error?.name);
