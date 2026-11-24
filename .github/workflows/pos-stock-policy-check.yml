@@ -1,0 +1,23 @@
+name: Unrestricted Shelf Sales - Isolated Checks
+on:
+  push:
+    branches: [pos-no-stock-limits-2026-11-24]
+permissions:
+  contents: read
+jobs:
+  test:
+    name: POS stock policy and central sales
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Test no-stock checkout, central sales and filters
+        run: node --test tests/pos-no-stock-limits.test.js tests/veridyen-central-sales.test.js tests/report-filters.test.js
+      - name: Build application assets
+        run: npm run build
