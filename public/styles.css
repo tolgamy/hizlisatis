@@ -5956,3 +5956,8 @@ body.auth-locked #app{display:none!important}
   #reportsView #historySummary.history-summary:not([hidden]){gap:10px!important;padding:13px 20px!important}
   #reportsView .history-summary-chart{min-height:112px!important}
 }
+
+/* v82: Stock is not a cashier sale prerequisite. Keep legacy stock tools in the DOM
+ * for compatibility, but hide stock queries/filters from everyday POS screens. */
+#homeQuickStock[hidden], #homeStockInsight[hidden], #sidebarStock[hidden],
+#onlyInStock[hidden] { display: none !important; }
