@@ -21,6 +21,7 @@ import { checkRemoteProductStates } from './remote-products.js';
 import { createCustomerManager } from './customer-ui.js';
 import { recordCustomerCredit } from './customer-api.js';
 import { isCentralSalesEnabled,saveCentralSale,getSalesForReports } from './central-sales.js';
+import { filterReportSales,quickReportRange } from './report-filters.js';
 import { readReceiptSettings,saveReceiptSettings,receiptPrintLayout,readReceiptAction,saveReceiptAction } from './receipt-settings.js';
 import { parseBasketDiscountPercent,calculateBasketTotals } from './basket-pricing.js';
 import { readPickerMode,savePickerMode } from './picker-preferences.js';
@@ -1764,6 +1765,16 @@ function renderHistorySummary(sales){
   $('historySummaryCount').textContent=localTrySales.length.toLocaleString('tr-TR');
   $('historySummaryAverage').textContent=money(
     localTrySales.length?round2(amount/localTrySales.length):0,'TRY');
+  const byPayment={cash:0,card:0,credit:0,other:0};
+  for(const sale of localTrySales){
+    const kind=sale.payment==='Nakit'?'cash':sale.payment==='Kart'?'card':
+      sale.payment==='Veresiye'?'credit':'other';
+    byPayment[kind]+=Number(sale.total);
+  }
+  $('historyCashTotal').textContent=money(round2(byPayment.cash),'TRY');
+  $('historyCardTotal').textContent=money(round2(byPayment.card),'TRY');
+  $('historyCreditTotal').textContent=money(round2(byPayment.credit),'TRY');
+  $('historyOtherTotal').textContent=money(round2(byPayment.other),'TRY');
   const dayStart=new Date();dayStart.setHours(0,0,0,0);
   const days=Array.from({length:7},(_,i)=>{
     const date=new Date(dayStart);
@@ -1795,28 +1806,68 @@ function renderHistorySummary(sales){
   $('historySummary').hidden=false;
 }
 let reportsPageLoaded=false;
+let allReportSales=[];
+let currentReportFilters={};
+function readHistoryFilters(){
+  return {
+    from:$('historyFrom').value,to:$('historyTo').value,
+    payment:$('historyPayment').value,query:$('historyQuery').value,
+    sort:$('historySort').value,min:$('historyMin').value,max:$('historyMax').value
+  };
+}
+function renderFilteredHistory(filters=currentReportFilters){
+  // Filter a read-only in-memory copy of real central receipts. Never write
+  // to products, customer ledgers, or IndexedDB as part of reporting.
+  const result=filterReportSales(allReportSales,filters);
+  currentReportFilters={...filters};
+  state.sales=result;
+  renderHistorySummary(state.sales);
+  $('historyCount').textContent=state.sales.length.toLocaleString('tr-TR')+' satış'+
+    (state.sales.length!==allReportSales.length?' (filtreli)':'');
+  dom.historyItems.replaceChildren();
+  if(!state.sales.length){
+    const empty=document.createElement('div');
+    empty.className='empty-state';
+    empty.textContent=allReportSales.length?'Seçilen filtrelere uygun satış bulunamadı.':'Henüz satış kaydı yok.';
+    dom.historyItems.append(empty);
+    $('historySummaryEmpty').textContent=empty.textContent;
+  }
+  for(const sale of state.sales.slice(0,250)){
+    const item=document.createElement('article');item.className='history-card';
+    const head=document.createElement('div');head.className='history-head';
+    const total=document.createElement('span');total.textContent=money(sale.total,sale.currency);
+    const method=document.createElement('span');method.textContent=sale.payment||'—';
+    head.append(total,method);
+    const detail=document.createElement('small');
+    const lines=Array.isArray(sale.items)?sale.items:[];
+    detail.textContent=fmtDate(sale.createdAt)+' · '+lines.length+' satır'+
+      (sale.creditName?' · '+sale.creditName:'');
+    const names=document.createElement('p');
+    names.textContent=lines.map(line=>String(line.quantity||0)+'× '+String(line.baslik||'Ürün')).join(', ');
+    const print=document.createElement('button');
+    print.type='button';print.textContent='Fişi Yazdır';
+    print.addEventListener('click',()=>printSale(sale));
+    item.append(head,detail,names,print);
+    dom.historyItems.append(item);
+  }
+  if(state.sales.length>250){
+    const notice=document.createElement('p');
+    notice.className='history-result-limit';
+    notice.textContent='İlk 250 fiş gösteriliyor; CSV dışa aktarımı filtrelenen kayıtların tamamını içerir.';
+    dom.historyItems.append(notice);
+  }
+}
 async function showHistory() {
   try {
     const {sales,central}=await getSalesForReports(getSales);
-    state.sales = sales.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    allReportSales=Array.isArray(sales)?sales:[];
     const note=document.querySelector('.history-device-note');
-    if(note)note.textContent=central?'Merkezi satışlar · Tüm cihazlar · Eski yerel fişler dahil değil':'Bu cihazın kayıtları · Diğer kasalar dahil değildir';
+    if(note)note.textContent=central?'Merkezi satışlar · Tüm cihazlar · Eski yerel fişler dahil değil':
+      'Bu cihazın kayıtları · Diğer kasalar dahil değildir';
+    const heading=$('historySummaryPlot').querySelector('h3 small');
+    if(heading)heading.textContent=central?'(merkezi satışlar, ₺)':'(bu cihaz, ₺)';
     $('historySummary').setAttribute('aria-label',central?'Merkezi satış raporu':'Bu cihazın satış raporu');
-    renderHistorySummary(state.sales);
-    $('historyCount').textContent = `${state.sales.length} satış`;
-    dom.historyItems.replaceChildren();
-    if (!state.sales.length) dom.historyItems.innerHTML =
-      '<div class="empty-state"><strong>Henüz satış kaydı yok</strong>Tamamlanan satışlar burada tutulacak.</div>';
-    for (const sale of state.sales.slice(0, 250)) {
-      const item = document.createElement('article'); item.className = 'history-card';
-      item.innerHTML = `<div class="history-head"><span>${esc(money(sale.total, sale.currency))}</span>
-        <span>${esc(sale.payment)}</span></div><small>${esc(fmtDate(sale.createdAt))} · ${sale.items.length} satır
-        ${sale.creditName ? `· ${esc(sale.creditName)}` : ''}</small>
-        <p>${esc(sale.items.map(i => `${i.quantity}× ${i.baslik}`).join(', '))}</p>
-        <button type="button">Fişi Yazdır</button>`;
-      item.querySelector('button').addEventListener('click', () => printSale(sale));
-      dom.historyItems.append(item);
-    }
+    renderFilteredHistory(readHistoryFilters());
     reportsPageLoaded=true;
     if(useDesktopWorkspace()){
       placeNativeWorkspacePages();
@@ -1829,7 +1880,7 @@ async function showHistory() {
       if(!dom.historyDialog.open)dom.historyDialog.showModal();
       updateNavigation();
     }
-  } catch (error) { announce(`Satış geçmişi açılamadı: ${error.message}`, 'error'); }
+  } catch (error) { announce('Satış geçmişi açılamadı: '+error.message,'error'); }
 }
 function csvCell(value) {
   let str = String(value ?? '');
@@ -1838,7 +1889,7 @@ function csvCell(value) {
 }
 async function exportHistory() {
   try {
-  const savedSales=(await getSalesForReports(getSales)).sales;
+  const savedSales=reportsPageLoaded && isReportsActive()?state.sales:(await getSalesForReports(getSales)).sales;
   const header = ['Fiş No','Tarih','Ödeme','Müşteri','Para Birimi','Toplam','Ürün Kodu',
     'Barkod','Ürün','Adet','Birim Fiyat','İskonto %','Satır Toplamı','KDV',
     'Sepet İskontosu %','Sepet İskontosu Tutarı','Toplam İskonto'];
@@ -2856,6 +2907,35 @@ async function setup() {
   $('receiptWhatsApp').addEventListener('click',async()=>{if(state.lastSale)await shareReceiptWhatsApp(state.lastSale);});
   $('receiptPdfShare').addEventListener('click',()=>{if(state.lastSale)shareReceiptPdf(state.lastSale);});
   $('receiptClose').addEventListener('click',beginNextSaleAfterPrint);
+  $('historyFilters').addEventListener('submit',event=>{
+    event.preventDefault();
+    try{renderFilteredHistory(readHistoryFilters());}
+    catch(error){announce(error.message,'error');}
+  });
+  $('historyReset').addEventListener('click',()=>{
+    $('historyFilters').reset();
+    for(const button of document.querySelectorAll('[data-report-period]'))
+      button.setAttribute('aria-pressed','false');
+    try{renderFilteredHistory(readHistoryFilters());}
+    catch(error){announce(error.message,'error');}
+  });
+  for(const button of document.querySelectorAll('[data-report-period]')){
+    button.setAttribute('aria-pressed','false');
+    button.addEventListener('click',()=>{
+      const dates=quickReportRange(button.dataset.reportPeriod);
+      $('historyFrom').value=dates.from;
+      $('historyTo').value=dates.to;
+      for(const chip of document.querySelectorAll('[data-report-period]'))
+        chip.setAttribute('aria-pressed',String(chip===button));
+      try{renderFilteredHistory(readHistoryFilters());}
+      catch(error){announce(error.message,'error');}
+    });
+  }
+  for(const id of ['historyFrom','historyTo'])
+    $(id).addEventListener('change',()=>{
+      for(const button of document.querySelectorAll('[data-report-period]'))
+        button.setAttribute('aria-pressed','false');
+    });
   $('exportSales').addEventListener('click',exportHistory);
   for(const dialog of [dom.cartDialog,dom.scanDialog,dom.historyDialog,$('backupDialog'),$('otherPaymentDialog'),$('saleExitDialog'),$('excelDialog'),$('manageDialog'),$('passiveProductDialog'),$('productDetailDialog'),$('pickProductDialog'),$('receiptActionsDialog'),$('cashPaymentDialog'),$('weightDialog'),$('scanQuantityDialog'),$('manageActivationDialog'),$('customerDialog'),$('categoryImageDialog'),$('stockEditDialog')]){
     dialog.addEventListener('click',event=>{
