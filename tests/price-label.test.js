@@ -67,7 +67,7 @@ test('camera path returns to price dialog without adding anything to basket',()=
   assert.match(app,/priceLabelFeature\?\.open\(\)/);
   assert.match(app,/from '\.\/central-sales-v88\.js'/);
   assert.match(app,/from '\.\/product-management-v87\.js'/);
-  assert.match(sw,/one-page-v93/);
+  assert.match(sw,/native-pdf-v93/);
   assert.match(sw,/\/app-v93\.js/);
 });
 
