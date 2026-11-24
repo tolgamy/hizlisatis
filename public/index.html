@@ -80,7 +80,7 @@
           <button id="homeQuickBarcode" class="dashboard-action dashboard-action-barcode" type="button">
             <svg class="dashboard-action-icon" viewBox="0 0 64 64" aria-hidden="true"><path d="M6 21V10h11M47 10h11v11M58 43v11H47M17 54H6V43" fill="none" stroke="currentColor" stroke-width="4.5" stroke-linecap="round"/><path d="M17 20v24m6-24v24m6-24v24m7-24v24m5-24v24m6-24v24" fill="none" stroke="currentColor" stroke-width="3"/></svg><strong>Barkod Ekle</strong><small>Yeni ürün oluştur</small>
           </button>
-          <button id="homeQuickStock" class="dashboard-action dashboard-action-stock" type="button">
+          <button id="homeQuickStock" class="dashboard-action dashboard-action-stock" type="button" hidden>
             <svg class="dashboard-action-icon" viewBox="0 0 64 64" aria-hidden="true"><path d="M4 19 19 9l15 10-15 10ZM30 32l15-10 15 10-15 10ZM4 43l15-10 15 10-15 10ZM19 29v14m15-24v24m11-21v20" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round"/></svg><strong>Stok Durumu</strong><small>Stokları görüntüle</small>
           </button>
           <button id="homeQuickReports" class="dashboard-action dashboard-action-reports" type="button">
@@ -102,7 +102,7 @@
           <div id="desktopHomeCategoryGrid" class="desktop-home-category-grid" aria-label="12 ana kategori"></div>
         </section>
         <section id="homeDesktopInsights" class="home-desktop-insights" aria-label="Bu cihazın kısa durum özeti">
-          <article class="home-insight-card" id="homeStockInsight">
+          <article class="home-insight-card" id="homeStockInsight" hidden>
             <div class="home-insight-heading"><h3>Stok Uyarıları</h3><span>Bu cihaz · 5 ve altı</span></div>
             <p id="homeStockInsightCount" class="home-insight-count">—</p>
             <ul id="homeStockInsightList" class="home-insight-list"></ul>
@@ -147,7 +147,7 @@
         </section>
         <section id="productResults" hidden>
           <div class="clean-page-head"><button id="catalogBack" type="button" class="clean-back" aria-label="Kategorilere dön">‹</button><h1 id="browseHeading">Ürünler</h1><span id="resultCount" class="clean-result-count"></span></div>
-          <div class="clean-catalog-tools"><div class="view-switch" role="group" aria-label="Görünüm"><button id="viewGrid" type="button" aria-pressed="true" aria-label="Kart görünümü">▦</button><button id="viewList" type="button" aria-pressed="false" aria-label="Liste görünümü">☷</button></div><button id="onlyInStock" type="button" class="stock-filter" aria-pressed="false">Stokta</button><label class="sr-only" for="sortProducts">Sırala</label><select id="sortProducts" aria-label="Sırala"><option value="name">A–Z</option><option value="price-low">Ucuz</option><option value="price-high">Pahalı</option><option value="stock">Stok</option></select></div>
+          <div class="clean-catalog-tools"><div class="view-switch" role="group" aria-label="Görünüm"><button id="viewGrid" type="button" aria-pressed="true" aria-label="Kart görünümü">▦</button><button id="viewList" type="button" aria-pressed="false" aria-label="Liste görünümü">☷</button></div><button id="onlyInStock" type="button" class="stock-filter" aria-pressed="false" hidden>Stokta</button><label class="sr-only" for="sortProducts">Sırala</label><select id="sortProducts" aria-label="Sırala"><option value="name">A–Z</option><option value="price-low">Ucuz</option><option value="price-high">Pahalı</option></select></div>
           <p id="desktopStockHint" class="desktop-stock-hint" hidden>Stok Durumu · Görüntülenen değerler bu cihazın stok kayıtlarına göredir.</p>
           <section id="productList" class="products grid-view" aria-label="Ürünler"></section><button id="loadMoreProducts" class="load-more" type="button" hidden>Daha fazla göster</button><p id="productLimit" class="product-limit" hidden></p>
           <span id="imageHealth" class="sr-only"></span>
@@ -315,7 +315,7 @@
         <button id="navHome" type="button" class="nav-item active" aria-current="page"><span class="nav-glyph" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"/></svg></span><small>Ana Sayfa</small></button>
         <button id="navSale" type="button" class="nav-item nav-sale"><span class="nav-glyph" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="9" cy="20" r="1"/><circle cx="19" cy="20" r="1"/><path d="M2 3h2l2.2 11.2a2 2 0 0 0 2 1.6h10a2 2 0 0 0 2-1.6L22 7H5"/></svg></span><small>Satış</small></button>
         <button id="navProducts" type="button" class="nav-item"><span class="nav-glyph" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m12 2 9 5v10l-9 5-9-5V7Z"/><path d="m3 7 9 5 9-5M12 12v10"/></svg></span><small>Ürünler</small></button>
-        <button id="sidebarStock" type="button" class="nav-item desktop-only-nav"><span aria-hidden="true">⬡</span><small>Stok Durumu</small></button>
+        <button id="sidebarStock" type="button" class="nav-item desktop-only-nav" hidden><span aria-hidden="true">⬡</span><small>Stok Durumu</small></button>
         <button id="sidebarReports" type="button" class="nav-item desktop-only-nav"><span aria-hidden="true">▥</span><small>Raporlar</small></button>
         <button id="navSettings" type="button" class="nav-item"><span class="nav-glyph" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M10.5 2h3l.6 2.3 2 .8 2-.9 2.1 2.1-.9 2 .8 2 2.3.6v3l-2.3.6-.8 2 .9 2-2.1 2.1-2-.9-2 .8-.6 2.3h-3l-.6-2.3-2-.8-2 .9-2.1-2.1.9-2-.8-2L2 13.5v-3l2.3-.6.8-2-.9-2 2.1-2.1 2 .9 2-.8Z"/></svg></span><small>Ayarlar</small></button>
       </nav>
