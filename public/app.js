@@ -1828,8 +1828,9 @@ function renderFilteredHistory(filters=currentReportFilters){
     const names=document.createElement('p');
     names.textContent=lines.map(line=>String(line.quantity||0)+'× '+String(line.baslik||'Ürün')).join(', ');
     const print=document.createElement('button');
-    print.type='button';print.textContent='Fişi Yazdır';
-    print.addEventListener('click',()=>printSale(sale));
+    print.type='button';print.textContent=sale.voided?'İptal Edildi · Fiş Geçersiz':'Fişi Yazdır';
+    print.disabled=Boolean(sale.voided);
+    if(!sale.voided)print.addEventListener('click',()=>printSale(sale));
     item.append(head,detail,names,print);
     if(sale.voided){
       const note=document.createElement('p');
