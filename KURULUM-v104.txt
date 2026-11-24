@@ -1,0 +1,7 @@
+v104 KURULUM (v103 üzerine)
+public içindeki 5 dosyayı /home/kolaykasa/hizlisatis/public içine yükleyin. Önce mevcut dosyaları yedekleyin; eski JS dosyalarını silmeyin. SQL ve Node restart gerekmez. Ctrl+F5.
+1. PC ana kategori yazıları görsele yaklaştırıldı, eski max-height kaldırıldı; 4x3 kart ölçüsü korunur.
+2. PC kategori ve ürün sonuçları Ana Kategoriler > ana > alt şeklinde dinamik bağlantılar. Geri oku üst kategoriye, en üstte 12 ana kategoriye gider. Tarayıcı hash geçmişi korunur; fiziksel tarayıcı testi gerekli.
+3. 80 mm manuel fiş: önceki kalın Arial HTML baskısı, sol 1,5 mm + 75,5 mm içerik + sağ 3 mm nominal. Yazıcı fiziksel yazdırılabilir alanı ve sürücü ofseti nedeniyle gerçek ölçü/sağ fiyatlar test edilmeli. Gerekirse yazdırma penceresinde sığdır seçeneği; üstbilgi ve altbilgiyi kapatın. 58 mm davranışı korunur. Otomatik yerel yardımcı açıksa mevcut PDF yolu korunur ve yeni nominal ölçü uygulanır; eski HTML görünümü yalnız manuel baskıda. Otomatik baskının fiziksel testi yapılmadı.
+4. Ana sayfadaki tekrar eden etiket butonu PC/mobil gizlendi (mevcut JS bağlayıcısı için DOM kimliği korunur). Fiyat Gör içindeki etiket listesi, kayıtlar ve Argox değişmedi.
+JS sözdizimi, nominal ölçü hesabı ve dosya değişiklik kapsamı kontrol edildi; canlı tarayıcı ve yazıcı test edilmedi.

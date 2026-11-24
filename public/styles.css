@@ -6045,3 +6045,49 @@ body.auth-locked #app{display:none!important}
     overflow-wrap:break-word!important;
   }
 }
+
+/* v104 — approved PC-only root labels + navigable category paths.
+   Do not change 4x3 geometry, photos, product cards or mobile layout. */
+@media (min-width:1024px) and (min-height:600px) and (orientation:landscape) and (hover:hover) and (pointer:fine) {
+  #catalogView #productCategoryHome #homeCategoryShortcuts .photo-category-tile {
+    gap:0!important;
+  }
+  #catalogView #productCategoryHome #homeCategoryShortcuts .photo-category-image {
+    flex:1 1 0!important;
+    min-height:0!important;
+  }
+  #catalogView #productCategoryHome #homeCategoryShortcuts .photo-category-name {
+    display:block!important;
+    flex:0 0 auto!important;
+    height:auto!important;
+    min-height:0!important;
+    max-height:none!important;
+    overflow:visible!important;
+    -webkit-line-clamp:unset!important;
+    font-size:clamp(14px,1.42vw,23px)!important;
+    line-height:1.12!important;
+    padding:0 1px 2px!important;
+    margin:0!important;
+    white-space:normal!important;
+  }
+  #catalogView #browseHeading,#catalogView #categoryTrailName {
+    display:flex!important;align-items:center;gap:5px;
+    min-width:0;overflow-x:auto!important;white-space:nowrap!important;
+    scrollbar-width:none;
+  }
+  #catalogView #browseHeading .catalog-breadcrumb-button,
+  #catalogView #categoryTrailName .catalog-breadcrumb-button {
+    border:0;background:transparent;font:inherit;font-weight:850;
+    color:#14689d;cursor:pointer;padding:4px 3px;flex:0 0 auto;
+    max-width:none!important;min-height:32px;text-decoration:underline;
+    text-underline-offset:3px;
+  }
+  #catalogView #browseHeading .catalog-breadcrumb-button[aria-current="page"],
+  #catalogView #categoryTrailName .catalog-breadcrumb-button[aria-current="page"] {
+    color:#19384d;text-decoration:none;
+  }
+  #catalogView .catalog-breadcrumb-separator {color:#93a4b2;flex:0 0 auto}
+}
+@media print {
+  #receiptPrint[data-paper-mm="80"] {padding:1mm 0!important;}
+}
