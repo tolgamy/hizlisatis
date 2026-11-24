@@ -1,0 +1,22 @@
+name: Report Filters - Isolated Checks
+on:
+  push:
+    branches: [reports-filters-summary-2026-11-24]
+permissions:
+  contents: read
+jobs:
+  feature:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Test report filters and central receipt validation
+        run: node --test tests/report-filters.test.js tests/report-ui-v81.test.js tests/veridyen-central-sales.test.js
+      - name: Build application assets
+        run: npm run build
