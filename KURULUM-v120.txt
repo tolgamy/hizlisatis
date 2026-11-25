@@ -1,0 +1,12 @@
+HızlıSatış v120 — v119 üzerine parola modülü sürüm düzeltmesi.
+Önce açık satışları tamamlayın. server.js, lib/user-access.js, public/index.html, public/auth-ui.js, public/sw.js dosyalarını yedekleyin.
+1. lib/ içindeki 2 dosyayı /home/kolaykasa/hizlisatis/lib/ içine yükleyin.
+2. functions/api/users-v120.js dosyasını /home/kolaykasa/hizlisatis/functions/api/ içine yükleyin. DİKKAT: functions/api yolu, public değil.
+3. public/ içindeki 5 dosyayı /home/kolaykasa/hizlisatis/public/ içine yükleyin.
+4. server.js dosyasını /home/kolaykasa/hizlisatis/ içine yükleyin.
+5. cPanel > Setup Node.js App > Restart. Tüm kasalarda Ctrl+F5.
+SQL ve npm install gerekmez. v117 SQL önceden kurulmuş olmalı. Eski dosyaları silmeyin.
+Kontrol: https://kolaykasam.com/__veridyen/health adresinde release:120 ve passwordPolicyVersion:120 görülmeli (ready:true). Yönetici olarak giriş+PIN sonrası Ayarlar > Kullanıcı Yönetimi açın; 'Sunucu parola kuralı: v120 ✓' görülmeli. Eğer eski sunucu çalışıyorsa yeni kayıt butonu kapalı kalır ve uyarı gösterilir.
+Yeni kullanıcı adı 3–32 ASCII harf/rakam/nokta/alt çizgi/tire (büyük ve küçük harf kabul). Parola 10–128 karakter, en az bir 0–9 rakam, tek satır; Türkçe ve küçük/büyük harf, özel karakter kullanılabilir. Örnek parola gerçek parola olarak kullanılmamalı. Mevcut parola hashleri, kullanıcı yetkileri ve v119 PIN rol ayrımı değişmedi. Kasiyer PIN'siz, yönetici PIN ile girer. Fiş, Argox, ürün ve satış verileri değişmedi.
+Simülasyon testleri: gerçek modüller taklit DB ve kriptografi ile kullanıcı oluşturma, giriş, düzenleme, geçersiz parola, kasiyer yetkisi, sürüm uyuşmazlığı ve sürüm doğrulaması. Gerçek cPanel/MariaDB/tarayıcı entegrasyonu test edilmedi.
+Geri dönüş: yedeklenen server.js, lib/user-access.js, public/index.html, public/auth-ui.js ve public/sw.js dosyalarını geri yükleyin, Restart + Ctrl+F5. Yeni dosyaları silmeniz gerekmez.
