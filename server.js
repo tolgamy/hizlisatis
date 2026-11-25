@@ -12,7 +12,8 @@ import {createD1Adapter} from './veridyen/mysql-d1-adapter.js';
 
 import * as auth from './veridyen/auth-v117.js';
 import * as screenLock119 from './veridyen/screen-lock-v119.js';
-import * as users from './functions/api/users.js';
+import {PASSWORD_POLICY_VERSION} from './lib/user-access-v120.js';
+import * as users from './functions/api/users-v120.js';
 import * as productState from './functions/api/product-state.js';
 import * as customers from './functions/api/customers.js';
 import * as categoryImages from './functions/api/category-images.js';
@@ -152,7 +153,7 @@ async function app(req,res){
     const url=new URL(req.url||'/',origin);
     const isReady=await ready();
     if(url.pathname==='/__veridyen/health'){
-      response=json({configured,ready:isReady,mode:'staging',
+      response=json({configured,ready:isReady,mode:'staging',release:120,passwordPolicyVersion:PASSWORD_POLICY_VERSION,
         message:isReady?'Ready for isolated testing':'Not ready; no production migration performed'});
     }else if(!isReady){
       response=json({ready:false,error:'Veridyen staging kurulumu henüz etkin değil.'},503);
