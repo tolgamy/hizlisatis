@@ -12,7 +12,7 @@
   <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg">
   <style>body.auth-locked #app{display:none!important}.access-login-gate[hidden]{display:none!important}</style>
   <link rel="stylesheet" href="/styles.css">
-  <link rel="stylesheet" href="/price-label-v99.css">
+  <link rel="stylesheet" href="/price-label-v106.css">
   <style id="receiptPaperSize"></style>
   <title>HızlıSatış · Mobil POS</title>
 </head>
@@ -280,7 +280,8 @@
           <section class="settings-receipt" aria-label="Fiş yazıcı ayarları">
           <h2>Fiş Yazıcı Ayarları</h2>
           <label>Fiş Genişliği <select id="settingsPrintWidth"><option value="80">80 mm</option><option value="58">58 mm</option></select></label>
-          <label>Fiş Başlığı <input id="settingsReceiptTitle" type="text" maxlength="80" placeholder="CEP HIZLI SATIŞ"></label>
+          <label>Fiş Başlığı <input id="settingsReceiptTitle" type="text" maxlength="80" placeholder="HIZLI FİYAT TEKLİFİ"></label>
+          <label>80 mm Fiyat Teklifi Alt Açıklaması <textarea id="settingsReceiptFooter106" maxlength="300" rows="3"></textarea></label>
           <label>Fiş Altı Telefon <input id="settingsReceiptPhone" type="tel" maxlength="35" placeholder="İsteğe bağlı"></label>
           <label>Fiş Altı Web Sitesi <input id="settingsReceiptWebsite" type="text" maxlength="110" placeholder="İsteğe bağlı"></label>
           <button id="settingsReceiptSave" class="primary-button" type="button">Fiş / Firma Bilgilerini Kaydet</button>
@@ -371,7 +372,7 @@
         </span>
       </div>
       <div class="sale-header-actions">
-        <button id="saleBack" class="sale-header-back" type="button" aria-label="Kategorilere geri dön"><span class="sale-top-icon" aria-hidden="true">←</span><span class="sale-top-text">Geri</span></button>
+        <button id="saleBack" autofocus class="sale-header-back" type="button" aria-label="Kategorilere geri dön"><span class="sale-top-icon" aria-hidden="true">←</span><span class="sale-top-text">Geri</span></button>
         <button id="saleCancel" class="sale-header-cancel" type="button" aria-label="Satışı iptal et"><span class="sale-top-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 4h4m-7 3 1 13h8l1-13M10 11v5m4-5v5"/></svg></span><span class="sale-cancel-long">Satışı İptal Et</span><span class="sale-cancel-short" aria-hidden="true">İptal</span></button>
         <button id="saleClose" class="sale-header-close" type="button" aria-label="Satış ekranını kapat"><span class="sale-top-icon" aria-hidden="true">×</span><span class="sale-top-text">Kapat</span></button>
       </div>
@@ -444,7 +445,7 @@
   </dialog>
 
   <dialog id="scanQuantityDialog" class="modal quantity-dialog" aria-labelledby="scanQuantityTitle">
-    <div class="sheet-header"><h2 id="scanQuantityTitle">Kaç adet sepete eklensin?</h2><button class="closebutton" type="button" data-close="scanQuantityDialog" aria-label="Kapat">×</button></div>
+    <div class="sheet-header"><h2 id="scanQuantityTitle">Kaç adet sepete eklensin?</h2><button class="closebutton" type="button" data-close="scanQuantityDialog" autofocus aria-label="Kapat">×</button></div>
     <div class="quantity-body"><strong id="scanQuantityProduct"></strong>
       <div class="quantity-stepper">
         <button type="button" id="scanQuantityMinus" aria-label="Azalt">−</button>
@@ -458,7 +459,7 @@
   <dialog id="weightDialog" class="modal weight-dialog" aria-labelledby="weightDialogTitle">
     <div class="sheet-header weight-sheet-header">
       <h2 id="weightDialogTitle">⚖️ Terazi ile Satış</h2>
-      <button id="weightClose" type="button" class="closebutton" aria-label="Tartımı kapat">×</button>
+      <button id="weightClose" autofocus type="button" class="closebutton" aria-label="Tartımı kapat">×</button>
     </div>
     <div class="weight-body">
       <strong id="weightProductName" class="weight-product-name">Ürün</strong>
@@ -768,7 +769,7 @@
   </dialog>
 
   <dialog id="pickProductDialog" class="sheet product-picker" aria-labelledby="pickProductTitle">
-    <div class="sheet-header"><h2 id="pickProductTitle">Ürün Ekle</h2><button type="button" class="closebutton" data-close="pickProductDialog" aria-label="Kapat">×</button></div>
+    <div class="sheet-header"><h2 id="pickProductTitle">Ürün Ekle</h2><button type="button" class="closebutton" data-close="pickProductDialog" autofocus aria-label="Kapat">×</button></div>
     <div class="picker-mode-tabs" role="group" aria-label="Ürün ekleme görünümü">
       <button type="button" data-picker-mode="search" aria-pressed="true">⌕ Arama</button>
       <button type="button" data-picker-mode="categories" aria-pressed="false">▦ Kategoriler</button>
@@ -922,6 +923,6 @@
       <p id="accessUserFormStatus" role="status" aria-live="polite"></p>
     </form>
   </dialog>
-  <link rel="stylesheet" href="/reports-v101.css"><script type="module" src="/app-v105.js"></script>
+  <link rel="stylesheet" href="/reports-v101.css"><link rel="stylesheet" href="/layout-v106.css"><script type="module" src="/app-v106.js"></script>
 </body>
 </html>
