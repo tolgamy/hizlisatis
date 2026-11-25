@@ -1,13 +1,4 @@
-const key='hizlisatis-local-print-v98';
-export function config(){try{return JSON.parse(localStorage.getItem(key)||'{}')}catch{return {}}}
-export function autoPrint(){return config().enabled===true}
-export function saveConfig(enabled,token){if(enabled&&!/^[a-f0-9]{64}$/.test(token))throw Error('64 karakterli bağlantı kodu gerekli.');localStorage.setItem(key,JSON.stringify({enabled,token:enabled?token:''}));}
-let busy=false;
-export async function sendPrint(kind,name,pdf){
- if(busy)throw Error('Baskı devam ediyor.');if(!autoPrint())throw Error('Otomatik baskı kapalı.');
- busy=true;try{const r=await fetch('http://127.0.0.1:17698/print',{method:'POST',credentials:'omit',cache:'no-store',headers:{'Content-Type':'application/pdf','X-Print-Token':config().token,'X-Print-Kind':kind,'X-Printer-Name':encodeURIComponent(name)},body:pdf,signal:AbortSignal.timeout(60000)});const d=await r.json();if(!r.ok||!d.ok)throw Error(d.error||'Baskı hatası');return d;}
- catch(e){throw Error('Otomatik baskı: '+e.message+'. Yanlış yazıcıya geçilmedi. Tekrar basmadan kuyruğu kontrol edin.');}finally{busy=false;}
-}
+export {config,autoPrint,saveConfig,sendPrint} from './local-print-v99.js';
 export function receiptRollPdf(root,layout){
  const scale=8,w=Math.round(layout.paperMm*scale),pad=Math.round((layout.leftInsetMm+layout.innerPaddingMm)*scale),max=Math.round(layout.contentMm*scale)-2*layout.innerPaddingMm*scale;
  const c=document.createElement('canvas');c.width=w;c.height=1;let ctx=c.getContext('2d');let y=10;const lines=[];
