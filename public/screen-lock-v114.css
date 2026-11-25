@@ -1,0 +1,32 @@
+/* No real or hidden password input in the PIN dialog. */
+#screenLock112 .screen-pin-dots114{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;justify-self:center;width:min(100%,230px)}
+#screenLock112 .screen-pin-dots114 span{display:grid;place-items:center;height:44px;border:1px solid #c5d5e4;border-radius:10px;background:#edf3f8;font-size:23px;line-height:1;color:#8197ab}
+#screenLock112 .screen-pin-dots114 span.filled114{color:#163b61;border-color:#9fbad2}
+#screenLock112 .screen-keypad114{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+#screenLock112 .screen-keypad114 button{background:#edf3f8;color:#173a5a;border:1px solid #d9e4ee;border-radius:10px;min-height:45px;height:48px;font-size:21px;touch-action:manipulation;user-select:none}
+#screenLock112 .screen-keypad114 button:active:not(:disabled){background:#d4e6f7}
+#screenLock112 .screen-keypad114 button:disabled{opacity:.45;cursor:not-allowed}
+#screenLock112 button:focus-visible{outline:3px solid #2679c8;outline-offset:2px}
+#screenLock112 .screen-key-help114{font-size:12px}
+#screenLock112 #screenLockNote112:empty,#screenLock112 #screenRetry112:empty{display:none}
+#screenLock112 .screen-shell112{margin:auto}
+#screenLock112 .screen-card112{gap:11px;padding:22px}
+@media(max-height:740px){
+ #screenLock112{padding:10px}
+ #screenLock112 .screen-shell112{gap:8px}
+ #screenLock112 .screen-card112{gap:7px;padding:15px}
+ #screenLock112 .screen-lock-icon112{width:39px;height:39px}
+ #screenLock112 .screen-brand112{font-size:23px}
+ #screenLock112 h2{font-size:21px}
+ #screenLock112 .screen-pin-dots114 span{height:36px}
+ #screenLock112 .screen-keypad114{gap:5px}
+ #screenLock112 .screen-keypad114 button{height:40px;min-height:40px}
+ #screenLock112 #screenUnlock112{min-height:42px}
+}
+@media(max-height:480px) and (orientation:landscape){
+ #screenLock112 .screen-shell112{width:min(100%,600px)}
+ #screenLock112 .screen-card112{grid-template-columns:1fr 1fr;align-items:center}
+ #screenLock112 .screen-keypad114{grid-column:2;grid-row:1/span 5}
+ #screenLock112 .screen-pin-dots114{grid-column:1}
+ #screenLock112 .screen-preserve112{grid-column:1/-1}
+}
