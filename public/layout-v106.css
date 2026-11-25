@@ -1,0 +1,32 @@
+/* Phone Products root only; desktop and nested categories retain v105. */
+@media (max-width:599px) and (orientation:portrait){
+ #catalogView #productCategoryHome{padding:0!important;margin:0!important}
+ #catalogView #productCategoryHome #homeCategoryShortcuts.category-photo-grid{
+  --v106-gap:6px;display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  grid-template-rows:repeat(4,minmax(0,1fr))!important;grid-auto-rows:minmax(72px,1fr)!important;
+  height:var(--v106-grid-height,max(288px,calc(100dvh - 210px)))!important;min-height:288px;
+  gap:var(--v106-gap)!important;padding:0!important;margin:0!important;align-items:stretch!important;
+ }
+ #catalogView #productCategoryHome #homeCategoryShortcuts .photo-category-tile{
+  display:flex!important;flex-direction:column!important;justify-content:flex-start!important;
+  height:100%!important;min-height:0!important;max-height:none!important;padding:3px 4px 4px!important;gap:1px!important;border-radius:11px!important;
+ }
+ #catalogView #productCategoryHome #homeCategoryShortcuts .photo-category-image{
+  flex:1 1 0!important;position:relative!important;width:100%!important;height:auto!important;min-height:0!important;
+  max-height:none!important;aspect-ratio:auto!important;overflow:hidden!important;background:#fff!important;
+ }
+ #catalogView #productCategoryHome #homeCategoryShortcuts .photo-category-image img{
+  position:absolute!important;inset:0!important;width:100%!important;height:100%!important;
+  object-fit:contain!important;object-position:center!important;padding:0!important;transform:scale(1.13)!important;transform-origin:center!important;
+ }
+ #catalogView #productCategoryHome #homeCategoryShortcuts .photo-category-name{
+  flex:0 0 auto!important;height:auto!important;min-height:0!important;max-height:none!important;
+  padding:0 1px 1px!important;margin:0!important;font-size:clamp(10px,3vw,13px)!important;
+  line-height:1.12!important;font-weight:900!important;text-align:center!important;white-space:normal!important;
+  overflow-wrap:normal!important;overflow:visible!important;-webkit-line-clamp:unset!important;
+ }
+}
+#receiptPrint[data-paper-mm="80"] .receipt-quote-name{white-space:nowrap;font-weight:900;line-height:1.15}
+#receiptPrint[data-paper-mm="80"] .receipt-quote-metrics{display:flex;justify-content:space-between;gap:.6mm;white-space:nowrap;line-height:1.15}
+#receiptPrint[data-paper-mm="80"] .receipt-quote-warning{font-weight:900}
+@media print{#receiptPrint[data-paper-mm="80"]{width:75.5mm!important;max-width:75.5mm!important;margin-left:1.5mm!important;margin-right:3mm!important;box-sizing:border-box!important;padding:1mm 0!important}}
