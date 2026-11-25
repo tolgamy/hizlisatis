@@ -51,3 +51,5 @@ export async function getSalesForReports(localReader,{centralOnly=false}={}){
   if(centralOnly)throw Error('Kasiyer raporları için merkezi satış sistemi etkin olmalıdır.');
   return {sales:await localReader(),central:false};
 }
+
+export async function readDaily125(){const d=await call('/api/sales?daily=1');if(!Number.isSafeInteger(d.totalCents)||d.totalCents<0)throw Error('Günlük ciro yanıtı geçersiz.');return d;}

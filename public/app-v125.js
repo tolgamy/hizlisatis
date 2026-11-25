@@ -34,7 +34,7 @@ import { createPriceLabelFeature,renderLabelImage } from './price-label-v106.js'
 import { checkRemoteProductStates } from './remote-products.js';
 import { createCustomerManager } from './customer-ui-v125.js';
 import { recordCustomerCredit } from './customer-api.js';
-import { isCentralSalesEnabled,saveCentralSale,getSalesForReports,voidCentralSale } from './central-sales-v125.js';
+import { isCentralSalesEnabled,saveCentralSale,getSalesForReports,voidCentralSale,readDaily125 } from './central-sales-v125.js';
 import { filterReportSales,quickReportRange } from './report-filters.js';
 import { readReceiptSettings,saveReceiptSettings,receiptPrintLayout,readReceiptAction,saveReceiptAction } from './receipt-settings-v111.js';
 import { parseBasketDiscountPercent,calculateBasketTotals } from './basket-pricing.js';
@@ -822,7 +822,7 @@ function renderHomeRecentSales(sales){
   const card=$('homeRecentSalesCard');
   card.hidden=false;
   const list=$('homeRecentSalesList');list.replaceChildren();
-  if(!reportScope125()||reportScope125()==='today'){const li=document.createElement('li');li.textContent='Satış geçmişi yetkiniz yok.';list.append(li);return;}
+  if(!reportScope125()){const li=document.createElement('li');li.textContent='Satış geçmişi yetkiniz yok.';list.append(li);return;}
   const recent=sales.filter(s=>s&&!s.voided&&s.createdAt&&
     Number.isFinite(Number(s.total))&&
     Number.isFinite(new Date(s.createdAt).getTime()))
@@ -885,33 +885,25 @@ function renderHome() {
 }
 let homeSalesReadId=0;
 async function refreshHomeSales() {
-  if(!reportScope125()){$('homeTodaySales').textContent='—';renderHomeRecentSales([]);return;}
-  // Sales are stored in this device's IndexedDB, not in a central sales table.
-  // Never fabricate mockup values or count another device's transactions.
   const requestId=++homeSalesReadId;
-  $('homeTodaySales').textContent='…';
-  try {
-    const {sales,central}=await getSalesForReports(getSales,{centralOnly:!userCan('reports')});
+  $('homeTodaySales').textContent=daily125()?'…':'—';
+  const report=reportScope125();
+  const note=document.querySelector('#homeTodaySalesButton small');
+  if(note)note.textContent=daily125()?(userCan('reports')||report==='all'?'Merkezi günlük ciro':'Kendi günlük cirom'):'Günlük ciro yetkisi yok';
+  const recentNote=document.querySelector('#homeRecentSalesCard .home-insight-heading span');
+  if(recentNote)recentNote.textContent=report==='all'?'Merkezi satışlar':report==='other'?'Diğer kasalar':'Kendi satışlarım';
+  if(!report)renderHomeRecentSales([]);
+  try{
+    const central=await isCentralSalesEnabled();
     if(requestId!==homeSalesReadId)return;
-    const homeNote=document.querySelector('#homeTodaySalesButton small');
-    if(homeNote)homeNote.textContent=central?(reportScope125()==='all'?'Tüm cihazların merkezi satışları':'Kendi merkezi satışlarım'):'Bu cihazdaki satışlar';
-    const recentNote=document.querySelector('#homeRecentSalesCard .home-insight-heading span');
-    if(recentNote)recentNote.textContent=central?(reportScope125()==='all'?'Merkezi satışlar':'Kendi satışlarım'):'Yalnızca bu cihaz';
-    const today=new Date().toDateString();
-    const amount=sales.reduce((sum,sale)=>{
-      if(sale.voided)return sum;
-      const date=new Date(sale.createdAt);
-      return Number.isFinite(date.getTime()) && date.toDateString()===today &&
-        (!sale.currency||sale.currency==='TRY')&&Number.isFinite(Number(sale.total))
-        ? sum+Number(sale.total):sum;
-    },0);
-    $('homeTodaySales').textContent=daily125()?money(round2(amount),'TRY'):'—';
-    fitHomeMetricNumbers();
-    if(typeof renderHomeRecentSales==='function')renderHomeRecentSales(sales);
-  } catch {
-    if(requestId===homeSalesReadId)$('homeTodaySales').textContent='—';
-    fitHomeMetricNumbers();
-  }
+    if(daily125()){
+      if(central){const data=await readDaily125();if(requestId===homeSalesReadId)$('homeTodaySales').textContent=money(data.totalCents/100,'TRY');}
+      else if(userCan('reports')){const sales=await getSales();if(requestId===homeSalesReadId)$('homeTodaySales').textContent=money(round2(sales.filter(s=>!s.voided&&new Date(s.createdAt).toDateString()===new Date().toDateString()&&(!s.currency||s.currency==='TRY')).reduce((n,s)=>n+Number(s.total||0),0)),'TRY');}
+      else if(requestId===homeSalesReadId)$('homeTodaySales').textContent='—';
+    }
+    if(report){const {sales}=await getSalesForReports(getSales,{centralOnly:!userCan('reports')});if(requestId===homeSalesReadId)renderHomeRecentSales(sales);}
+  }catch{if(requestId===homeSalesReadId)$('homeTodaySales').textContent='—';}
+  if(requestId===homeSalesReadId)fitHomeMetricNumbers();
 }
 function openProductDetail(product) {
   state.detailProduct = product;
@@ -2038,7 +2030,7 @@ async function showHistory() {
     allReportSales=Array.isArray(sales)?sales:[];
     centralReportMode=central;
     const note=document.querySelector('.history-device-note');
-    if(note)note.textContent=central?(reportScope125()==='all'?'Merkezi satışlar · Tüm cihazlar':'Kendi merkezi satışlarım'+(reportScope125()==='today'?' · Bugün':'')):
+    if(note)note.textContent=central?(reportScope125()==='all'?'Merkezi satışlar · Tüm cihazlar':reportScope125()==='other'?'Diğer kasaların merkezi satışları':'Kendi merkezi satışlarım'):
       'Bu cihazın kayıtları · Diğer kasalar dahil değildir';
     const heading=$('historySummaryPlot').querySelector('h3 small');
     if(heading)heading.textContent=central?'(merkezi satışlar, ₺)':'(bu cihaz, ₺)';

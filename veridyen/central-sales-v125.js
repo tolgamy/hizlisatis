@@ -6,7 +6,7 @@
 import {createHash} from 'node:crypto';
 import {currentAccessUser,hasPermission} from '../lib/user-access.js';
 import {validateCentralReceipt} from './sales-validation.js';
-import {credit125,reportScope125,payment125,fine125} from '../lib/rights-v125.js';
+import {credit125,reportScope125,payment125,dailyScope125} from '../lib/rights-v125.js';
 
 const h={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'};
 const reply=(data,status=200)=>Response.json(data,{status,headers:h});
@@ -63,16 +63,23 @@ export async function onRequestGet({request,env}){
     return reply({enabled:active(env)});
   if(!active(env))return reply({error:'Merkezi satışlar henüz etkin değil.'},503);
   const user=await currentAccessUser(request,env),scope=reportScope125(user);
+  if(url.searchParams.has('daily')){
+    const daily=dailyScope125(user);if(!daily)return reply({error:'Günlük ciro yetkisi gerekli.'},403);
+    try{
+      const day=new Date(Date.now()+3*3600000).toISOString().slice(0,10);
+      const start=new Date(day+'T00:00:00+03:00').toISOString(),end=new Date(Date.parse(start)+86400000).toISOString();
+      const [rows]=await env.MYSQL_POOL.execute('SELECT COALESCE(SUM(s.total_cents),0) AS amount,COUNT(*) AS count FROM pos_sales s LEFT JOIN pos_sale_voids v ON v.sale_id=s.id WHERE v.sale_id IS NULL AND s.currency=? AND s.created_at>=? AND s.created_at<?'+(daily==='own'?' AND s.cashier_id=?':''),['TRY',start,end,...(daily==='own'?[user.id]:[])]);
+      return reply({scope:daily,day,totalCents:Number(rows[0]?.amount||0),count:Number(rows[0]?.count||0)});
+    }catch{return reply({error:'Günlük ciro okunamadı.'},503)}
+  }
   if(!scope)return reply({error:'Rapor görüntüleme yetkisi gerekli.'},403);
   const rawOffset=url.searchParams.get('offset')||'0';
   if(!/^\d{1,6}$/.test(rawOffset)||Number(rawOffset)>50000)
     return reply({error:'Sayfalama geçersiz.'},400);
   const offset=Number(rawOffset),limit=200;
   try{
-    const day=new Date(Date.now()+3*3600000).toISOString().slice(0,10);
-    const start=new Date(day+'T00:00:00+03:00').toISOString(),end=new Date(Date.parse(start)+86400000).toISOString();
-    const where=scope==='all'?'':scope==='today'?' WHERE s.cashier_id=? AND s.created_at>=? AND s.created_at<?':' WHERE s.cashier_id=?';
-    const args=scope==='all'?[]:scope==='today'?[user.id,start,end]:[user.id];
+    const where=scope==='all'?'':scope==='other'?' WHERE s.cashier_id<>?':' WHERE s.cashier_id=?';
+    const args=scope==='all'?[]:[user.id];
     const [rows]=await env.MYSQL_POOL.execute(
       'SELECT s.payload,s.cashier_id,v.sale_id AS voided_id,v.voided_at,v.reason AS void_reason FROM pos_sales s LEFT JOIN pos_sale_voids v ON v.sale_id=s.id'+where+' ORDER BY s.created_at DESC,s.id DESC LIMIT ? OFFSET ?',
       [...args,limit,offset]);

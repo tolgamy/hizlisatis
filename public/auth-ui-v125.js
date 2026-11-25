@@ -22,7 +22,7 @@ export function fine125(id,legacy){return activeUser?.role==='admin'||(Array.isA
 export const lookup125=()=>fine125('customer.lookup','customers');
 export const credit125=()=>lookup125()&&fine125('customer.credit','customers')&&Boolean(can('sales'));
 export const collect125=()=>lookup125()&&fine125('customer.collect','customers');
-export const reportScope125=()=>can('reports')||fine125('report.all')?'all':fine125('report.own')?'own':fine125('report.daily.own')?'today':null;
+export const reportScope125=()=>can('reports')||fine125('report.all')||(fine125('report.own')&&fine125('report.other'))?'all':fine125('report.own')?'own':fine125('report.other')?'other':null;
 export const daily125=()=>can('reports')||fine125('report.all')||fine125('report.daily.own');
 export const canReprint125=sale=>can('reports')||fine125(sale?.cashierId===activeUser?.id?'sale.reprint.own':'sale.reprint.other');
 export const payment125=p=>activeUser?.role==='admin'||!Array.isArray(activeUser?.permissionProfile)||((p==='Nakit'&&fine125('sale.cash'))||(p==='Kart'&&fine125('sale.card'))||(p==='Veresiye'&&credit125()));
@@ -153,7 +153,7 @@ function renderPermissions121(){
  for(const [id,label] of catalog121.permissionGroups[group121][1]){
   const line=document.createElement('label'),input=document.createElement('input'),name=document.createElement('span'),status=document.createElement('small');
   input.type='checkbox';input.checked=profile121.has(id);input.disabled=catalog121.adminOnly.includes(id);
-  name.textContent=label;status.textContent=input.disabled?'Yalnız admin':catalog121.salesBundle.includes(id)?'Satış paketi':id==='product.activate.initial'?'Etkin · satış yetkisi gerekir':['customer.lookup','customer.credit','customer.collect','report.own','report.daily.own','report.all','sale.reprint.own','sale.reprint.other'].includes(id)?'Etkin · merkezi sistem':'Planlanan';
+  name.textContent=label;status.textContent=input.disabled?'Yalnız admin':catalog121.salesBundle.includes(id)?'Satış paketi':id==='product.activate.initial'?'Etkin · satış yetkisi gerekir':['customer.lookup','customer.credit','customer.collect','report.own','report.daily.own','report.all','report.other','sale.reprint.own','sale.reprint.other'].includes(id)?'Etkin · merkezi sistem':'Planlanan';
   input.addEventListener('change',()=>{if(input.checked)profile121.add(id);else profile121.delete(id);renderPermissions121()});
   line.append(input,name,status);rows.append(line);
  }
