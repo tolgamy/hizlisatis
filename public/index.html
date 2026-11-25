@@ -128,7 +128,22 @@ body.screen-checking112 #app{visibility:hidden!important}
 #app #settingsMainMenu #settingsSecurity122 .settings-tile-icon{color:var(--tile-ink)!important}
 /* Match existing card sizing; child paths carry explicit strokes/fills. */
 #app #settingsMainMenu :is(#settingsCustomer122,#settingsPrinter122,#settingsUsers122,#settingsSecurity122) .settings-tile-icon svg{display:block!important;width:100%;height:100%;overflow:visible}
-</style><style id="activation124">#passivePermission124{font-size:13px;line-height:1.45;padding:9px 12px;border-radius:8px;background:#eef5fb;color:#234f70}#passiveProductDialog button:disabled{opacity:.55;cursor:not-allowed}</style><style>#approvalsDialog125{max-width:min(720px,94vw);max-height:85vh;overflow:auto}#approvalsList125 article{padding:12px;margin:8px 0;border:1px solid #c5d9e8;border-radius:10px}#approvalsList125 article p{overflow-wrap:anywhere}#approvalsList125 article button{margin-right:8px}</style><style>#auditDialog125{max-width:min(720px,94vw);max-height:85vh;overflow:auto}#auditList125 article{padding:10px;border-bottom:1px solid #c5d9e8;overflow-wrap:anywhere}</style></head>
+</style><style id="activation124">#passivePermission124{font-size:13px;line-height:1.45;padding:9px 12px;border-radius:8px;background:#eef5fb;color:#234f70}#passiveProductDialog button:disabled{opacity:.55;cursor:not-allowed}</style><style>#approvalsDialog125{max-width:min(720px,94vw);max-height:85vh;overflow:auto}#approvalsList125 article{padding:12px;margin:8px 0;border:1px solid #c5d9e8;border-radius:10px}#approvalsList125 article p{overflow-wrap:anywhere}#approvalsList125 article button{margin-right:8px}</style><style>#auditDialog125{max-width:min(720px,94vw);max-height:85vh;overflow:auto}#auditList125 article{padding:10px;border-bottom:1px solid #c5d9e8;overflow-wrap:anywhere}</style><style id="v130-security-ui">
+#app #settingsHub122 .settings-inner-header{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+#app #settingsHub122 #settingsHubTitle122{color:#fff;margin:0;font-size:clamp(18px,2.5vw,24px)}
+#settingsHubBack122,#auditRefresh125,#approvalsRefresh125{appearance:none;border:1px solid #bcd6eb;border-radius:9px;background:#e9f4ff;color:#134a72;font:inherit;font-weight:700;padding:9px 14px;cursor:pointer}
+#app #settingsHub122 .hub-action122:not(:disabled):hover{background:#fff;border-color:#73a8ce}
+#approvalsDialog125,#auditDialog125{width:min(720px,94vw);box-sizing:border-box;padding:0 16px 16px;color:#18354c}
+#approvalsDialog125 .sheet-header,#auditDialog125 .sheet-header{margin:0 -16px 12px;padding:12px 16px}
+#approvalsList125,#auditList125{display:grid;gap:8px;margin-top:12px}
+#approvalsList125 article,#auditList125 article{margin:0;border:1px solid #d2e1ed;border-radius:10px;background:#f6faff;padding:12px}
+#approvalsList125 article p,#auditList125 article p{margin:6px 0;line-height:1.5;overflow-wrap:anywhere}
+#approvalsList125 article button{border:1px solid #bcd6eb;border-radius:8px;padding:9px 14px;font:inherit;font-weight:700;background:#e8f4ff;color:#164b75;cursor:pointer}
+#approvalsList125 article button:disabled{opacity:.55;cursor:wait}
+#approvalsList125 article button[data-decision="rejected"]{background:#fff0f0;color:#9a3030;border-color:#efc6c6}
+#approvalsList125 article button[data-decision="approved"]{background:#e8f6ee;color:#17623d;border-color:#b7dec8}
+#auditFilter130{display:block;width:100%;box-sizing:border-box;margin-top:12px;border:1px solid #bcd6eb;border-radius:8px;padding:10px;font:inherit;color:#18354c;background:#fff}
+</style></head>
 <body class="auth-locked screen-checking112">
   <section id="loginGate" class="access-login-gate" aria-label="HızlıSatış güvenli giriş">
     <div class="access-login-card">
@@ -853,7 +868,7 @@ body.screen-checking112 #app{visibility:hidden!important}
     <p class="pl-missing-text">Stoğa eklemek istiyor musunuz? Evet, barkodu hazır yeni stok kartını açar; Hayır, barkodu temizler.</p>
     <div class="pl-missing-buttons"><button id="priceLabelMissingNo" type="button">Hayır, Temizle</button><button id="priceLabelMissingYes" type="button">Evet, Stok Kartı Aç</button></div>
   </dialog>
-  <dialog id="auditDialog125" class="modal" aria-labelledby="auditTitle125"><div class="sheet-header"><h2 id="auditTitle125">Kullanıcı İşlem Geçmişi</h2><button type="button" class="closebutton" data-close="auditDialog125">×</button></div><p id="auditStatus125" role="status"></p><button id="auditRefresh125" type="button">Yenile</button><div id="auditList125"></div></dialog>
+  <dialog id="auditDialog125" class="modal" aria-labelledby="auditTitle125"><div class="sheet-header"><h2 id="auditTitle125">Kullanıcı İşlem Geçmişi</h2><button type="button" class="closebutton" data-close="auditDialog125">×</button></div><p id="auditStatus125" role="status"></p><button id="auditRefresh125" type="button">Yenile</button><input id="auditFilter130" type="search" aria-label="İşlem kayıtlarında ara" placeholder="Kullanıcı, işlem veya kayıt ara"><div id="auditList125"></div></dialog>
   <dialog id="approvalsDialog125" class="modal" aria-labelledby="approvalsTitle125"><div class="sheet-header"><h2 id="approvalsTitle125">Yönetici Onay Talepleri</h2><button type="button" class="closebutton" data-close="approvalsDialog125">×</button></div><p id="approvalsStatus125" role="status"></p><button id="approvalsRefresh125" type="button">Talepleri Yenile</button><div id="approvalsList125"></div></dialog>
   <dialog id="unknownBarcodeDialog" class="modal activation-choice-dialog" aria-labelledby="unknownBarcodeTitle">
     <div class="sheet-header"><h2 id="unknownBarcodeTitle">Stok eklemek istiyor musunuz?</h2></div>
