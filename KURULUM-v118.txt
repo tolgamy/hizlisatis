@@ -1,0 +1,8 @@
+HızlıSatış v118 — v117 üzerine parola biçimi düzeltmesi.
+Mevcut lib/user-access.js ve public/index.html, auth-ui.js, sw.js dosyalarını yedekleyin.
+1. lib/user-access.js dosyasını /home/kolaykasa/hizlisatis/lib/ içine yükleyin.
+2. public/ klasörünün 3 dosyasını /home/kolaykasa/hizlisatis/public/ içine yükleyin.
+3. cPanel > Setup Node.js App > Restart. Ctrl+F5 ile yenileyin. Açık satışları önce tamamlayın.
+SQL ve npm install gerekmez; v117 SQL kurulmuş olmalıdır.
+Yeni parola 10–128 karakter, en az bir rakam (0–9); Türkçe harf, büyük/küçük harf, nokta ve diğer özel karakterler serbest. Tek satır olmalıdır. Örnek.1234x yalnızca gösterimdir, gerçek parola olarak kullanmayın. Rastgele, tahmin edilmesi zor parola seçin. Mevcut parolalar değişmez. Düzenleme sırasında boş parola mevcut parolayı korur. Örnek metin, iki canlı kontrol işareti ve göster/gizle düğmesi eklendi. PIN, bağlantı sınırlaması, SQL, satış, fiş ve Argox değişmedi. ADMIN_INITIAL_PASSWORD ve SCREEN_LOCK_PIN değerlerine dokunmayın.
+Test: Ayarlar > Kullanıcı Yönetimi > Yeni Kullanıcı > rastgele uygun parola > Kaydet. Yeni hesapla giriş ve PIN doğrulamasını kontrol edin. Canlı Chrome, cPanel, MariaDB ve kullanıcı oluşturma testi yapılmadı. Geri dönüş: yedeklenen dört dosyayı geri yükleyin, Restart ve Ctrl+F5.
