@@ -973,8 +973,8 @@ body.screen-checking112 #app{visibility:hidden!important}
     <form id="accessUserForm">
       <h3 id="accessUserFormTitle">Yeni Kullanıcı</h3>
       <label>Kullanıcı Adı<input id="accessUsername" autocomplete="off" required minlength="3" maxlength="32" pattern="[a-zA-Z0-9._-]+"></label>
-      <label>Parola<input id="accessPassword" autocomplete="new-password" type="password" required minlength="12" maxlength="128"></label>
-      <small id="accessPasswordHelp">En az 12 karakter.</small>
+      <label>Parola<input id="accessPassword" autocomplete="new-password" type="password" required minlength="10" maxlength="128" pattern="[A-Z0-9.]+"></label>
+      <small id="accessPasswordHelp">En az 10 karakter: büyük harf, rakam ve nokta.</small>
       <label>Rol<select id="accessRole"><option value="cashier">Kasiyer / Çalışan</option><option value="admin">Admin (Tam Yetki)</option></select></label>
       <fieldset id="accessPermissions"><legend>Yetkiler</legend>
         <label><input type="checkbox" data-access-permission value="sales" checked> Satış Yapma</label>

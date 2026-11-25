@@ -91,7 +91,7 @@ function selectUser(user=null){
   $('accessPassword').value='';
   $('accessPassword').required=!user;
   $('accessPasswordHelp').textContent=user?
-    'Parolayı değiştirmeyecekseniz boş bırakın.':'En az 12 karakter.';
+    'Parolayı değiştirmeyecekseniz boş bırakın.':'En az 10 karakter: büyük harf, rakam ve nokta.';
   $('accessRole').value=user?.role||'cashier';
   $('accessPermissions').hidden=$('accessRole').value==='admin';
   $('accessActive').checked=user?.active!==false;
