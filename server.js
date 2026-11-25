@@ -116,15 +116,20 @@ async function dynamicRequest(req,url){
   }
   return handler({request,env:requestEnv});
 }
-async function staticRequest(url,req){
+async function staticRequest(url,req,protectedCatalog=false){
   let path;
   try {path=decodeURIComponent(url.pathname);}
   catch {return new Response('Bad path',{status:400});}
   if(path.includes('\0')||path.includes('\\'))return new Response('Bad path',{status:400});
+  if(protectedCatalog){
+    if(!/^\/api\/catalog\/(?:manifest\.json|products-[0-9a-f]{16}-\d{2}\.json)$/i.test(path))return json({error:'Katalog dosyası bulunamadı.'},404);
+    path=path.slice(4);
+  }
   const file=resolve(ROOT,'.'+(path.endsWith('/')?path+'index.html':path));
   if(!file.startsWith(ROOT+sep)&&file!==ROOT)return new Response('Forbidden',{status:403});
   const privateCatalog=file===resolve(ROOT,'catalog')||file.startsWith(resolve(ROOT,'catalog')+sep);
   if(privateCatalog){
+    if(!protectedCatalog)return json({error:'Katalog için doğrulanmış oturum gerekli.'},403);
     const request=new Request(url.href,{headers:req.headers});
     const blocked=await screenLock117.guardScreen117(request,env);if(blocked)return blocked;
   }
@@ -151,6 +156,8 @@ async function app(req,res){
         message:isReady?'Ready for isolated testing':'Not ready; no production migration performed'});
     }else if(!isReady){
       response=json({ready:false,error:'Veridyen staging kurulumu henüz etkin değil.'},503);
+    }else if(url.pathname.startsWith('/api/catalog/')&&(req.method==='GET'||req.method==='HEAD')){
+      response=await staticRequest(url,req,true);
     }else if(url.pathname.startsWith('/api/')){
       response=await dynamicRequest(req,url);
     }else if(req.method==='GET'||req.method==='HEAD'){

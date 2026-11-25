@@ -57,7 +57,7 @@ export function parseBundledCatalog(manifest, rows) {
 }
 
 export async function fetchBundledCatalog(fetcher = fetch) {
-  const response = await fetcher('/catalog/manifest.json', { cache: 'no-cache' });
+  const response = await fetcher('/api/catalog/manifest.json', { cache: 'no-store', credentials:'same-origin' });
   if (!response.ok) throw new Error(`Yerleşik katalog manifesti HTTP ${response.status}.`);
   const manifest = await response.json();
   const paths = manifest?.parts;
@@ -66,7 +66,7 @@ export async function fetchBundledCatalog(fetcher = fetch) {
         !/^\/catalog\/products-[0-9a-f]{16}-\d{2}\.json$/i.test(path)))
     throw new Error('Yerleşik katalog parça listesi geçersiz.');
   const pages = await Promise.all(paths.map(async path => {
-    const res = await fetcher(path, { cache: 'default' });
+    const res = await fetcher('/api'+path, { cache: 'no-store', credentials:'same-origin' });
     if (!res.ok) throw new Error(`Katalog parçası yüklenemedi: ${path}`);
     const page = await res.json();
     if (!Array.isArray(page) || page.length > 1000) throw new Error('Katalog parçası geçersiz.');
