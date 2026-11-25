@@ -11,7 +11,7 @@ import {createPool} from 'mysql2/promise';
 import {createD1Adapter} from './veridyen/mysql-d1-adapter.js';
 
 import * as auth from './veridyen/auth-v117.js';
-import * as screenLock117 from './veridyen/screen-lock-v117.js';
+import * as screenLock119 from './veridyen/screen-lock-v119.js';
 import * as users from './functions/api/users.js';
 import * as productState from './functions/api/product-state.js';
 import * as customers from './functions/api/customers.js';
@@ -27,7 +27,7 @@ import * as creditPayments from './veridyen/credit-payments.js';
 
 const ROOT=resolve(fileURLToPath(new URL('./public/',import.meta.url)));
 const API=new Map([
-  ['/api/auth',auth],['/api/screen-lock',screenLock117],['/api/users',users],['/api/product-state',productState],
+  ['/api/auth',auth],['/api/screen-lock',screenLock119],['/api/users',users],['/api/product-state',productState],
   ['/api/customers',customers],['/api/category-images',categoryImages],
   ['/api/central-health',centralHealth],['/api/sale-access',saleAccess],
   ['/api/catalog-seed',catalogSeed],['/api/admin-session',adminSession],
@@ -112,7 +112,7 @@ async function dynamicRequest(req,url){
   });
   const requestEnv={...env,AUTH_SOURCE117:String(req.socket?.remoteAddress||'unknown-peer')};
   if(url.pathname!=='/api/screen-lock'&&!(url.pathname==='/api/auth'&&method==='GET')){
-    const blocked=await screenLock117.guardScreen117(request,requestEnv,{allowAnonymous:url.pathname==='/api/auth'});if(blocked)return blocked;
+    const blocked=await screenLock119.guardScreen119(request,requestEnv,{allowAnonymous:url.pathname==='/api/auth'});if(blocked)return blocked;
   }
   return handler({request,env:requestEnv});
 }
@@ -131,7 +131,7 @@ async function staticRequest(url,req,protectedCatalog=false){
   if(privateCatalog){
     if(!protectedCatalog)return json({error:'Katalog için doğrulanmış oturum gerekli.'},403);
     const request=new Request(url.href,{headers:req.headers});
-    const blocked=await screenLock117.guardScreen117(request,env);if(blocked)return blocked;
+    const blocked=await screenLock119.guardScreen119(request,env);if(blocked)return blocked;
   }
   try{
     const fileStat=await stat(file);
