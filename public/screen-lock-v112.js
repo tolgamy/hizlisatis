@@ -4,7 +4,7 @@ export function screenBlocked112(){return blocked;}
 export async function installScreenLock112(user,{onLock=()=>{}}={}){
  const $=id=>document.getElementById(id),dialog=$('screenLock112'),pin=$('screenPin112'),unlock=$('screenUnlock112'),note=$('screenLockNote112'),retry=$('screenRetry112'),manual=$('screenManual112');
  if(!user?.id){blocked=false;document.body.classList.remove('screen-checking112');return;}
- let configured=false,ended=false,deadline=Date.now()+IDLE,retryUntil=0,lastSent=0,activityTimer=0,chain=Promise.resolve(),started=false,resolveReady,opened=false,previousFocus=null,submitting=false;
+ let configured=false,ended=false,deadline=Date.now()+IDLE,retryUntil=0,lastSent=0,activityTimer=0,chain=Promise.resolve(),started=false,resolveReady,opened=false,previousFocus=null,submitting=false,pendingLock=false;
  const firstReady=new Promise(resolve=>resolveReady=resolve);
  const channel=typeof BroadcastChannel==='function'?new BroadcastChannel('hizlisatis-screen-v112'):null;
  function tick(){
@@ -36,6 +36,8 @@ export async function installScreenLock112(user,{onLock=()=>{}}={}){
    const r=await original('/api/screen-lock',{cache:'no-store',credentials:'same-origin',...opts}),d=await r.json().catch(()=>({}));
    if(d.code==='AUTH_REQUIRED'){ended=true;show(d.error);return false;}
    if(!r.ok&&!Object.hasOwn(d,'configured')){if(r.status===423)show();throw Error(d.error||'Ekran kilidi bağlantısı kurulamadı.');}
+   if(pendingLock&&!d.locked&&action!=='lock'){show();queue('lock');return false;}
+   if(d.locked||action==='lock')pendingLock=false;
    apply(d);if(d.error){note.textContent=d.error;return false;}
    if(['lock','unlock','configure'].includes(action))channel?.postMessage('changed');return true;
   }catch(e){show(e.message+' Bağlantı sağlanınca tekrar kontrol edilecek.');return false;}};
@@ -50,14 +52,14 @@ export async function installScreenLock112(user,{onLock=()=>{}}={}){
  }
  for(const type of ['pointerdown','keydown','input','wheel','click','submit','touchstart'])window.addEventListener(type,gate,{capture:true,passive:false});
  dialog.addEventListener('cancel',e=>e.preventDefault());
- dialog.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target===pin){e.preventDefault();e.stopImmediatePropagation();}});
+ dialog.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target===pin)e.preventDefault();e.stopPropagation();});
  unlock.addEventListener('click',async()=>{
   if(submitting||Date.now()<retryUntil||ended)return;
   const value=pin.value;pin.value='';if(!/^\d{4}$/.test(value)){note.textContent='PIN tam 4 rakam olmalı.';return;}
   submitting=true;tick();await queue('unlock',{pin:value});submitting=false;tick();
  });
  $('screenRelogin112').addEventListener('click',()=>location.reload());
- manual.addEventListener('click',()=>{show();queue('lock');});
+ manual.addEventListener('click',()=>{pendingLock=true;show();queue('lock');});
  $('screenPinSave112').addEventListener('click',async()=>{
   if(blocked||user.role!=='admin')return;
   const a=$('screenNewPin112'),b=$('screenConfirmPin112'),value=a.value,status=$('screenPinStatus112'),save=$('screenPinSave112');
@@ -66,6 +68,7 @@ export async function installScreenLock112(user,{onLock=()=>{}}={}){
  });
  channel?.addEventListener('message',()=>queue('status'));
  window.addEventListener('pageshow',()=>queue('status'));
+ window.addEventListener('hizlisatis:auth-required',()=>queue('status'));
  document.addEventListener('visibilitychange',()=>{if(!document.hidden){if(configured&&Date.now()>=deadline)show();queue('status');}});
  setInterval(()=>{if(configured&&!blocked&&Date.now()>=deadline){show();queue('status');}tick();},500);
  setInterval(()=>{if(!document.hidden&&!ended)queue('status');},POLL);
