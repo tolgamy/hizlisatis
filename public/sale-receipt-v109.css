@@ -1,6 +1,7 @@
 /* Mobile uses the existing input layout and text. Desktop native sale alone gets one reader field. */
 .sale-ready-wrap109{display:contents}
-.sale-ready-status109,.sale-ready-bar109,.sale-camera-note109{display:none}
+.sale-ready-status109,.sale-ready-bar109{display:none}
+#saleScanButton .sale-camera-note109{display:none!important}
 .receipt-width-help109{font-size:12px;color:#526b80;line-height:1.4;margin:0 0 8px}
 @media (min-width:1024px) and (min-height:600px) and (orientation:landscape) and (hover:hover) and (pointer:fine){
  body.desktop-sale-workspace #app .clean-topbar .searchline{display:none!important}
@@ -29,12 +30,12 @@
   font-size:25px;line-height:1;font-weight:700;pointer-events:none;animation:sale-ready-blink109 1s steps(1,end) infinite;
  }
  #saleView #saleScanButton{background:#e1efff!important;color:#12549b!important;border-color:#a7cdf5!important;box-shadow:none!important}
- #saleView #saleScanButton .sale-camera-note109{display:inline;font-size:inherit}
+ #saleView #saleScanButton .sale-camera-note109{display:inline!important;font-size:inherit}
 }
 @media (min-width:1024px) and (max-width:1250px) and (min-height:600px) and (orientation:landscape) and (hover:hover) and (pointer:fine){
  #saleView .sale-scanner .sale-ready-status109{font-size:10px;padding:4px;right:4px}
  #saleView .sale-scanner[data-scanner-empty="true"] #saleBarcode{padding-right:102px!important;font-size:12px}
- #saleView #saleScanButton .sale-camera-note109{display:none}
+ #saleView #saleScanButton .sale-camera-note109{display:none!important}
 }
 @keyframes sale-ready-blink109{0%,48%{opacity:1}49%,100%{opacity:0}}
 @media(prefers-reduced-motion:reduce){.sale-ready-bar109{animation:none!important}}

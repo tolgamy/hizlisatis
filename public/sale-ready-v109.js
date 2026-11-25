@@ -12,6 +12,8 @@ export function installSaleReady109({active}){
   const editing=!!(el?.isContentEditable||el?.closest?.('textarea,select,[contenteditable="true"],input:not([type="radio"]):not([type="checkbox"]):not([type="button"]):not([type="submit"])'));
   const ready=desktop&&scannerReady109({sale:active(),blocked:false,visible:!document.hidden,focused:document.hasFocus(),field:el===input,editing});
   form.dataset.scannerReady=String(ready);form.dataset.scannerEmpty=String(!input.value);
+  const placeholder=desktop?'Barkod okutun veya ürün adı yazın…':'Barkod / ürün adı / kodu ara';
+  if(input.placeholder!==placeholder)input.placeholder=placeholder;
   const label=ready?'Okutmaya Hazır':'Beklemede';
   if(status.textContent!==label)status.textContent=label;
  }
