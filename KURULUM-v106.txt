@@ -1,0 +1,10 @@
+HIZLISATIŞ v106 — v105 (9a761d7c) üzerine güncelleme.
+ÖNCE: v105'in canlı kurulu olduğunu doğrulayın, public/index.html ve public/sw.js dahil mevcut dosyaları yedekleyin.
+ZIP içindeki public klasörünün İÇERİĞİNİ /home/kolaykasa/hizlisatis/public içine yükleyin. Diğer dosyaları silmeyin. SQL değişikliği yok, Node yeniden başlatma gerekmiyor. Tarayıcıyı yenileyin.
+1. Satışta otomatik klavye odağı kaldırıldı; fiziksel USB/Bluetooth HID barkod yakalama, Enter/Tab veya tam sayısal kod için 550 ms bekleme. Elle giriş alanları çalışır.
+2. Telefon Ürünler ana kategorileri 3x4; görünür başlık ve alt menü arasındaki gerçek alan ölçülür. Dar ekranlarda kaydırma korunur.
+3. Argox 38x100 mm -90 derece aynı; iki satır uzun ürün adı, büyük fiyat, yatay birim fiyat, sadece kayıtlı yerli üründe YERLİ ÜRETİM; KDV satırı yok. Geçerli EAN-13 ürün kodları EAN-13, eski diğer kodlar mevcut formatta. Kayıtlı diğer ülkeler ülke adıyla gösterilir; bilinmeyen ülke uydurulmaz.
+4. 9.999,99 ve 100.000,00 yalnız tasarım testi, sistemsel sınır yok.
+5. 80 mm manuel HTML / yerel PDF / Bluetooth fiyat teklifi; 1,5 mm sol, 3 mm sağ nominal (Bluetooth fiziksel sürücüye bağlı). Varsayılan HIZLI FİYAT TEKLİFİ, kurum/adres/vergi alanı eklenmez. Önceden özel olarak kaydedilmiş başlıklar korunur, eski varsayılan başlık yeni varsayılana geçer. Alt açıklama Ayarlar'dan düzenlenebilir. WhatsApp ve A4 paylaşım akışı eski tasarımda; 58 mm düzeni korunur (varsayılan başlık ortak).
+Kontroller: önce test cihazı; iPhone Safari adres çubuğu açıkken 12 kategori; tablet/dokunmatik PC açılış ve barkod okuma; Argox tek etiket ve 13 haneli gerçek barkod; 10 ürün, uzun isim, 100.000,00 ₺, fiziksel 80 mm yazıcı kenarları. Bluetooth font genişliği yazıcıya bağlı; uzun isim sığması fiziksel test gerektirir. Kullanıcının kaydettiği özel başlık kurum adı ise Ayarlar'dan değiştirilmelidir.
+Geri dönüş: yedek index.html ve sw.js'yi geri yükleyin; eski modüller yerinde kalır. Canlı siteye otomatik dağıtım yapılmadı.
