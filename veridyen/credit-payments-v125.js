@@ -2,6 +2,7 @@
  * Customer-row lock serializes concurrent collections and sale charges.
  * Idempotency key prevents repeat charges after ambiguous network errors.
  */
+import {randomUUID} from 'node:crypto';
 import {currentAccessUser} from '../lib/user-access.js';
 import {collect125} from '../lib/rights-v125.js';
 const headers={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'};
@@ -60,6 +61,7 @@ export async function onRequestPost({request,env}){
     await conn.execute(
       'INSERT INTO pos_customer_ledger (id,customer_id,action,amount_cents,created_at,payment,notes) VALUES (?,?,?,?,?,?,?)',
       [id,customerId,'collect',-amountCents,new Date().toISOString(),payment,notes]);
+    await conn.execute('INSERT INTO pos_audit_events(id,actor_id,action,target,happened_at) VALUES(?,?,?,?,?)',[randomUUID(),user.id,'customer-collect',id,new Date().toISOString()]);
     await conn.commit();
     return reply({ok:true,id,duplicate:false,balanceCents:balance-amountCents},201);
   }catch(error){

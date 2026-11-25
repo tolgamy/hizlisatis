@@ -13,3 +13,12 @@ CREATE TABLE IF NOT EXISTS pos_approval_requests (
  INDEX approval_requester (requester_id,created_at),
  INDEX approval_status (status,created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS pos_audit_events (
+ id CHAR(36) COLLATE utf8mb4_bin PRIMARY KEY,
+ actor_id VARCHAR(64) COLLATE utf8mb4_bin NOT NULL,
+ action VARCHAR(40) NOT NULL,
+ target VARCHAR(180) COLLATE utf8mb4_bin NOT NULL,
+ happened_at VARCHAR(40) NOT NULL,
+ INDEX audit_event_time (happened_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

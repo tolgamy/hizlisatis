@@ -76,7 +76,7 @@ export async function onRequestGet({request,env}){
   const rawOffset=url.searchParams.get('offset')||'0';
   if(!/^\d{1,6}$/.test(rawOffset)||Number(rawOffset)>50000)
     return reply({error:'Sayfalama geçersiz.'},400);
-  const offset=Number(rawOffset),limit=200;
+  const offset=Number(rawOffset),limit=url.searchParams.has('recent')?5:200;
   try{
     const where=scope==='all'?'':scope==='other'?' WHERE s.cashier_id<>?':' WHERE s.cashier_id=?';
     const args=scope==='all'?[]:[user.id];
