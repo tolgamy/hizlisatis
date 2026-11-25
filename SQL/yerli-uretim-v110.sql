@@ -6,7 +6,7 @@
 SET NAMES utf8mb4;
 START TRANSACTION;
 SET @v110_at = DATE_FORMAT(UTC_TIMESTAMP(3),'%Y-%m-%dT%H:%i:%s.000Z');
-SET @v110_bad = (SELECT COUNT(*) FROM product_changes WHERE JSON_VALID(payload) <> 1);
+SET @v110_bad = (SELECT COUNT(*) FROM product_changes WHERE CASE WHEN JSON_VALID(payload)=1 THEN JSON_TYPE(payload)<>'OBJECT' ELSE 1 END);
 SET @v110_total = (SELECT COUNT(*) FROM product_changes);
 SET @v110_seed = (SELECT COALESCE(MAX(value),'') FROM app_meta WHERE `key`='catalog_seed_count');
 INSERT IGNORE INTO app_meta (`key`,value)
