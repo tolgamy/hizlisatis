@@ -51,7 +51,7 @@ export async function installScreenLock112(user,{onLock=()=>{}}={}){
  function apply(d){
   configured=!!d.configured;manual.hidden=!configured;
   deadline=Date.now()+Math.max(0,Number(d.remainingMs)||0);retryUntil=Date.now()+Math.max(0,Number(d.retryMs)||0);
-  if(d.locked)show();else release();tick();
+  if(d.locked){if(retryUntil>Date.now())clearPin();show();}else release();tick();
  }
  const original=window.fetch.bind(window);
  function queue(action,body={}){
@@ -70,6 +70,19 @@ export async function installScreenLock112(user,{onLock=()=>{}}={}){
  }
  function sendActivity(){activityTimer=0;if(blocked||!configured||document.hidden)return;lastSent=Date.now();queue('activity');}
  function gate(e){
+  if(blocked&&dialog.open&&e.type==='keydown'){
+   if(e.key==='Enter'){
+    e.preventDefault();e.stopImmediatePropagation();if(overflow)clearPin();tick();return;
+   }
+   if(!e.ctrlKey&&!e.altKey&&!e.metaKey&&!e.isComposing){
+    if(/^[0-9]$/.test(e.key)){
+     e.preventDefault();e.stopImmediatePropagation();if(!e.repeat)edit(e.key,true);return;
+    }
+    if(['Backspace','Delete','Escape'].includes(e.key)||e.key.toLowerCase()==='c'){
+     e.preventDefault();e.stopImmediatePropagation();edit(e.key==='Backspace'?'delete':'clear');return;
+    }
+   }
+  }
   if(blocked){if(!dialog.contains(e.target)){if(e.cancelable)e.preventDefault();e.stopImmediatePropagation();}return;}
   if(!configured||!e.isTrusted||document.hidden)return;
   if(Date.now()>=deadline){if(e.cancelable)e.preventDefault();e.stopImmediatePropagation();show();queue('status');return;}
@@ -79,15 +92,7 @@ export async function installScreenLock112(user,{onLock=()=>{}}={}){
  dialog.addEventListener('cancel',e=>e.preventDefault());
  // Digits from the physical keyboard and numpad never reach POS listeners.
  // Enter is deliberately not an unlock shortcut: HID readers often send Enter.
- dialog.addEventListener('keydown',e=>{
-  e.stopPropagation();
-  if(e.key==='Enter'){e.preventDefault();if(overflow)clearPin();tick();return;}
-  if(e.ctrlKey||e.altKey||e.metaKey||e.isComposing)return;
-  if(/^[0-9]$/.test(e.key)){e.preventDefault();if(!e.repeat)edit(e.key,true);return;}
-  if(e.key==='Backspace'||e.key==='Delete'||e.key==='Escape'||e.key.toLowerCase()==='c'){
-   e.preventDefault();edit(e.key==='Backspace'?'delete':'clear');return;
-  }
- });
+ dialog.addEventListener('keydown',e=>e.stopPropagation());
  for(const key of keys)key.addEventListener('click',()=>edit(key.dataset.pinKey));
  unlock.addEventListener('click',async()=>{
   if(!blocked||!dialog.open||submitting||Date.now()<retryUntil||ended||overflow||pinValue.length!==4)return;
