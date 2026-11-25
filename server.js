@@ -11,6 +11,7 @@ import {createPool} from 'mysql2/promise';
 import {createD1Adapter} from './veridyen/mysql-d1-adapter.js';
 
 import * as auth from './functions/api/auth.js';
+import * as screenLock112 from './veridyen/screen-lock-v112.js';
 import * as users from './functions/api/users.js';
 import * as productState from './functions/api/product-state.js';
 import * as customers from './functions/api/customers.js';
@@ -26,7 +27,7 @@ import * as creditPayments from './veridyen/credit-payments.js';
 
 const ROOT=resolve(fileURLToPath(new URL('./public/',import.meta.url)));
 const API=new Map([
-  ['/api/auth',auth],['/api/users',users],['/api/product-state',productState],
+  ['/api/auth',auth],['/api/screen-lock',screenLock112],['/api/users',users],['/api/product-state',productState],
   ['/api/customers',customers],['/api/category-images',categoryImages],
   ['/api/central-health',centralHealth],['/api/sale-access',saleAccess],
   ['/api/catalog-seed',catalogSeed],['/api/admin-session',adminSession],
@@ -107,6 +108,9 @@ async function dynamicRequest(req,url){
   const request=new Request(url.href,{
     method,headers,...(method==='GET'||method==='HEAD'?{}:{body,duplex:'half'})
   });
+  if(url.pathname!=='/api/screen-lock'&&!(url.pathname==='/api/auth'&&method==='GET')){
+    const blocked=await screenLock112.guardScreen112(request,env);if(blocked)return blocked;
+  }
   return handler({request,env});
 }
 async function staticRequest(url){

@@ -16,7 +16,7 @@
   <style id="receiptPaperSize"></style>
   <title>HızlıSatış · Mobil POS</title>
 </head>
-<body class="auth-locked">
+<body class="auth-locked screen-checking112">
   <section id="loginGate" class="access-login-gate" aria-label="HızlıSatış güvenli giriş">
     <div class="access-login-card">
       <div class="access-login-brand"><span aria-hidden="true">▣</span>
@@ -36,7 +36,7 @@
   <div id="app">
     <header class="topbar clean-topbar">
       <div class="brandline"><button id="brandHome" type="button" class="brand-home" aria-label="Hızlı Satış ana sayfasına dön"><span class="brandmark" aria-hidden="true"><img src="/icons/brand-mark.svg" alt=""></span><span><strong>Hızlı<span>Satış</span></strong><small>HIZLI · KOLAY · GÜVENLİ</small></span></button><div id="topbarAccountPanel" class="topbar-account-panel"><span id="connectionStatus" class="connection" role="status"></span>
-      <div class="access-identity-actions"><span id="accessIdentity" hidden></span><button id="accessLogout" type="button" aria-haspopup="dialog" aria-controls="accessAccountMenu" aria-expanded="false" hidden>Çıkış</button>
+      <div class="access-identity-actions"><span id="accessIdentity" hidden></span><button id="screenManual112" type="button" aria-label="Ekranı kilitle" title="Ekranı kilitle" hidden>🔒 <span class="screen-manual-label112">Kilitle</span></button><button id="accessLogout" type="button" aria-haspopup="dialog" aria-controls="accessAccountMenu" aria-expanded="false" hidden>Çıkış</button>
         <div id="accessAccountMenu" class="access-account-menu" role="dialog" aria-label="Hesap bilgileri" hidden>
           <div class="access-account-person">
             <span class="access-account-avatar" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="7" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2Z"/></svg></span>
@@ -310,7 +310,7 @@
         </details>
         <details id="settingsAdminGroup" class="settings-inner-section" hidden>
           <summary><span aria-hidden="true" class="settings-section-symbol">♙</span><span class="settings-section-name"><strong>Kullanıcı Yönetimi</strong><small>Çalışan hesapları, şifreler ve yetkiler</small></span><span aria-hidden="true" class="settings-section-arrow">⌄</span></summary>
-          <div class="settings-inner-content"><button id="settingsOpenUsers" class="settings-inner-action" type="button">Kullanıcıları Görüntüle / Düzenle <span aria-hidden="true">›</span></button></div>
+          <div class="settings-inner-content"><button id="settingsOpenUsers" class="settings-inner-action" type="button">Kullanıcıları Görüntüle / Düzenle <span aria-hidden="true">›</span></button><div class="screen-config112"><strong id="screenPinSetup112">4 haneli ekran PIN’i oluştur</strong><p>5 dakika işlem yapılmazsa bu oturum kilitlenir. Diğer kasalar çalışmaya devam eder.</p><label>Yeni ekran PIN’i <input id="screenNewPin112" type="password" inputmode="numeric" autocomplete="new-password" maxlength="4"></label><label>PIN tekrar <input id="screenConfirmPin112" type="password" inputmode="numeric" autocomplete="new-password" maxlength="4"></label><button id="screenPinSave112" type="button" class="primary-button">Ekran PIN’ini Kaydet</button><p id="screenPinStatus112" role="status"></p></div></div>
         </details></div>
           <p id="catalogSource" class="settings-catalog-count">Katalog yükleniyor...</p>
         </section>
@@ -926,6 +926,6 @@
       <p id="accessUserFormStatus" role="status" aria-live="polite"></p>
     </form>
   </dialog>
-  <link rel="stylesheet" href="/reports-v101.css"><link rel="stylesheet" href="/layout-v106.css"><link rel="stylesheet" href="/desktop-picker-v107.css"><link rel="stylesheet" href="/desktop-picker-v108.css"><link rel="stylesheet" href="/sale-receipt-v109.css"><script type="module" src="/app-v111.js"></script>
+  <link rel="stylesheet" href="/reports-v101.css"><link rel="stylesheet" href="/layout-v106.css"><link rel="stylesheet" href="/desktop-picker-v107.css"><link rel="stylesheet" href="/desktop-picker-v108.css"><link rel="stylesheet" href="/sale-receipt-v109.css"><link rel="stylesheet" href="/screen-lock-v112.css"><dialog id="screenLock112" aria-labelledby="screenLockHeading112"><div class="screen-shell112"><div class="screen-brand112">Hızlı<span>Satış</span></div><div class="screen-card112"><svg class="screen-lock-icon112" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3.5"><rect x="9" y="21" width="30" height="23" rx="5"/><path d="M15 21v-8a9 9 0 0 1 18 0v8M24 29v7" stroke-linecap="round"/></svg><h2 id="screenLockHeading112" tabindex="-1">Ekran Kilitlendi</h2><p>Devam etmek için ekran şifrenizi girin.</p><input id="screenPin112" type="password" inputmode="numeric" autocomplete="off" aria-label="4 haneli ekran PIN’i" maxlength="64" placeholder="••••"><p id="screenLockNote112" role="alert"></p><p id="screenRetry112" role="status"></p><button id="screenUnlock112" type="button">Kilidi Aç</button><button id="screenRelogin112" type="button" hidden>Yeniden Giriş Yap</button><p class="screen-preserve112">Yalnızca bu oturum kilitli. Açık sepetiniz korunur.</p></div><div class="screen-footer112">HIZLI · KOLAY · GÜVENLİ</div></div></dialog><script type="module" src="/app-v112.js"></script>
 </body>
 </html>
