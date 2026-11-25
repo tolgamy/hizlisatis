@@ -1,1 +1,1 @@
-export * from './auth-ui-v122.js';
+export * from './auth-ui-v124.js';
