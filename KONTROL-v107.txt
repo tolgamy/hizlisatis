@@ -1,0 +1,8 @@
+Kod izolasyonunda doğrulandı:
+- JavaScript gövde sözdizimi, modül dosyalarının varlığı ve v107 Service Worker kayıtları.
+- Kısa 80 mm fiş: 81 mm minimum; uzun fiş gerçek yüksekliğini koruyor.
+- Taklit canvas ile oluşturulan PDF MediaBox: 226.7717 x 229.6063 pt; dikey; 80 mm genişlik, toplam tutar yazımı.
+- Masaüstü grid kuralları: 6/5 ürün sütunu, 4x3 kök kategori, kare alt kategori; sayfalama kaydırması korunur.
+- Menşei hazırlama yalnız iki menşei alanını değiştirir; bilinen ithal, bilinen ülke, yerli ve silinmiş ürünler dışlanır; 20 kayıt sınırı.
+- Etiket, satış hesapları, veritabanı şeması, v106 mobil CSS ve tarayıcı klavye modülü değiştirilmedi.
+Gerçek tarayıcı uygulama uçtan uca testi, npm test/build, fiziksel termal baskı ve gerçek merkezi yazma testi yapılmadı. Canlı siteye dağıtım yapılmadı.
