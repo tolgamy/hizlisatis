@@ -405,7 +405,7 @@ function requestSaleExit(target='previous') {
   if(!$('saleExitDialog').open)$('saleExitDialog').showModal();
 }
 let pickerMode='search',pickerCategoryMain='',pickerCategorySub='',pickerVisibleLimit=60;
-function renderProductPicker() {
+function renderProductPicker({preserveScroll=false}={}) {
   const mode=pickerMode,query=fold($('pickProductSearch').value);
   const picker=$('pickProductDialog');
   const desktopPicker=window.matchMedia('(min-width:1024px) and (min-height:600px) and (orientation:landscape) and (any-pointer:fine), (min-width:1280px) and (min-height:600px) and (orientation:landscape)').matches;
@@ -413,8 +413,9 @@ function renderProductPicker() {
   const eligible=state.products.filter(p=>isActive(p)&&remaining(p)>0&&!p.fiyatBelirsiz);
   const target=$('pickProductResults'),browser=$('pickerCategoryBrowser'),grid=$('pickerCategoryGrid');
   const more=$('pickerLoadMore');
+  const oldScroll=preserveScroll?target.scrollTop:0;
   target.replaceChildren();grid.replaceChildren();more.hidden=true;
-  target.hidden=true;grid.hidden=true;target.scrollTop=0;grid.scrollTop=0;
+  target.hidden=true;grid.hidden=true;grid.scrollTop=0;
   $('pickProductSearchWrap').hidden=mode==='categories';
   document.querySelectorAll('[data-picker-mode]').forEach(button=>
     button.setAttribute('aria-pressed',String(button.dataset.pickerMode===mode)));
@@ -478,6 +479,7 @@ function renderProductPicker() {
   more.hidden=items.length<=pickerVisibleLimit;
   if(!more.hidden)more.textContent='Daha Fazla Ürün Göster ('+
     (items.length-pickerVisibleLimit).toLocaleString('tr-TR')+' kaldı)';
+  target.scrollTop=oldScroll;
 }
 function openProductPicker(initialQuery=''){
   const query=typeof initialQuery==='string'?initialQuery:'';
@@ -2850,7 +2852,7 @@ async function setup() {
     pickerVisibleLimit=60;renderProductPicker();
   });
   $('pickerLoadMore').addEventListener('click',()=>{
-    pickerVisibleLimit+=60;renderProductPicker();
+    pickerVisibleLimit+=60;renderProductPicker({preserveScroll:true});
   });
   $('saleScanButton').addEventListener('click',openCamera);
   $('scanRetry').addEventListener('click',startScanner);

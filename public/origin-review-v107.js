@@ -1,6 +1,6 @@
 import {originText} from './product-origin-v99.js';
 export const ORIGIN_BATCH107=20;
-export function eligibleOrigin107(product){return Boolean(product?.id&&product.lifecycleStatus!=='deleted'&&originText(product)==='MENŞEİ EKSİK');}
+export function eligibleOrigin107(product){const raw=String(product?.mensei||product?.['menşei']||'').trim().toLocaleUpperCase('tr-TR');return Boolean(product?.id&&product.lifecycleStatus!=='deleted'&&!['İTHAL','İTHAL ÜRÜN','ITHAL','ITHAL URUN'].includes(raw)&&originText(product)==='MENŞEİ EKSİK');}
 export function prepareLocalOrigin107(product){if(!eligibleOrigin107(product))throw Error('Ürün menşei artık eksik değil veya ürün silinmiş.');return {...product,mensei:'Türkiye','menşei':'Türkiye'};}
 const fold=x=>String(x??'').toLocaleLowerCase('tr-TR').replace(/ı/g,'i').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
 export function setupOriginReview107({getProducts,canEdit,refresh,save,onChanged}){
