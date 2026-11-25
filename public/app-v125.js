@@ -34,7 +34,7 @@ import { createPriceLabelFeature,renderLabelImage } from './price-label-v106.js'
 import { checkRemoteProductStates } from './remote-products.js';
 import { createCustomerManager } from './customer-ui-v125.js';
 import { recordCustomerCredit } from './customer-api.js';
-import { isCentralSalesEnabled,saveCentralSale,getSalesForReports,voidCentralSale,readDaily125 } from './central-sales-v125.js';
+import { isCentralSalesEnabled,saveCentralSale,getSalesForReports,voidCentralSale,readDaily125,readRecent125 } from './central-sales-v125.js';
 import { filterReportSales,quickReportRange } from './report-filters.js';
 import { readReceiptSettings,saveReceiptSettings,receiptPrintLayout,readReceiptAction,saveReceiptAction } from './receipt-settings-v111.js';
 import { parseBasketDiscountPercent,calculateBasketTotals } from './basket-pricing.js';
@@ -42,7 +42,7 @@ import { readPickerMode,savePickerMode } from './picker-preferences.js';
 import { next200Cash } from './cash-change.js';
 import { isWeightProduct,scaleSupported,ScaleSerialConnection,parseManualGrams,scaleGramsToQuantity,calculateWeightTotal } from './scale-serial.js';
 import { writeActiveProductsLocalStorage } from './active-products-cache.js';
-import {installApprovals125,requestApproval125} from './approvals-v125.js';
+import {installApprovals125,installAudit125,requestApproval125} from './approvals-v125.js';
 import { requireAccess,authorizeCheckout,userCan,lookup125,credit125,reportScope125,daily125,canReprint125,payment125 } from './auth-ui-v125.js';
 import {installScreenLock112,screenBlocked112} from './screen-lock-v119.js';
 import { sameProductRecord,prepareStockEdit } from './stock-editor.js';
@@ -71,7 +71,7 @@ const dom = {
 };
 const channel = 'BroadcastChannel' in window ? new BroadcastChannel('cep-pos-changes') : null;
 let toastTimer,cartToastTimer;
-let productManager,customerManager,pendingScanProduct=null,priceLabelFeature=null,openApprovals125=()=>{};
+let productManager,customerManager,pendingScanProduct=null,priceLabelFeature=null,openApprovals125=()=>{},openAudit125=()=>{};
 let weightProduct=null,scaleConnection=null,scaleLatest=null,scaleCapturedAt=0,weightInputMode='manual';
 let weightFreshnessTimer=null;
 let mutationQueue = Promise.resolve();
@@ -683,7 +683,9 @@ function barcodeAdd(raw,sourceInput){
     return false; // Searches with product names still use the product picker.
   }
   if(state.cart.has(product.id)){addBarcodeOnce(product,sourceInput);return true;}
-  if(productManager?.offerSaleActivation(product,active=>addBarcodeOnce(active,sourceInput)))return true;
+  if(!isActive(product)){
+    refreshManagedData(product.id).then(()=>{const fresh=state.byId.get(product.id);if(!fresh)return announce('Ürün merkezde bulunamadı.','error');if(isActive(fresh))addBarcodeOnce(fresh,sourceInput);else productManager?.offerSaleActivation(fresh,active=>addBarcodeOnce(active,sourceInput));}).catch(e=>announce('Ürün güncel durumu doğrulanamadı: '+e.message,'error'));return true;
+  }
   return addBarcodeOnce(product,sourceInput);
 }
 /** USB/Bluetooth scanners (Enter, Tab or complete numeric code): add one SKU,
@@ -904,7 +906,7 @@ async function refreshHomeSales() {
       else if(userCan('reports')){const sales=await getSales();if(requestId===homeSalesReadId)$('homeTodaySales').textContent=money(round2(sales.filter(s=>!s.voided&&new Date(s.createdAt).toDateString()===new Date().toDateString()&&(!s.currency||s.currency==='TRY')).reduce((n,s)=>n+Number(s.total||0),0)),'TRY');}
       else if(requestId===homeSalesReadId)$('homeTodaySales').textContent='—';
     }
-    if(report){const {sales}=await getSalesForReports(getSales,{centralOnly:!userCan('reports')});if(requestId===homeSalesReadId)renderHomeRecentSales(sales);}
+    if(report){const sales=central?await readRecent125():userCan('reports')?await getSales():[];if(requestId===homeSalesReadId)renderHomeRecentSales(sales);}
   }catch{if(requestId===homeSalesReadId)$('homeTodaySales').textContent='—';}
   if(requestId===homeSalesReadId)fitHomeMetricNumbers();
 }
@@ -2630,6 +2632,7 @@ async function setup() {
   setupLabelQueue(renderLabelImage);
   customerManager=createCustomerManager({announce});
   openApprovals125=installApprovals125({announce,refresh:refreshManagedData});
+  openAudit125=installAudit125();
   priceLabelFeature=createPriceLabelFeature({
     getProducts:()=>state.products,
     findBarcode:exactProduct,
@@ -2846,6 +2849,16 @@ async function setup() {
   const hardwareScanner=createSaleScanner({active:scannerActive109,lookup:exactProduct,looksLike:looksLikeBarcode,accept:code=>addHardwareBarcode(code,$('saleBarcode'))});
   installSaleReady109({active:scannerActive109});
   document.addEventListener('keydown',hardwareScanner.key,true);
+  document.addEventListener('keydown',event=>{
+    if(event.defaultPrevented||event.repeat||event.ctrlKey||event.altKey||event.metaKey||event.isComposing||screenBlocked112()||state.saving||!useDesktopWorkspace()||!isSaleActive()||document.querySelector('dialog[open]:not(#cartDialog)'))return;
+    const key=event.key,typing=event.target?.matches?.('input,textarea,select,[contenteditable=true]');
+    if(key==='F1'){event.preventDefault();openProductPicker();return;}
+    if(['F2','F3','F4'].includes(key)){event.preventDefault();const p={F2:'Nakit',F3:'Kart',F4:'Veresiye'}[key];if(!payment125(p))return announce('Ödeme yöntemi için yetkiniz yok.','error');const r=[...document.querySelectorAll('input[name="payment"]')].find(x=>x.value===p);if(r){r.checked=true;r.dispatchEvent(new Event('change',{bubbles:true}));if(p==='Nakit'&&state.cart.size)openCashPayment();if(p==='Veresiye')$('creditCustomerSearch').focus({preventScroll:true});}return;}
+    if(key==='Escape'){event.preventDefault();requestSaleExit('cancel');return;}
+    if(typing)return;const row=event.target?.closest?.('#cartItems .cart-line');if(!row)return;
+    const button=key==='+'?row.querySelector('[data-step="1"]'):key==='-'?row.querySelector('[data-step="-1"]'):key==='Delete'?row.querySelector('[data-remove]'):null;
+    if(button){event.preventDefault();button.click();}
+  });
   window.addEventListener('blur',hardwareScanner.clear);
   document.addEventListener('visibilitychange',()=>{if(document.hidden)hardwareScanner.clear();});
   let barcodeInputIdle=null;
@@ -3250,6 +3263,9 @@ async function setup() {
     }
   }
   applyRoute();
+  let homePoll125=false;
+  const pollHome125=async()=>{if(homePoll125||document.hidden||!navigator.onLine||screenBlocked112()||state.view!=='home')return;homePoll125=true;try{await refreshHomeSales()}finally{homePoll125=false}};
+  setInterval(pollHome125,10000);window.addEventListener('focus',pollHome125);
   channel?.addEventListener('message',async()=>{
     try{const snapshot=await getSnapshot();setCatalog(snapshot.products,snapshot.adjustments,null,snapshot.excelCount,snapshot.bundleCount,snapshot.lifecycleMeta);}
     catch{/* other tab closing */}
@@ -3258,7 +3274,7 @@ async function setup() {
 // Do not mount the POS until a signed user session has been verified.
 requireAccess().then(async user=>{
   await installScreenLock112(user,{onLock:()=>{if(dom.scanDialog.open)dom.scanDialog.close();stopScanner().catch(()=>{});}});
-  installCommonMenu122(user,{openSettingsMenu,showSettingsMainMenu,showSettingsPreferences,openProductCategoryHome,openApprovals:()=>openApprovals125()});
+  installCommonMenu122(user,{openSettingsMenu,showSettingsMainMenu,showSettingsPreferences,openProductCategoryHome,openApprovals:()=>openApprovals125(),openAudit:()=>openAudit125()});
   await setup();
 }).catch(error=>{
   console.error('HızlıSatış girişi tamamlanamadı:',error);

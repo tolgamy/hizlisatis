@@ -53,3 +53,5 @@ export async function getSalesForReports(localReader,{centralOnly=false}={}){
 }
 
 export async function readDaily125(){const d=await call('/api/sales?daily=1');if(!Number.isSafeInteger(d.totalCents)||d.totalCents<0)throw Error('Günlük ciro yanıtı geçersiz.');return d;}
+
+export async function readRecent125(){const d=await call('/api/sales?recent=1');if(!Array.isArray(d.sales))throw Error('Son satış yanıtı geçersiz.');return d.sales;}

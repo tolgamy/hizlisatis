@@ -23,3 +23,13 @@ export function installApprovals125({announce,refresh}){
  $('approvalsRefresh125').addEventListener('click',load);
  return ()=>{if(!dialog.open)dialog.showModal();load();};
 }
+
+export function installAudit125(){
+ const dialog=$('auditDialog125'),list=$('auditList125'),status=$('auditStatus125');
+ async function load(){status.textContent='Kayıtlar alınıyor…';list.replaceChildren();try{
+  const r=await fetch('/api/audit-v125',{credentials:'same-origin',cache:'no-store'}),d=await r.json();if(!r.ok)throw Error(d.error||'İşlem kayıtları okunamadı.');
+  status.textContent=d.events.length+' son kayıt · eski kayıtlarda kullanıcı bilgisi bulunmayabilir';
+  for(const event of d.events){const row=document.createElement('article'),title=document.createElement('strong'),info=document.createElement('p');title.textContent=event.action+' · '+event.actorName;info.textContent=event.target+' · '+new Date(event.at).toLocaleString('tr-TR');row.append(title,info);list.append(row);}
+ }catch(e){status.textContent=e.message;}}
+ $('auditRefresh125').addEventListener('click',load);return ()=>{if(!dialog.open)dialog.showModal();load()};
+}
