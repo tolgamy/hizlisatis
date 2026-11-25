@@ -15,7 +15,7 @@ import * as screenLock119 from './veridyen/screen-lock-v119.js';
 import {PASSWORD_POLICY_VERSION} from './lib/user-access-v121.js';
 import {PERMISSION_SCHEMA_VERSION} from './lib/permissions-v121.js';
 import * as users from './functions/api/users-v121.js';
-import * as productState from './functions/api/product-state.js';
+import * as productState from './functions/api/product-state-v125.js';
 import * as activateInitial124 from './veridyen/activate-initial-v124.js';
 import * as customers from './functions/api/customers-v125.js';
 import * as categoryImages from './functions/api/category-images.js';

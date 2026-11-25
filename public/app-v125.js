@@ -211,7 +211,7 @@ function setCatalog(products, adjustments, meta, excelCount = 0, bundleCount = 0
   state.categoryProductPhotos = picturePaths;
   // Mirror only verified ACTIVE product records after every successful D1 refresh.
   // A localStorage write failure must not change the authoritative catalog.
-  if (verified) writeActiveProductsLocalStorage(products);
+  if (verified) writeActiveProductsLocalStorage(products.map(({alisFiyati,alisFiyatiBelirsiz,maliyet,maliyetFiyati,cost,...p})=>p));
   renderAll();
 }
 
@@ -684,7 +684,7 @@ function barcodeAdd(raw,sourceInput){
   }
   if(state.cart.has(product.id)){addBarcodeOnce(product,sourceInput);return true;}
   if(!isActive(product)){
-    refreshManagedData(product.id).then(()=>{const fresh=state.byId.get(product.id);if(!fresh)return announce('Ürün merkezde bulunamadı.','error');if(isActive(fresh))addBarcodeOnce(fresh,sourceInput);else productManager?.offerSaleActivation(fresh,active=>addBarcodeOnce(active,sourceInput));}).catch(e=>announce('Ürün güncel durumu doğrulanamadı: '+e.message,'error'));return true;
+    refreshManagedData(product.id).then(()=>{const fresh=state.byId.get(product.id);if(!fresh)return announce('Ürün merkezde bulunamadı.','error');if(!isSaleActive()||screenBlocked112())return;if(isActive(fresh))addBarcodeOnce(fresh,sourceInput);else productManager?.offerSaleActivation(fresh,active=>addBarcodeOnce(active,sourceInput));}).catch(e=>announce('Ürün güncel durumu doğrulanamadı: '+e.message,'error'));return true;
   }
   return addBarcodeOnce(product,sourceInput);
 }
@@ -1353,7 +1353,7 @@ function renderCart() {
     $('emptyAddBtn').addEventListener('click',()=>openProductPicker());
   }
   for (const line of state.cart.values()) {
-    const el = document.createElement('div'); el.className = 'cart-line';
+    const el = document.createElement('div'); el.className = 'cart-line';if(useDesktopWorkspace())el.tabIndex=0;
     const amount = money(lineTotals(line).total, line.product.paraBirimi);
     const brand=String(line.product.marka||'').trim();
     const title=String(line.product.baslik||'').trim();

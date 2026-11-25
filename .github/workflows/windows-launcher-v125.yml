@@ -1,0 +1,22 @@
+name: HızlıSatış Windows başlatıcı
+on:
+  workflow_dispatch:
+  push:
+    branches: [v125-toplu-gelistirme]
+    paths: ['windows/HizliSatisLauncher/**', '.github/workflows/windows-launcher-v125.yml']
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - run: dotnet publish windows/HizliSatisLauncher/HizliSatisLauncher.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o publish
+      - uses: actions/upload-artifact@v4
+        with:
+          name: HizliSatis-Windows-x64
+          path: publish/HizliSatis.exe
+          if-no-files-found: error
