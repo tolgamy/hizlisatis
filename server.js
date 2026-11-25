@@ -27,6 +27,7 @@ import * as image from './functions/api/image.js';
 import * as centralSales from './veridyen/central-sales-v125.js';
 import * as saleVoids from './veridyen/sale-voids.js';
 import * as creditPayments from './veridyen/credit-payments-v125.js';
+import * as approvals125 from './veridyen/approvals-v125.js';
 
 const ROOT=resolve(fileURLToPath(new URL('./public/',import.meta.url)));
 const API=new Map([
@@ -35,7 +36,7 @@ const API=new Map([
   ['/api/central-health',centralHealth],['/api/sale-access',saleAccess],
   ['/api/catalog-seed',catalogSeed],['/api/admin-session',adminSession],
   ['/api/image',image],['/api/sales',centralSales],['/api/sale-voids',saleVoids],
-  ['/api/credit-payments',creditPayments]
+  ['/api/credit-payments',creditPayments],['/api/approvals-v125',approvals125]
 ]);
 const MIME={
   '.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8',

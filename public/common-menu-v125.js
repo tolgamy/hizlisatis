@@ -44,7 +44,7 @@ export function openHub122(id){
   $('settingsHubTitle122').textContent='Güvenlik ve İşlem Takibi';
   $('settingsHubNote122').textContent=admin122()?'Yönetici PIN doğrulaması ve 5 dakika ekran kilidi etkin. PIN cPanel üzerinden yönetilir.':'Kasiyer oturumu kullanıcı adı ve parola ile açılır; yönetici PIN’i gerekmez.';
   action('Oturum bilgisi','Oturum ve parola yönetimi',admin122(),()=>original('accessLogout'));
-  action('Yönetici onay talepleri','Sonraki sürümde etkinleşecek.',false);
+  action('Yönetici onay talepleri',admin122()?'Bekleyen talepleri incele ve karar ver.':'Kendi taleplerinizi takip edin.',effective122('sales'),()=>hooks.openApprovals());
   action('Kullanıcı işlem geçmişi','Sonraki sürümde etkinleşecek.',false);
   return;
  }

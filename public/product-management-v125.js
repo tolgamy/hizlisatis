@@ -9,6 +9,7 @@ import { PRODUCT_STATUS, productStatus, isActive, countStatuses, nextProductStat
 import { verifyPassivePin } from './passive-auth.js';
 import { prepareProductPhoto } from './product-photo.js';
 import {userCan,canActivateInitial124} from './auth-ui-v125.js';
+import {requestApproval125} from './approvals-v125.js';
 
 const $ = id => document.getElementById(id);
 const text = value => String(value ?? '');
@@ -439,6 +440,7 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
     pendingSale={product,addAfter};
     $('passiveActivate').disabled=state.centralReadOnly||(!broad&&!narrow);
     $('passiveEdit').disabled=!broad;
+    $('passiveApproval125').hidden=broad||narrow||state.centralReadOnly||!userCan('sales');
     $('passivePermission124').textContent=broad?'Ürünü mevcut yetkinizle satışa açabilirsiniz.':narrow?'Kayıtlı fiyat: '+format(product.satisFiyati)+' · Yalnız ürün durumu değişir.':productStatus(product)!=='initial-inactive'||product.everActivated?'Bu ürün yönetici tarafından pasife alınmış. Yönetici yetkisi gerekli.':product.fiyatBelirsiz||!Number.isFinite(product.satisFiyati)||product.satisFiyati<=0?'Satış fiyatı eksik. Yönetici fiyat belirlemelidir.':'Ana pasif aktifleştirme yetkiniz yok. Yöneticinizden yetki isteyin.';
     $('passiveProductName').textContent=product.baslik;
     $('passiveProductBarcode').textContent='Barkod: '+(product.barkod||'—');
@@ -624,6 +626,7 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
     });
     $('manageScan').addEventListener('click',openManageScanner);
     $('passiveActivate').addEventListener('click',confirmSaleActivation);
+    $('passiveApproval125').addEventListener('click',async()=>{const p=pendingSale?.product;if(!p||state.centralReadOnly)return;const b=$('passiveApproval125');b.disabled=true;try{await requestApproval125(p.fiyatBelirsiz||!Number.isFinite(p.satisFiyati)||p.satisFiyati<=0?'price':productStatus(p)==='later-inactive'?'later':'initial',p.id);announce('Yöneticiye talep gönderildi.','success');activationDialog.close();}catch(e){announce(e.message,'error')}finally{b.disabled=false}});
     $('manageUpdateActivate').addEventListener('click',()=>{
       const product=pendingManualActivation;pendingManualActivation=null;
       $('manageActivationDialog').close();

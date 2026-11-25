@@ -42,6 +42,7 @@ import { readPickerMode,savePickerMode } from './picker-preferences.js';
 import { next200Cash } from './cash-change.js';
 import { isWeightProduct,scaleSupported,ScaleSerialConnection,parseManualGrams,scaleGramsToQuantity,calculateWeightTotal } from './scale-serial.js';
 import { writeActiveProductsLocalStorage } from './active-products-cache.js';
+import {installApprovals125,requestApproval125} from './approvals-v125.js';
 import { requireAccess,authorizeCheckout,userCan,lookup125,credit125,reportScope125,daily125,canReprint125,payment125 } from './auth-ui-v125.js';
 import {installScreenLock112,screenBlocked112} from './screen-lock-v119.js';
 import { sameProductRecord,prepareStockEdit } from './stock-editor.js';
@@ -70,7 +71,7 @@ const dom = {
 };
 const channel = 'BroadcastChannel' in window ? new BroadcastChannel('cep-pos-changes') : null;
 let toastTimer,cartToastTimer;
-let productManager,customerManager,pendingScanProduct=null,priceLabelFeature=null;
+let productManager,customerManager,pendingScanProduct=null,priceLabelFeature=null,openApprovals125=()=>{};
 let weightProduct=null,scaleConnection=null,scaleLatest=null,scaleCapturedAt=0,weightInputMode='manual';
 let weightFreshnessTimer=null;
 let mutationQueue = Promise.resolve();
@@ -650,6 +651,8 @@ function promptUnknownBarcode(raw){
   const dialog=$('unknownBarcodeDialog');
   if(dialog.open)return true;
   unknownBarcodeValue=code;
+  $('unknownBarcodeYes').disabled=!userCan('products')||state.centralReadOnly;
+  $('unknownApproval125').hidden=userCan('products')||state.centralReadOnly||!userCan('sales');
   $('unknownBarcodeValue').textContent='Barkod: '+code;
   if(dom.scanDialog.open){dom.scanDialog.close();stopScanner().catch(()=>{});}
   dialog.showModal();
@@ -2626,6 +2629,7 @@ async function setup() {
   $('quickPriceForm').onsubmit=saveQuickPrice;$('quickPriceClose').onclick=()=>{if(!quickPriceBusy)$('quickPriceDialog').close();};$('quickPriceDialog').addEventListener('cancel',e=>{if(quickPriceBusy)e.preventDefault();});
   setupLabelQueue(renderLabelImage);
   customerManager=createCustomerManager({announce});
+  openApprovals125=installApprovals125({announce,refresh:refreshManagedData});
   priceLabelFeature=createPriceLabelFeature({
     getProducts:()=>state.products,
     findBarcode:exactProduct,
@@ -2906,6 +2910,7 @@ async function setup() {
   $('scanPhotoFile').addEventListener('change',event=>{scanBarcodePhoto(event.target.files?.[0]);event.target.value='';});
   $('unknownBarcodeNo').addEventListener('click',()=>resolveUnknownBarcode(false));
   $('unknownBarcodeYes').addEventListener('click',()=>resolveUnknownBarcode(true));
+  $('unknownApproval125').addEventListener('click',async()=>{const b=$('unknownApproval125');if(!unknownBarcodeValue||state.centralReadOnly)return;b.disabled=true;try{await requestApproval125('unknown',unknownBarcodeValue);announce('Yeni ürün talebi gönderildi.','success');resolveUnknownBarcode(false)}catch(e){announce(e.message,'error')}finally{b.disabled=false}});
   $('unknownBarcodeDialog').addEventListener('cancel',event=>{
     event.preventDefault();resolveUnknownBarcode(false);
   });
@@ -3253,7 +3258,7 @@ async function setup() {
 // Do not mount the POS until a signed user session has been verified.
 requireAccess().then(async user=>{
   await installScreenLock112(user,{onLock:()=>{if(dom.scanDialog.open)dom.scanDialog.close();stopScanner().catch(()=>{});}});
-  installCommonMenu122(user,{openSettingsMenu,showSettingsMainMenu,showSettingsPreferences,openProductCategoryHome});
+  installCommonMenu122(user,{openSettingsMenu,showSettingsMainMenu,showSettingsPreferences,openProductCategoryHome,openApprovals:()=>openApprovals125()});
   await setup();
 }).catch(error=>{
   console.error('HızlıSatış girişi tamamlanamadı:',error);
