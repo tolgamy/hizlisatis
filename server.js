@@ -154,7 +154,7 @@ async function app(req,res){
     const url=new URL(req.url||'/',origin);
     const isReady=await ready();
     if(url.pathname==='/__veridyen/health'){
-      response=json({configured,ready:isReady,mode:'staging',release:122,passwordPolicyVersion:PASSWORD_POLICY_VERSION,permissionSchemaVersion:PERMISSION_SCHEMA_VERSION,
+      response=json({configured,ready:isReady,mode:'staging',release:123,passwordPolicyVersion:PASSWORD_POLICY_VERSION,permissionSchemaVersion:PERMISSION_SCHEMA_VERSION,
         message:isReady?'Ready for isolated testing':'Not ready; no production migration performed'});
     }else if(!isReady){
       response=json({ready:false,error:'Veridyen staging kurulumu henüz etkin değil.'},503);
