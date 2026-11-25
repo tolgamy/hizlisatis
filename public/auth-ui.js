@@ -82,7 +82,31 @@ async function listUsers(){
   }
   if(!data.users.length)list.textContent='Henüz kullanıcı yok.';
 }
-let selectedId=null;
+let selectedId=null,savingUser118=false;
+export function passwordRules118(value){
+  return {length:value.length>=10&&value.length<=128,digit:/[0-9]/.test(value),singleLine:!/[\r\n]/.test(value)};
+}
+function showPassword118(visible){
+  const field=$('accessPassword'),toggle=$('accessPasswordToggle118');
+  field.type=visible?'text':'password';
+  toggle.setAttribute('aria-label',visible?'Parolayı gizle':'Parolayı göster');
+  toggle.setAttribute('aria-pressed',String(visible));
+  toggle.querySelector('.access-eye-slash118').toggleAttribute('hidden',!visible);
+}
+function updatePassword118(){
+  const field=$('accessPassword'),value=field.value,r=passwordRules118(value);
+  const optional=Boolean(selectedId)&&value==='';
+  for(const [id,met] of [['accessPasswordLength118',r.length],['accessPasswordDigit118',r.digit]]){
+    const row=$(id);row.classList.toggle('met118',met);
+    row.firstElementChild.textContent=met?'✓':'○';
+    row.querySelector('.access-rule-status118').textContent=met?'Tamam':'Gerekli';
+  }
+  $('accessPasswordRules118').hidden=optional;
+  const message=optional?'':!r.length?'Parola 10–128 karakter olmalı.':!r.digit?'Parola en az bir rakam içermeli.':!r.singleLine?'Parola tek satır olmalı.':'';
+  field.setCustomValidity(message);
+  $('accessSaveUser').disabled=savingUser118||Boolean(message);
+  return !message;
+}
 function selectUser(user=null){
   selectedId=user?.id||null;
   $('accessUserFormTitle').textContent=user?'Kullanıcıyı Düzenle':'Yeni Kullanıcı';
@@ -91,7 +115,9 @@ function selectUser(user=null){
   $('accessPassword').value='';
   $('accessPassword').required=!user;
   $('accessPasswordHelp').textContent=user?
-    'Parolayı değiştirmeyecekseniz boş bırakın.':'En az 10 karakter: büyük harf, rakam ve nokta.';
+    'Parolayı değiştirmeyecekseniz boş bırakın. Örnek: Örnek.1234x (kullanmayın).':'Örnek şifre: Örnek.1234x (yalnızca örnek, kullanmayın).';
+  showPassword118(false);
+  updatePassword118();
   $('accessRole').value=user?.role||'cashier';
   $('accessPermissions').hidden=$('accessRole').value==='admin';
   $('accessActive').checked=user?.active!==false;
@@ -109,13 +135,20 @@ function setupUserManager(){
   $('settingsOpenUsers').addEventListener('click',openUserManager);
   $('accessCloseUsers').addEventListener('click',()=>$('accessUsersDialog').close());
   $('accessNewUser').addEventListener('click',()=>selectUser());
+  $('accessPassword').addEventListener('input',updatePassword118);
+  $('accessPasswordToggle118').addEventListener('click',()=>showPassword118($('accessPassword').type==='password'));
+  $('accessUsersDialog').addEventListener('close',()=>{
+    $('accessPassword').value='';showPassword118(false);updatePassword118();
+  });
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)showPassword118(false);});
   $('accessRole').addEventListener('change',()=>{
     $('accessPermissions').hidden=$('accessRole').value==='admin';
   });
   $('accessUserForm').addEventListener('submit',async event=>{
     event.preventDefault();
-    if(activeUser?.role!=='admin')return;
-    const button=$('accessSaveUser');button.disabled=true;
+    if(activeUser?.role!=='admin'||savingUser118)return;
+    if(!updatePassword118()){$('accessPassword').reportValidity();return;}
+    savingUser118=true;updatePassword118();
     const permission=[...document.querySelectorAll('[data-access-permission]:checked')]
       .map(box=>box.value);
     const action=selectedId?'update':'create';
@@ -128,10 +161,10 @@ function setupUserManager(){
     try{
       await call('/api/users',{method:'POST',headers,body:JSON.stringify(body)});
       $('accessUserFormStatus').textContent='✓ Kullanıcı kaydedildi.';
-      $('accessPassword').value='';
+      $('accessPassword').value='';showPassword118(false);
       await listUsers();
     }catch(error){$('accessUserFormStatus').textContent=error.message}
-    finally{button.disabled=false}
+    finally{savingUser118=false;updatePassword118()}
   });
   // First tap opens account details; signing out requires a separate
   // deliberate confirmation. Do not change the secure server logout API.

@@ -77,6 +77,18 @@ body.screen-checking112 #app{visibility:hidden!important}
  #screenLock112 .screen-preserve112{grid-column:1/-1!important}
 }
   </style>
+<style id="accessPasswordStyle118">
+#accessUserForm .access-password-row118{display:flex!important;align-items:center;gap:7px;min-width:0;width:100%}
+#accessUserForm #accessPassword{flex:1;min-width:0;width:100%;margin:0}
+#accessUserForm #accessPasswordToggle118{display:grid!important;place-items:center;flex:0 0 42px;width:42px;min-width:42px;min-height:40px;padding:0;margin:0;border:1px solid #c5d5e4;border-radius:8px;background:#edf3f8;color:#173a5a;cursor:pointer}
+#accessUserForm #accessPasswordToggle118 .access-eye-slash118[hidden]{display:none!important}
+#accessUserForm #accessPasswordHelp{display:block;color:#587084;line-height:1.4}
+#accessUserForm .access-password-rules118{display:grid;gap:4px;font-size:12px;line-height:1.4;color:#587084;margin:0 0 4px}
+#accessUserForm .access-password-rules118[hidden]{display:none!important}
+#accessUserForm .access-password-rules118 .met118{color:#087653;font-weight:700}
+#accessUserForm .access-rule-status118{font-size:11px;margin-left:5px}
+#accessUserForm #accessSaveUser:disabled{opacity:.55;cursor:not-allowed}
+</style>
 </head>
 <body class="auth-locked screen-checking112">
   <section id="loginGate" class="access-login-gate" aria-label="HızlıSatış güvenli giriş">
@@ -973,8 +985,17 @@ body.screen-checking112 #app{visibility:hidden!important}
     <form id="accessUserForm">
       <h3 id="accessUserFormTitle">Yeni Kullanıcı</h3>
       <label>Kullanıcı Adı<input id="accessUsername" autocomplete="off" required minlength="3" maxlength="32" pattern="[a-zA-Z0-9._-]+"></label>
-      <label>Parola<input id="accessPassword" autocomplete="new-password" type="password" required minlength="10" maxlength="128" pattern="[A-Z0-9.]+"></label>
-      <small id="accessPasswordHelp">En az 10 karakter: büyük harf, rakam ve nokta.</small>
+      <label for="accessPassword">Parola</label>
+      <div class="access-password-row118">
+        <input id="accessPassword" autocomplete="new-password" type="password" required maxlength="128" placeholder="Örnek.1234x" aria-describedby="accessPasswordHelp accessPasswordRules118">
+        <button id="accessPasswordToggle118" type="button" aria-label="Parolayı göster" aria-pressed="false"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/><path class="access-eye-slash118" d="m3 3 18 18" hidden/></svg></button>
+      </div>
+      <small id="accessPasswordHelp">Örnek şifre: Örnek.1234x (yalnızca örnek, kullanmayın).</small>
+      <div id="accessPasswordRules118" class="access-password-rules118">
+        <div id="accessPasswordLength118"><span aria-hidden="true">○</span> 10–128 karakter <span class="access-rule-status118">Gerekli</span></div>
+        <div id="accessPasswordDigit118"><span aria-hidden="true">○</span> En az bir rakam <span class="access-rule-status118">Gerekli</span></div>
+        <small>Büyük/küçük harf, Türkçe harf ve özel karakter kullanılabilir.</small>
+      </div>
       <label>Rol<select id="accessRole"><option value="cashier">Kasiyer / Çalışan</option><option value="admin">Admin (Tam Yetki)</option></select></label>
       <fieldset id="accessPermissions"><legend>Yetkiler</legend>
         <label><input type="checkbox" data-access-permission value="sales" checked> Satış Yapma</label>
