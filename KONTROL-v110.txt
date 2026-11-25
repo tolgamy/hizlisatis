@@ -1,0 +1,1 @@
+JavaScript gövdeleri parse edildi. Yedi baskı alanında vektör yerleşim sınırları, PDF 80 mm ve /Rotate 0, JPEG/XObject yokluğu, 10 ürün örneği, ₺ vektör işareti ve eski ayar geçişi kod seviyesinde kontrol edildi. SQL canlı veritabanında çalıştırılmadı. MariaDB gerçek işlem testi ve fiziksel yazıcı/POS uçtan uca testi yapılmadı.
