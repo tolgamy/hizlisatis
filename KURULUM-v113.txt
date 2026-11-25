@@ -1,0 +1,15 @@
+HIZLISATIŞ v113 — PIN yönetimi yalnız cPanel (v112 üzerine).
+ÖNEMLİ: İlk olarak cPanel > Setup Node.js App > HızlıSatış uygulaması > Environment Variables bölümünde yeni değişken oluşturun.
+Name: SCREEN_LOCK_PIN
+Value: kendi belirlediğiniz tam 4 rakam (başında 0 olabilir; boşluk/tırnak eklemeyin). Gerçek PIN'i kimseye göndermeyin.
+Değişkeni kaydedin. Mevcut diğer ortam değişkenlerine dokunmayın. Node uygulaması değişkeni kaydettiğinizde otomatik yeniden başlayabilir; v112 kodunda bu yeni değişken henüz kullanılmaz.
+1. v112 server.js, public/index.html ve public/sw.js dosyalarını yedekleyin.
+2. veridyen/screen-lock-v113.js dosyasını /home/kolaykasa/hizlisatis/veridyen/ içine yükleyin.
+3. public/ içindeki 4 dosyayı /home/kolaykasa/hizlisatis/public/ içine yükleyin. Eski dosyaları silmeyin.
+4. server.js dosyasını /home/kolaykasa/hizlisatis/ içine yükleyin.
+5. cPanel > Setup Node.js App > Restart. Tüm kasalarda Ctrl+F5.
+SQL işlemi gerekmez. npm install gerekmez. v112 kilit oturumu ve denetim tabloları aynen kullanılır; eski pos_screen_pin tablosundaki PIN hash artık okunmaz/yazılmaz, tablo silinmez. PIN cPanel ortam değişkeninde tutulur, tarayıcıya gönderilmez. Eksik veya geçersiz değişken halinde güvenlik için giriş sonrası ekran ve korunan API'ler açılmaz; cPanel'den değeri düzeltip Restart yapın.
+PIN değişikliği: yalnız cPanel > SCREEN_LOCK_PIN değerini değiştir > Save > Restart. Kilitli cihaz yeni PIN'i kullanır; varsa mevcut deneme bekleme süresi korunur. Diğer açık oturumlar sıfırlanmaz; sunucu yeniden başlarken kısa bağlantı kesintisi olabilir. Sepet bellekte kaldığı sürece korunur; Ctrl+F5 v112'de olduğu gibi açık sepeti silebilir. Bu değişiklik öncesinde yarım satışları bitirin.
+Uygulamada PIN belirleme/değiştirme arayüzü yoktur. Eski configure API çağrısı yönetici dahil 403 döner. Kullanıcı giriş şifresi, 5 dk ekran kilidi, manuel kilit, yanlış PIN bekleme süreleri, satış ekranı, 64 mm fiş ve Argox değişmedi.
+Test: Ayarlar > Kullanıcı Yönetimi bölümünde PIN değiştirme alanı bulunmamalı. Manuel kilitle, cPanel'deki PIN ile aç. Diğer kasada yanlış PIN denemeleri yapıldığında bu kasanın etkilenmediğini kontrol et.
+Geri dönüş: v112 server.js, index.html ve sw.js yedeklerini geri yükle, Restart, Ctrl+F5. v112 eski DB PIN'ini tekrar kullanır; cPanel değeri v112'de etkisizdir. Yeni dosyaları ve tabloları silmeniz gerekmez.
