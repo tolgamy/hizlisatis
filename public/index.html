@@ -15,6 +15,68 @@
   <link rel="stylesheet" href="/price-label-v106.css">
   <style id="receiptPaperSize"></style>
   <title>HızlıSatış · Mobil POS</title>
+  <style id="screenCritical116">
+body.screen-checking112 #app{visibility:hidden!important}
+#screenManual112[hidden],#screenRelogin112[hidden]{display:none!important}
+#screenManual112{min-width:39px;min-height:38px;border:1px solid #9fbad2;border-radius:10px;background:#e9f3ff;color:#164568;font-weight:900;padding:6px 10px;white-space:nowrap;cursor:pointer}
+#screenLock112{box-sizing:border-box;position:fixed;inset:0;width:100%;max-width:none;height:100%;max-height:none;margin:0;padding:20px;border:0;border-radius:0;background:linear-gradient(150deg,#0a233f,#173d60);color:white;overflow:auto;z-index:2147483647}
+#screenLock112[open]{display:grid;place-items:center}
+#screenLock112::backdrop{background:#0a233f}
+#screenLock112 .screen-shell112{width:min(100%,370px);display:grid;gap:16px;justify-items:center}
+#screenLock112 .screen-brand112{font-size:27px;font-weight:900;letter-spacing:-.6px}
+#screenLock112 .screen-brand112 span{color:#ff8a20}
+#screenLock112 .screen-card112{box-sizing:border-box;width:100%;background:white;color:#102e49;border-radius:23px;padding:25px;box-shadow:0 15px 60px #0004;display:grid;gap:13px;text-align:center}
+#screenLock112 .screen-lock-icon112{margin:auto;width:58px;height:58px;color:#244d70}
+#screenLock112 h2{font-size:24px;margin:0;outline:none}
+#screenLock112 p{font-size:14px;line-height:1.5;margin:0;color:#587084}
+#screenLock112 input{width:100%;box-sizing:border-box;font-size:24px;text-align:center;letter-spacing:8px;border:1px solid #c0d3e5;border-radius:12px;padding:12px;background:#f6faff;color:#102e49}
+#screenLock112 button{width:100%;min-height:48px;border:0;border-radius:12px;background:#078553;color:white;font-size:16px;font-weight:850;cursor:pointer}
+#screenLock112 button:disabled{background:#9aaebd;color:white;cursor:not-allowed}
+#screenLock112 #screenLockNote112{color:#b42318}
+#screenLock112 #screenRetry112{color:#a6530b;font-weight:800}
+#screenLock112 .screen-footer112{color:#d2e2ee;font-size:12px;text-align:center}
+#screenLock112 .screen-card112 .screen-preserve112{font-size:12px;color:#087653}
+.screen-config112{border-top:1px solid #dce6ef;padding:12px 0;display:grid;gap:8px}
+.screen-config112 input{box-sizing:border-box;width:100%;min-height:40px;max-width:260px;border:1px solid #cbd8e5;border-radius:9px;padding:7px;font-size:16px}
+.screen-config112 label{display:grid;gap:4px;font-size:13px}
+.screen-config112 p{margin:0;font-size:12px;line-height:1.4}
+@media(max-width:600px){#screenManual112{padding:5px 7px;min-width:32px;min-height:32px;font-size:11px}#screenManual112 .screen-manual-label112{display:none}}
+
+/* v116: critical PIN layout lives in index.html, not a separately cached stylesheet. */
+#screenLock112[open]{display:grid!important;place-items:center!important;box-sizing:border-box!important;overflow:auto!important;padding:12px!important}
+#screenLock112 .screen-shell112{width:min(100%,370px)!important;margin:auto!important;gap:12px!important}
+#screenLock112 .screen-card112{display:grid!important;grid-template-columns:minmax(0,1fr)!important;box-sizing:border-box!important;width:100%!important;gap:10px!important;padding:20px!important}
+#screenLock112 #screenPinDots114{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:10px!important;width:min(100%,230px)!important;justify-self:center!important}
+#screenLock112 #screenPinDots114>span{display:grid!important;place-items:center!important;height:42px!important;border:1px solid #c5d5e4!important;border-radius:10px!important;background:#edf3f8!important;font-size:23px!important;line-height:1!important;color:#8197ab!important}
+#screenLock112 #screenPinDots114>span.filled114{color:#163b61!important;border-color:#9fbad2!important}
+#screenLock112 #screenKeypad114{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;grid-template-rows:repeat(4,48px)!important;grid-auto-flow:row!important;gap:8px!important;width:100%!important;grid-column:auto!important;grid-row:auto!important}
+#screenLock112 #screenKeypad114>button{display:grid!important;place-items:center!important;box-sizing:border-box!important;width:100%!important;height:100%!important;min-height:0!important;min-width:0!important;margin:0!important;padding:0!important;border:1px solid #d9e4ee!important;border-radius:10px!important;background:#edf3f8!important;color:#173a5a!important;font-size:22px!important;font-weight:800!important;line-height:1!important;touch-action:manipulation;user-select:none}
+#screenLock112 #screenKeypad114>button:active:not(:disabled){background:#d4e6f7!important}
+#screenLock112 #screenKeypad114>button:disabled{opacity:.45!important;cursor:not-allowed}
+#screenLock112 button:focus-visible{outline:3px solid #2679c8;outline-offset:2px}
+#screenLock112 .screen-key-help114{font-size:12px!important}
+#screenLock112 #screenLockNote112:empty,#screenLock112 #screenRetry112:empty{display:none!important}
+#screenLock112 #screenUnlock112{min-height:46px!important}
+#screenLock112 .screen-preserve112{grid-column:auto!important}
+@media(max-height:740px){
+ #screenLock112[open]{padding:8px!important}
+ #screenLock112 .screen-shell112{gap:7px!important}
+ #screenLock112 .screen-card112{gap:7px!important;padding:15px!important}
+ #screenLock112 .screen-lock-icon112{width:39px!important;height:39px!important}
+ #screenLock112 .screen-brand112{font-size:23px!important}
+ #screenLock112 h2{font-size:21px!important}
+ #screenLock112 #screenPinDots114>span{height:35px!important}
+ #screenLock112 #screenKeypad114{gap:5px!important;grid-template-rows:repeat(4,40px)!important}
+ #screenLock112 #screenUnlock112{min-height:42px!important}
+}
+@media(max-height:480px) and (orientation:landscape){
+ #screenLock112 .screen-shell112{width:min(100%,620px)!important}
+ #screenLock112 .screen-card112{grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;align-items:center!important;column-gap:16px!important}
+ #screenLock112 #screenKeypad114{grid-column:2!important;grid-row:1/span 5!important}
+ #screenLock112 #screenPinDots114{grid-column:1!important}
+ #screenLock112 .screen-preserve112{grid-column:1/-1!important}
+}
+  </style>
 </head>
 <body class="auth-locked screen-checking112">
   <section id="loginGate" class="access-login-gate" aria-label="HızlıSatış güvenli giriş">
@@ -926,6 +988,6 @@
       <p id="accessUserFormStatus" role="status" aria-live="polite"></p>
     </form>
   </dialog>
-  <link rel="stylesheet" href="/reports-v101.css"><link rel="stylesheet" href="/layout-v106.css"><link rel="stylesheet" href="/desktop-picker-v107.css"><link rel="stylesheet" href="/desktop-picker-v108.css"><link rel="stylesheet" href="/sale-receipt-v109.css"><link rel="stylesheet" href="/screen-lock-v112.css"><link rel="stylesheet" href="/screen-lock-v114.css"><dialog id="screenLock112" aria-labelledby="screenLockHeading112"><div class="screen-shell112"><div class="screen-brand112">Hızlı<span>Satış</span></div><div class="screen-card112"><svg class="screen-lock-icon112" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3.5"><rect x="9" y="21" width="30" height="23" rx="5"/><path d="M15 21v-8a9 9 0 0 1 18 0v8M24 29v7" stroke-linecap="round"/></svg><h2 id="screenLockHeading112" tabindex="-1">Ekran Kilitlendi</h2><p id="screenPinPrompt115">Devam etmek için 4 haneli ekran PIN’inizi girin.</p><div id="screenPinDots114" class="screen-pin-dots114" role="status" aria-label="0 / 4 rakam girildi"><span aria-hidden="true">○</span><span aria-hidden="true">○</span><span aria-hidden="true">○</span><span aria-hidden="true">○</span></div><div id="screenKeypad114" class="screen-keypad114" role="group" aria-label="PIN rakam tuşları"><button type="button" data-pin-key="1">1</button><button type="button" data-pin-key="2">2</button><button type="button" data-pin-key="3">3</button><button type="button" data-pin-key="4">4</button><button type="button" data-pin-key="5">5</button><button type="button" data-pin-key="6">6</button><button type="button" data-pin-key="7">7</button><button type="button" data-pin-key="8">8</button><button type="button" data-pin-key="9">9</button><button type="button" data-pin-key="clear" aria-label="PIN temizle">C</button><button type="button" data-pin-key="0">0</button><button type="button" data-pin-key="delete" aria-label="Son rakamı sil">⌫</button></div><p class="screen-key-help114">Rakam tuşlarını veya fiziksel klavyeyi kullanın.</p><p id="screenLockNote112" role="alert"></p><p id="screenRetry112" role="status"></p><button id="screenUnlock112" type="button" disabled>Kilidi Aç</button><button id="screenRelogin112" type="button" hidden>Yeniden Giriş Yap</button><p class="screen-preserve112">Yalnızca bu oturum kilitli. Açık sepetiniz korunur.</p></div><div class="screen-footer112">HIZLI · KOLAY · GÜVENLİ</div></div></dialog><script type="module" src="/app-v115.js"></script>
+  <link rel="stylesheet" href="/reports-v101.css"><link rel="stylesheet" href="/layout-v106.css"><link rel="stylesheet" href="/desktop-picker-v107.css"><link rel="stylesheet" href="/desktop-picker-v108.css"><link rel="stylesheet" href="/sale-receipt-v109.css"><dialog id="screenLock112" aria-labelledby="screenLockHeading112"><div class="screen-shell112"><div class="screen-brand112">Hızlı<span>Satış</span></div><div class="screen-card112"><svg class="screen-lock-icon112" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3.5"><rect x="9" y="21" width="30" height="23" rx="5"/><path d="M15 21v-8a9 9 0 0 1 18 0v8M24 29v7" stroke-linecap="round"/></svg><h2 id="screenLockHeading112" tabindex="-1">Ekran Kilitlendi</h2><p id="screenPinPrompt115">Devam etmek için 4 haneli ekran PIN’inizi girin.</p><div id="screenPinDots114" class="screen-pin-dots114" role="status" aria-label="0 / 4 rakam girildi"><span aria-hidden="true">○</span><span aria-hidden="true">○</span><span aria-hidden="true">○</span><span aria-hidden="true">○</span></div><div id="screenKeypad114" class="screen-keypad114" role="group" aria-label="PIN rakam tuşları"><button type="button" data-pin-key="1">1</button><button type="button" data-pin-key="2">2</button><button type="button" data-pin-key="3">3</button><button type="button" data-pin-key="4">4</button><button type="button" data-pin-key="5">5</button><button type="button" data-pin-key="6">6</button><button type="button" data-pin-key="7">7</button><button type="button" data-pin-key="8">8</button><button type="button" data-pin-key="9">9</button><button type="button" data-pin-key="clear" aria-label="PIN temizle">C</button><button type="button" data-pin-key="0">0</button><button type="button" data-pin-key="delete" aria-label="Son rakamı sil">⌫</button></div><p class="screen-key-help114">Rakam tuşlarını veya fiziksel klavyeyi kullanın.</p><p id="screenLockNote112" role="alert"></p><p id="screenRetry112" role="status"></p><button id="screenUnlock112" type="button" disabled>Kilidi Aç</button><button id="screenRelogin112" type="button" hidden>Yeniden Giriş Yap</button><p class="screen-preserve112">Yalnızca bu oturum kilitli. Açık sepetiniz korunur.</p></div><div class="screen-footer112">HIZLI · KOLAY · GÜVENLİ</div></div></dialog><script type="module" src="/app-v115.js"></script>
 </body>
 </html>
