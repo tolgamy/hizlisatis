@@ -7,6 +7,6 @@
     <Nullable>enable</Nullable>
     <AssemblyName>HizliSatis</AssemblyName>
     <Product>HızlıSatış</Product>
-    <Version>1.25.0</Version>
+    <Version>1.30.0</Version>
   </PropertyGroup>
 </Project>

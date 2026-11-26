@@ -1,0 +1,33 @@
+name: HızlıSatış v130 Windows başlatıcı
+on:
+  workflow_dispatch:
+  push:
+    branches: [v130-toplu-gelistirme]
+    paths: ['windows/HizliSatisLauncher/**', '.github/workflows/windows-launcher-v130.yml']
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test tests/v125-permissions.test.js
+      - run: dotnet publish windows/HizliSatisLauncher/HizliSatisLauncher.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish
+      - name: Verify standalone executable
+        shell: pwsh
+        run: |
+          $exe = Get-Item publish/HizliSatis.exe
+          if ($exe.VersionInfo.ProductVersion -notmatch "^1\.30\.0") { throw "Unexpected launcher version" }
+          $result = Start-Process -FilePath $exe.FullName -ArgumentList "--self-test" -Wait -PassThru
+          if ($result.ExitCode -ne 0) { throw "Launcher self-test failed" }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: HizliSatis-v130-Windows-x64
+          path: publish/HizliSatis.exe
+          if-no-files-found: error
