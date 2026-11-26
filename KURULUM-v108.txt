@@ -1,7 +1,0 @@
-HIZLISATIŞ v108 — çalışan v107 üzerine küçük masaüstü tasarım güncellemesi.
-1. v107 public/index.html ve public/sw.js dosyalarını yedekleyin.
-2. ZIP içindeki public klasörünün 3 dosyasını /home/kolaykasa/hizlisatis/public içine yükleyin. Diğer dosyaları silmeyin.
-3. Tarayıcıyı yenileyin. SQL veya Node.js yeniden başlatma gerekmez.
-Masaüstü Satış > Ürün Ekle: v107 pencere dış ölçüsü korunur (genişlik min(1340px,94vw), yükseklik min(850px,90dvh)); Arama, Kategoriler, Toplu Liste aynı konumda aynı ölçüde. Yeterli ürün varsa 5x4=20 tam ürün kartı; alt satır Ekle alanı kesilmez. Ana kategoriler 4x3=12, tüm içerik genişliğini ve yüksekliğini kullanır. Atıştırmalık gibi 7-10 kartlı alt kategoriler 5 sütunda kare kart; daha çok alt kategori gerektiğinde kaydırılır. 600-700px yüksekliğinde masaüstü tarayıcı alanında ürün fotoğrafı kart içinde yanda gösterilir; amaç okunabilirlik ve 20 kartı korumaktır. Mobil kurallar, v107 fiş/etiket/menşei, ürün ve satış kodları değişmez.
-Kontrol: önce test cihazında 3 sekmede geçiş, 20. ürün Ekle, ana kategorilerin son sırası, alt kategori ve Daha Fazla Ürün göster. Gerçek cihaz tarayıcı yakınlaştırması, yazı ve resim ölçüleri farklı olabilir.
-Geri dönüş: yedek index.html ve sw.js dosyalarını geri yükleyin.

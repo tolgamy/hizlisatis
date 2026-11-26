@@ -1,5 +1,0 @@
-HızlıSatış v123 — yalnız dört yeni menü kartının ikon ve renk şeridi düzeltmesi (v122 üzerine).
-Mevcut dosyaları yedekleyin; açık satışları tamamlayın.
-public/index.html ve public/sw.js dosyalarını /home/kolaykasa/hizlisatis/public/ içine; server.js dosyasını /home/kolaykasa/hizlisatis/ içine yükleyin. Node.js Restart, Ctrl+F5.
-Sağlık: release:123, passwordPolicyVersion:120, permissionSchemaVersion:121.
-SQL gerekmez. Diğer 8 kartın HTML'i, mevcut düzen, PIN, satış, fiş, Argox ve yetki kodları değişmedi. Pasif ürün işlemleri bu pakette yoktur. Gerçek tarayıcı testi yapılmadı; CSS/SVG kaynak kontrolü, JS sözdizimi ve ZIP CRC kontrolü yapıldı.

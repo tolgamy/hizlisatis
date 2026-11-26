@@ -1,8 +1,0 @@
-Kontroller (kod izolasyonunda):
-- JavaScript sözdizimi: import/export kaldırılmış gövdelerin parse edilmesi: başarılı.
-- Statik modül bağımlılıkları ve güncel Service Worker dosyaları: başarılı.
-- 10 ürün / 79 adet / 100.000,00 ₺ / 9.999,99 ₺: başarılı.
-- Varsayılan başlık ve eski özel başlığın korunması; 80 mm nominal ölçü: başarılı.
-- Temsili HID Enter, Tab, sayısal zaman aşımı ve manuel girişte yakalama yapılmaması: başarılı.
-- EAN-13 kontrol basamağı ve 95 modül, temsili canvas ile 304x800 dönüş boyutu, ürün adı/fiyat/yerli üretim ve KDV satırı olmaması: başarılı.
-Tam npm test/build, gerçek tarayıcı, iPhone 15, Android, Windows, fiziksel USB/Bluetooth, gerçek Argox ve 80 mm termal baskı testleri çalıştırılmadı.

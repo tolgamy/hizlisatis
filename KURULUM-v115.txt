@@ -1,9 +1,0 @@
-HIZLISATIŞ v115 — girişten sonra zorunlu PIN (v114 üzerine).
-1. v114 server.js, public/index.html ve public/sw.js dosyalarını yedekleyin. Açık satışları tamamlayın.
-2. veridyen/screen-lock-v115.js dosyasını /home/kolaykasa/hizlisatis/veridyen/ içine yükleyin.
-3. public klasöründeki 4 dosyayı /home/kolaykasa/hizlisatis/public/ içine yükleyin.
-4. server.js dosyasını /home/kolaykasa/hizlisatis/ içine yükleyin.
-5. cPanel > Setup Node.js App > Restart. Tüm kasalarda Ctrl+F5.
-Mevcut SCREEN_LOCK_PIN değişkeni kullanılmaya devam eder. SQL veya npm install gerekmez. Yeni giriş çereziyle ilk ekran durumu sunucuda kilitli oluşturulur. Kullanıcı adı ve normal parola doğru olsa dahi PIN doğrulanmadan POS başlatılmaz; korunan API'ler 423 döndürür. Yeni bir girişte yeniden PIN gerekir. Önceden PIN'i doğrulanmış ve halen açık mevcut oturumlar topluca kilitlenmez; normal 5 dakika kuralı işler. Sayfa yenileme kilit durumunu değiştirmez; açılmış oturum sırf yenileme nedeniyle tekrar PIN istemez. Fiziksel klavye ve ekran rakam tuşları korunur, Enter ile gönderme yok. PIN değiştirme sadece cPanel, yanlış PIN bekleme süreleri ve diğer kasa bağımsızlığı değişmedi. Fiş, Argox, stok ve menşei verilerine dokunulmadı.
-Test: Çıkış > doğru kullanıcı ve parola ile giriş > PIN ekranı gelmeli. Yanlış PIN ile açılmamalı, yenilemede kilit kalmalı. Doğru PIN ile ana ekran açılmalı. Gerçek cPanel, tarayıcı ve MariaDB entegrasyonu test edilmedi. Sunucu restart kısa bağlantı kesintisi yaratabilir; yenileme açık sepeti silebilir.
-Geri dönüş: v114 server.js, index.html ve sw.js yedeklerini yükle, Restart, Ctrl+F5. v115'te oluşan kilitli oturumlar doğru PIN ile açılabilir.

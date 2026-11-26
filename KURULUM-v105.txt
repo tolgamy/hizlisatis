@@ -1,8 +1,0 @@
-v105 KURULUM — v103 üzerine doğrudan uygulanabilir, v104 ayrıca gerekmez.
-public içindeki 5 dosyayı /home/kolaykasa/hizlisatis/public içine yükleyin. Önce mevcut dosyaları yedekleyin; eski JS dosyalarını silmeyin. SQL ve Node restart gerekmez. Ctrl+F5.
-1. PC ana kategori yazıları görsele yaklaştırıldı, eski max-height kaldırıldı; 4x3 kart ölçüsü korunur.
-2. PC kategori ve ürün sonuçları Ana Kategoriler > ana > alt dinamik bağlantıları. Geri oku üst kategoriye, en üstte 12 ana kategoriye döner. Mevcut hash geçmişi kullanılır.
-3. Ana kategoriye tıklayınca alt kategoriler ayrı mevcut kategori ekranında 4 sütun halinde açılır, aşağıda inline panel açılmaz. Mevcut kategori arama ve tüm ürünler butonu korunur. Telefon/terminal görünümü değişmez. Alt kategori kartları mevcut fotoğrafları kullanır.
-4. 80 mm manuel fiş: önceki kalın Arial HTML baskısı, sol 1,5 mm + 75,5 mm içerik + sağ 3 mm nominal. Yazıcı fiziksel baskı alanı ve sürücü ofseti test edilmeli. Üstbilgi/altbilgiyi kapatın. 58 mm davranışı korunur. Otomatik yerel yardımcı açıksa PDF yöntemi korunur; nominal ölçü değişmiştir, eski HTML görünümü yalnız manuel baskıda.
-5. Ana sayfadaki tekrar eden etiket butonu PC/mobil gizlendi. Fiyat Gör içindeki etiket listesi, kayıtlar ve Argox değişmedi.
-JS sözdizimi ve mock DOM kategori/ürün/üst kategori bağlantı testleri başarılı. Canlı tarayıcı, ekran ölçüsü, ileri/geri geçmişi ve fiziksel fiş testleri yapılmadı. Geri dönüş: v103 index.html, styles.css, sw.js ve ilgili eski modüller korunarak geri yüklenir.

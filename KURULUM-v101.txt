@@ -1,4 +1,0 @@
-v101 KURULUM (v100 üzerine)
-public içindeki 5 dosyayı /home/kolaykasa/hizlisatis/public içine yükleyin. Önce yedek alın, eski dosyaları silmeyin. Node.js restart ve SQL gerekmez. Sayfayı yenileyin.
-Raporlarda ilk iki farklı ürün + kalan sayısı, 20 satış/sayfa, aranabilir detay penceresi. Filtre, toplam ve CSV bütün kayıtları kapsar. İptal kuralları değişmedi. Fiş miktarları farklı birimlerle toplanmaz.
-80 mm fiş: sol ve sağ hedef 1,5 mm, içerik 77 mm. Masaüstünde yerel yardımcı açıksa mevcut otomatik yönlendirme; kapalıysa termal PDF önizleme (tarayıcı HTML URL/tarih başlığı yok). PDF yazdırırken GP-H80300, 80 mm, gerçek boyut seçin. Mobil AirPrint HTML önizlemesi korunur; başlık/altbilgi gerekiyorsa kapatılır. 58 mm ayarı korunur. Yazıcı fiziksel sınırları ve sürücü ofseti test edilmeli. Çok uzun fişlerde mevcut raster PDF uzunluk sınırı geçerlidir. Argox değiştirilmedi.

@@ -1,6 +1,0 @@
-HIZLISATIŞ v111 — v110 üzerine 64 mm fiş güncellemesi.
-Önce v110 public/index.html ve public/sw.js dosyalarını yedekleyin. ZIP içindeki public klasörünün 4 dosyasını /home/kolaykasa/hizlisatis/public dizinine yükleyin. Eski dosyaları silmeyin. Ctrl+F5 ile yenileyin.
-80 mm fiş: v110 vektör PDF yöntemi aynen korundu. Eski 56/60 mm ayarı v111 ilk açılışında 64 mm olarak okunur. 52, 64, 68, 72, 75,5 mm tercihler korunur. Sonradan 56/60 mm seçilip kaydedilirse tekrar ezilmez. Fiziksel kâğıt 80 mm, sol pay 1,5 mm. Sağdaki boşluk önceki 56 mm'ye göre 8 mm azalır.
-Fiş test baskısı düğmesi artık Windows otomatik yazıcı yönlendirmesinin açık olmasını gerektirmez: gerçek satışla aynı PDF üreticisini kullanarak örnek PDF açar; yazıcıya PDF penceresinden gönderilir. Örnek gerçek satış, stok hareketi veya sepet kaydı oluşturmaz. Gerçek satışın otomatik yazdırma davranışı değişmedi.
-SQL işlemi yok. Yerli üretim kayıtları, satış ekranı, mobil, Argox ve 58 mm fiş ölçüsü değişmedi. Node.js yeniden başlatılmaz.
-Kod ve hesaplanan yerleşim sınırları kontrol edildi. Gerçek yazıcı sürücüsü, fiziksel baskı ve canlı POS test edilmedi. 64 mm'de kesilme olursa ayarlardan 60 veya 56 mm'ye geri dönülebilir. Geri dönüş için v110 index.html ve sw.js yedeğini geri yükleyin.

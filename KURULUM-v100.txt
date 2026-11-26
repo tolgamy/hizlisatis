@@ -1,5 +1,0 @@
-v100 KURULUM (v99 üzerine)
-public içindeki 4 dosyayı /home/kolaykasa/hizlisatis/public içine yükleyin. Mevcut v99 dosyalarını silmeyin. Sunucu kodu değişmedi, Node.js restart gerekmez. Sayfayı yenileyin.
-Ayarlar > Ürün ve Kategori Ayarları > Tüm Ürünleri Excel'e Aktar. Merkezi kayıtlar doğrudan okunur; aktif, pasif, silinmiş dahil. Başlangıç ve bitiş ürün sayısı karşılaştırılır; eksikse dosya verilmez. Bu bir anlık veritabanı snapshot'ı değildir; aktarım sırasında fiyat/stok değişiklikleri yapmayın.
-18 sütun: Barkod, Marka Adı, Kategori Adı, Ürün Adı, Ürün Açıklaması, Stok Kodu, Görsel 1, KDV Oranı, Alış Fiyatı, Satış Fiyatı, Stok Miktarı, Birim, Menşei, Ana Kategori, Alt Kategori, Ürün Durumu, KDV Dahil / Hariç, Para Birimi.
-Görsel URL'leri aktarılır, gömülü fotoğraflar aktarılmaz. Stok merkezi kayıt değeridir, cihaz satış düzeltmeleri dahil değildir. Excel tam SQL yedeği değildir; referans sayfası/validasyonlar eklenmemiştir. Mevcut v99 işlevleri korunur.

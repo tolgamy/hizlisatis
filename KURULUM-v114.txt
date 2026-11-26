@@ -1,8 +1,0 @@
-HIZLISATIŞ v114 — v113 üzerine PIN tuş takımı.
-1. v113 public/index.html ve public/sw.js dosyalarını yedekleyin.
-2. ZIP içindeki public klasörünün 5 dosyasını /home/kolaykasa/hizlisatis/public/ içine yükleyin. Eski dosyaları silmeyin.
-3. Tüm cihazlarda Ctrl+F5 veya tarayıcıyı yenileyin. Açık satışları önce bitirin.
-4. Sağ üst Kilitle düğmesine basın. Fiziksel klavyenin rakam tuşları (numpad dahil) veya ekrandaki rakam tuşlarıyla PIN'i girin. C temizler, ⌫ son rakamı siler. Kilidi Aç düğmesine basın. Barkod okuyucunun Enter tuşuyla otomatik açılma önlensin diye Enter ile gönderme yoktur; düğme tıklanabilir, klavyeyle Tab/Boşluk kullanılabilir.
-Ekran PIN diyaloğunda parola alanı, form veya gizli giriş alanı yoktur. PIN geçici bellekte tutulur; sunucuya yalnızca Kilidi Aç ile gönderilir ve alan temizlenir. Normal kullanıcı giriş ekranı değişmedi. Chrome'un şifre yöneticisi site tarafından kesin olarak kontrol edilemez; bu değişiklik PIN'i parola olarak algılamasının önüne geçmeyi amaçlar. Daha önce yanlış PIN kaydedildiyse Chrome'da normal giriş şifresini düzeltin. Önceden açılmış şifre kaydetme uyarısına Hayır, teşekkürler deyin.
-SQL işlemi, server.js değişikliği ve Node.js restart gerekmez. cPanel SCREEN_LOCK_PIN, 5 dakika kilit, yanlış deneme süreleri, oturumlar, satış, 64 mm fiş ve Argox değişmedi.
-Geri dönüş: v113 index.html ve sw.js dosyalarını geri yükleyin. Gerçek Chrome şifre yöneticisi, fiziksel cihaz ve canlı POS testi yapılmadı.

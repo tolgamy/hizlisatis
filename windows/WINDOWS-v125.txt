@@ -1,3 +1,0 @@
-HızlıSatış Windows başlatıcı (v125).
-BASLAT-POS.cmd dosyasını Windows bilgisayarda çalıştırın. Edge veya Chrome'un kurulu olması gerekir; uygulama modunda https://kolaykasam.com açılır. Tarayıcı profili ve mevcut oturum korunur. Bu bağımsız çevrimdışı POS değildir.
-HizliSatisLauncher kaynak kodu aynı işi WinExe olarak yapar. GitHub Actions windows-launcher-v125.yml Windows x64 HizliSatis.exe artifact üretmek üzere eklendi. Çıktı CI tamamlanmadan hazır sayılmaz; kod imzası ve MSIX yoktur. Mevcut BASLAT.bat/print-helper.py yazdırma yardımcısı ayrı ve değiştirilmedi. Windows COM/USB/HID ve fiziksel baskı testleri yapılmadı.

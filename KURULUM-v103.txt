@@ -1,3 +1,0 @@
-v103 — Yalnız PC Ürünler ana kategori görselleri ve yazıları.
-public klasöründeki iki dosyayı /home/kolaykasa/hizlisatis/public içine yükleyin. Önce mevcut iki dosyanın yedeğini alın. Node veya SQL değişikliği yok. Ctrl+F5 ile yenileyin.
-Mevcut v102 4x3 kart yerleşimi ve ölçüleri korunur. Görseller 1.55 ölçek, isimler 15–25 CSS px (ekran genişliğine göre). Görsel dosyaları, adlar, sıralama, telefon, terminal, diğer ekranlar ve yazıcılar değiştirilmedi. Gerçek tarayıcıda görsel kırpılma ve uzun isimlerin sığması kontrol edilmelidir. Geri dönüş: v102 styles.css ve sw.js birlikte yüklenir.

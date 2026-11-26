@@ -1,1 +1,0 @@
-JS sözdizimi; tarayıcı/sunucu parola kuralları 11 örnekle karşılaştırıldı; taklit DOM üzerinde yeni hesap, mevcut hesap, boş düzenleme parolası, canlı işaretler, geçersiz parola ve göster/gizle kontrolü başarılı. HTML pattern kaldırıldı. Örnek yalnızca placeholder ve açıklama. Canlı tarayıcı/DB testi yapılmadı. ZIP CRC doğrulandı.

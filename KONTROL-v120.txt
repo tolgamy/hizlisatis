@@ -1,1 +1,0 @@
-Sözdizimi, büyük/küçük kullanıcı adı, parola kontrolü, gerçek kullanıcı API ve modül kodunun taklit DB/kriptografi ile create/login/update, rol kısıtı, eski/yeni sunucu göstergesi (taklit DOM), ZIP CRC kontrolü başarılı. Gerçek kriptografi ve canlı cPanel/MariaDB/Chrome testi yapılmadı. v119 ekran PIN modülleri değişmedi.
