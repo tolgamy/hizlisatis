@@ -88,8 +88,10 @@ async function ready(){
     checkCache.valid=Number(count?.n)>=19096&&Number(seed?.value)===19096&&Number(user?.n)>=1;
     // When central receipts are enabled, fail closed if the additive schema
     // was not installed, instead of accepting checkout into nowhere.
-    if(process.env.CENTRAL_SALES_ENABLED==='true')
+    if(process.env.CENTRAL_SALES_ENABLED==='true') {
       await DB.prepare('SELECT id FROM pos_sales LIMIT 1').first();
+      await DB.prepare('SELECT sale_id FROM pos_stock_movements LIMIT 1').first();
+    }
   }catch{checkCache.valid=false;}
   checkCache.until=Date.now()+5000;
   return checkCache.valid;
@@ -157,7 +159,7 @@ async function app(req,res){
     const url=new URL(req.url||'/',origin);
     const isReady=await ready();
     if(url.pathname==='/__veridyen/health'){
-      response=json({configured,ready:isReady,mode:'staging',release:125,passwordPolicyVersion:PASSWORD_POLICY_VERSION,permissionSchemaVersion:PERMISSION_SCHEMA_VERSION,
+      response=json({configured,ready:isReady,mode:'staging',release:130,passwordPolicyVersion:PASSWORD_POLICY_VERSION,permissionSchemaVersion:PERMISSION_SCHEMA_VERSION,
         message:isReady?'Ready for isolated testing':'Not ready; no production migration performed'});
     }else if(!isReady){
       response=json({ready:false,error:'Veridyen staging kurulumu henüz etkin değil.'},503);

@@ -6,7 +6,7 @@
 import {createHash} from 'node:crypto';
 import {currentAccessUser,hasPermission} from '../lib/user-access.js';
 import {validateCentralReceipt} from './sales-validation.js';
-import {credit125,reportScope125,payment125,dailyScope125} from '../lib/rights-v125.js';
+import {credit125,reportScope125,payment125,dailyScope125,fine125} from '../lib/rights-v125.js';
 
 const h={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'};
 const reply=(data,status=200)=>Response.json(data,{status,headers:h});
@@ -39,7 +39,9 @@ async function verifyProducts(conn,record,ids,user){
       throw Object.assign(Error('Ürün artık aktif değil.'),{status:409});
     if(p.fiyatBelirsiz||!Number.isFinite(p.satisFiyati)||p.satisFiyati<0)
       throw Error('Merkezi ürün fiyatı geçersiz.');
-    if(Math.abs(line.unitPrice-p.satisFiyati)>0.011&&!hasPermission(user,'discounts'))
+    if(['kg','g','litre'].includes(p.birim)&&!fine125(user,'sale.weight','sales'))
+      throw Object.assign(Error('Tartılı satış yetkiniz yok.'),{status:403});
+    if(Math.abs(line.unitPrice-p.satisFiyati)>0.011&&!fine125(user,'sale.price','discounts'))
       throw Object.assign(Error('Fiyat değiştirme yetkiniz yok.'),{status:403});
   }
 }
@@ -63,6 +65,14 @@ export async function onRequestGet({request,env}){
     return reply({enabled:active(env)});
   if(!active(env))return reply({error:'Merkezi satışlar henüz etkin değil.'},503);
   const user=await currentAccessUser(request,env),scope=reportScope125(user);
+  if(url.searchParams.has('stock')){
+    if(!user)return reply({error:'Stok sorgusu için oturum gerekli.'},403);
+    try{
+      const [rows]=await env.MYSQL_POOL.execute(
+        'SELECT m.product_id AS id,SUM(m.quantity) AS soldQuantity FROM pos_stock_movements m LEFT JOIN pos_sale_voids v ON v.sale_id=m.sale_id WHERE v.sale_id IS NULL GROUP BY m.product_id');
+      return reply({adjustments:rows.map(row=>({id:row.id,soldQuantity:Number(row.soldQuantity)}))});
+    }catch{return reply({error:'Merkezi stok hareketleri okunamadı.'},503);}
+  }
   if(url.searchParams.has('daily')){
     const daily=dailyScope125(user);if(!daily)return reply({error:'Günlük ciro yetkisi gerekli.'},403);
     try{
@@ -103,7 +113,11 @@ export async function onRequestPost({request,env}){
     input=await request.json();
     record=input?.record;
     details=validateCentralReceipt(record);
-    if(details.discounted&&!hasPermission(user,'discounts'))
+    if(record.cashierId!==undefined&&record.cashierId!==user.id)
+      return reply({error:'Fiş başka bir kasiyer oturumuna ait.'},403);
+    if(record.items.some(({quantity})=>Math.abs(quantity*1000-Math.round(quantity*1000))>0.000001))
+      return reply({error:'Stok miktarında en fazla üç ondalık basamak kullanılabilir.'},400);
+    if(details.discounted&&!fine125(user,'sale.discount','discounts'))
       return reply({error:'İndirim yetkisi gerekli.'},403);
     if(!payment125(user,record.payment))return reply({error:'Ödeme yöntemi için yetkiniz yok.'},403);
     if(details.credit&&!credit125(user))
@@ -116,6 +130,7 @@ export async function onRequestPost({request,env}){
   let conn;
   try{
     conn=await env.MYSQL_POOL.getConnection();
+    await conn.query('SET TRANSACTION ISOLATION LEVEL READ COMMITTED');
     await conn.beginTransaction();
     // Check idempotency BEFORE credit limit: retrying an already accepted
     // credit sale must not fail because the customer balance later changed.
@@ -149,6 +164,12 @@ export async function onRequestPost({request,env}){
         [record.id,details.customerId,'sale',details.totalCents,record.createdAt,'Veresiye',
           'Fiş: '+record.id.slice(0,12)]);
     }
+    const movements=new Map();
+    for(const {id,quantity} of record.items)
+      movements.set(id,(movements.get(id)||0)+Math.round(quantity*1000));
+    await conn.query(
+      'INSERT INTO pos_stock_movements (sale_id,product_id,quantity) VALUES ?',
+      [[...movements].map(([id,milliunits])=>[record.id,id,milliunits/1000])]);
     await conn.commit();
     return reply({ok:true,id:record.id,duplicate:false},201);
   }catch(error){
@@ -157,8 +178,9 @@ export async function onRequestPost({request,env}){
     if(error?.code==='ER_DUP_ENTRY'&&conn){
       try{
         const [rows]=await conn.execute('SELECT payload_hash,cashier_id FROM pos_sales WHERE id=?',[record.id]);
-        if(rows[0]?.payload_hash===hash&&rows[0]?.cashier_id===user.id)
-          return reply({ok:true,id:record.id,duplicate:true});
+        if(rows[0])return rows[0].payload_hash===hash&&rows[0].cashier_id===user.id?
+          reply({ok:true,id:record.id,duplicate:true}):
+          reply({error:'Fiş numarası başka bir satışta kullanılmış.'},409);
       }catch{}
     }
     console.error('Central sales write:',error?.code||error?.name);

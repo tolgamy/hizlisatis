@@ -6,6 +6,7 @@
  * External payment methods need provider refunds and are NOT voidable here.
  */
 import {currentAccessUser} from '../lib/user-access.js';
+import {fine125} from '../lib/rights-v125.js';
 
 const headers={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'};
 const reply=(body,status=200)=>Response.json(body,{status,headers});
@@ -23,8 +24,8 @@ export async function onRequestPost({request,env}){
   if(request.headers.get('Origin')!==new URL(request.url).origin)
     return reply({error:'İzin verilmeyen kaynak.'},403);
   const user=await currentAccessUser(request,env);
-  if(!user?.active||user.role!=='admin')
-    return reply({error:'Satış iptali yalnızca yönetici tarafından yapılabilir.'},403);
+  if(!fine125(user,'sale.void')&&!fine125(user,'sale.return'))
+    return reply({error:'Satış iptali veya iade yetkisi gerekli.'},403);
   let saleId,reason;
   try{
     if(Number(request.headers.get('content-length')||0)>2000)
@@ -36,16 +37,22 @@ export async function onRequestPost({request,env}){
       !Object.hasOwn(reasons,reason))
       return reply({error:'İptal fişi veya nedeni geçersiz.'},400);
   }catch{return reply({error:'İptal isteği okunamadı.'},400);}
+  if(!fine125(user,reason==='returned'?'sale.return':'sale.void'))
+    return reply({error:'Seçilen işlem için yetki gerekli.'},403);
   let conn;
   try{
     conn=await env.MYSQL_POOL.getConnection();
     await conn.beginTransaction();
     const [rows]=await conn.execute(
-      'SELECT id,payment,total_cents,customer_id FROM pos_sales WHERE id=? FOR UPDATE',[saleId]);
+      'SELECT id,payment,total_cents,customer_id'+(user.role==='admin'?'':',cashier_id')+' FROM pos_sales WHERE id=? FOR UPDATE',[saleId]);
     const sale=rows[0];
     if(!sale){
       await conn.rollback();
       return reply({error:'Satış fişi bulunamadı.'},404);
+    }
+    if(user.role!=='admin'&&sale.cashier_id!==user.id){
+      await conn.rollback();
+      return reply({error:'Bu satış başka bir kasiyere ait.'},403);
     }
     // Check BEFORE the credit ledger balance: an uncertain retry is idempotent.
     const [previous]=await conn.execute(

@@ -12,7 +12,7 @@ function json(data, status=200) {
 function error(message, status=400) { return json({error:message},status); }
 function database(env) { return env?.DB?.prepare ? env.DB : null; }
 
-function validateProduct(product) {
+export function validateProduct(product) {
   if(!product || typeof product!=='object' || Array.isArray(product)) throw Error('Ürün kaydı geçersiz.');
   if(typeof product.id!=='string'||!product.id.trim()||product.id.length>180) throw Error('Ürün kimliği geçersiz.');
   if(typeof product.baslik!=='string'||!product.baslik.trim()||product.baslik.length>450) throw Error('Ürün adı geçersiz.');

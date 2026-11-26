@@ -1,4 +1,6 @@
 import {authorizedAdmin} from '../../lib/admin-auth.js';
+import {currentAccessUser} from '../../lib/user-access.js';
+import {fine125} from '../../lib/rights-v125.js';
 const prefix='label_queue:';
 const json=(data,status=200)=>Response.json({...data,queueVersion:99},{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
 const idOk=id=>typeof id==='string'&&id.length>0&&id.length<=180;
@@ -17,7 +19,7 @@ export async function labelQueueRequest({request,env,queueBody}){
   const db=env?.DB;
   if(!db)return json({error:'Merkezi bağlantı yok.'},503);
   try{
-    if(!await authorizedAdmin(request,env,'products')&&!await authorizedAdmin(request,env,'sales'))return json({error:'Ürün veya satış yetkisi gerekli.'},403);
+    if(!await authorizedAdmin(request,env,'products')&&!fine125(await currentAccessUser(request,env),'product.label','sales'))return json({error:'Ürün veya satış yetkisi gerekli.'},403);
     let b=queueBody;
     if(request.method==='POST'&&b===undefined){const raw=await request.text();if(raw.length>20000)return json({error:'İstek çok büyük.'},413);try{b=JSON.parse(raw)}catch{return json({error:'Geçersiz istek.'},400)}}
     if(b!==undefined&&(!b||typeof b!=='object'||JSON.stringify(b).length>20000))return json({error:'Geçersiz istek.'},400);

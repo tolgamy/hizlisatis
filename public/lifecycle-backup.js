@@ -1,3 +1,4 @@
+import {accountStorage130} from './account-storage-v130.js';
 /** Defensive localStorage mirror of product status. IndexedDB stays primary.
  * The baseline is created on the one-time bulk operation; subsequent edits are
  * stored separately, avoiding rewriting 19k rows on every single product change.
@@ -8,7 +9,7 @@ const CHANGE_KEY = 'hizlisatis:product-lifecycle:edits-v1';
 const valid = new Set(['active','initial-inactive','later-inactive','deleted']);
 function storageOrNull(provided) {
   if (provided !== undefined) return provided;
-  try { return globalThis.localStorage || null; }
+  try { return accountStorage130() || null; }
   catch { return null; }
 }
 

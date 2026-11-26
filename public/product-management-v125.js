@@ -8,9 +8,17 @@ import { fetchRemoteProducts, deactivateRemoteProducts, importRemoteProducts  ,l
 import { PRODUCT_STATUS, productStatus, isActive, countStatuses, nextProductStatus, priceWithVat } from './product-lifecycle.js';
 import { verifyPassivePin } from './passive-auth.js';
 import { prepareProductPhoto } from './product-photo.js';
-import {userCan,canActivateInitial124} from './auth-ui-v125.js';
+import {userCan,canActivateInitial124,fine125} from './auth-ui-v125.js';
 import {requestApproval125} from './approvals-v125.js';
 
+const may=id=>fine125(id,'products');
+const activationRight=p=>productStatus(p)==='initial-inactive'?'product.activate.initial':'product.activate.later';
+const editGroups=[
+  ['product.price',['managePrice'],['satisFiyati','girisFiyati','fiyatBelirsiz']],
+  ['product.barcode',['manageBarcodeInput'],['barkod']],
+  ['product.category',['manageMainCategory','manageSubCategory'],['kategoriAna','kategoriAlt','kategoriYolu','kategori','kaynakKategori']],
+  ['product.tax.origin',['manageVat','manageVatExcluded','manageOriginMode','manageOriginCountry'],['kdv','kdvBelirsiz','kdvExcluded','mensei','menşei']]
+];
 const $ = id => document.getElementById(id);
 const text = value => String(value ?? '');
 const format = price => new Intl.NumberFormat('tr-TR',{style:'currency',currency:'TRY'}).format(price||0);
@@ -282,6 +290,20 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
     $('manageActivate').hidden=created||isActive(product)||productStatus(product)==='deleted';
     $('manageDeactivate').hidden=created||!isActive(product);
     $('manageSaveActivate').hidden=!created&&productStatus(product)==='deleted';
+    if(!userCan('products')){
+      for(const [permission,ids] of editGroups)
+        for(const id of ids)if($(id))$(id).disabled=!created&&!may(permission);
+      for(const id of ['manageName','manageBrand','manageUnit','manageImage','manageImageFile','manageRemoveImage'])
+        $(id).disabled=!created;
+      $('managePurchase').disabled=true;
+      if(!may('product.cost'))$('managePurchase').value='';
+      $('manageStock').disabled=!(may('product.stock.in')||!created&&may('product.stock.out'));
+      $('manageDelete').hidden||=!may('product.delete.restore');
+      $('manageRestore').hidden||=!may('product.delete.restore');
+      $('manageActivate').hidden||=!may(activationRight(product));
+      $('manageDeactivate').hidden=true;
+      $('manageSaveActivate').hidden||=created||!may(activationRight(product));
+    }
     $('manageHistory').replaceChildren();
     if(product) getManagedProductHistory(product.id).then(events=>{
       if(selection?.id!==product.id)return;
@@ -329,6 +351,8 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
   async function updateStatus(action) {
     if(!selection)return;
     const current=selection;
+    if(!userCan('products')&&!(action==='activate'?may(activationRight(current)):
+      ['delete','restore'].includes(action)&&may('product.delete.restore')))return;
     if(action==='delete'&&!confirm('Ürün Silinen Ürünler bölümüne taşınacak. Devam edilsin mi?'))return;
     // Activation is a one-tap action. A server-side admin session still protects D1 edits.
     if(action==='deactivate'&&!authorizePassiveAction())return;
@@ -361,7 +385,7 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
   }
   async function saveForm(event,activate=false) {
     event?.preventDefault?.();
-    if(savingProduct)return;
+    if(savingProduct||created&&!may('product.create'))return;
     savingProduct=true;
     const saveButton=form.querySelector('button[type="submit"]');
     const activateButton=$('manageSaveActivate');
@@ -391,7 +415,7 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
       const priceString=$('managePrice').value.trim();
       const entered=parseLocaleNumber(priceString,NaN),vat=Number($('manageVat').value),
         excluded=$('manageVatExcluded').checked;
-      if(!Number.isFinite(entered)||entered<0){announce('Geçerli satış fiyatı girin.','error');return;}
+      if(!$('managePrice').disabled&&(!Number.isFinite(entered)||entered<0)){announce('Geçerli satış fiyatı girin.','error');return;}
       const stockString=$('manageStock').value.trim(),stock=stockString?Number(stockString):0;
       if(!Number.isFinite(stock)||stock<0){announce('Stok miktarı geçersiz.','error');return;}
       const purchaseString=$('managePurchase').value.trim();
@@ -402,7 +426,7 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
       const url=$('manageImage').value.trim();
       if(url&&!safeImageUrl(url)){announce('Geçerli HTTPS görsel adresi giriniz.','error');return;}
       const old=selection,finalStatus=activate?'active':old?.lifecycleStatus||'active';
-      const updated={...(old||{}),id:old?.id||newId(),barkod:barcode,baslik,
+      let updated={...(old||{}),id:old?.id||newId(),barkod:barcode,baslik,
         marka:upper($('manageBrand').value),mensei:readOrigin(),menşei:readOrigin(),alisFiyati:purchase,
         satisFiyati:priceWithVat(entered,vat,excluded).gross,
         girisFiyati:entered,kdv:vat,kdvBelirsiz:false,kdvExcluded:excluded,
@@ -416,6 +440,22 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
         importFormat:'hizlisatis',
         paraBirimi:old?.paraBirimi||'TRY',urunKodu:old?.urunKodu||barcode,
         variantKey:old?.variantKey||barcode};
+      if(old&&!userCan('products')){
+        const edited={...old};
+        for(const [permission,controls,keys] of editGroups){
+          if(!may(permission))continue;
+          if(controls[0]==='managePrice'&&priceString===String(old.kdvExcluded?(old.girisFiyati??old.satisFiyati):old.fiyatBelirsiz?'':old.satisFiyati??''))continue;
+          for(const key of keys)edited[key]=updated[key];
+        }
+        if(!$('manageStock').disabled){
+          edited.stok=updated.stok;
+          edited.stokBelirsiz=updated.stokBelirsiz;
+        }
+        if(activate&&may(activationRight(old)))edited.lifecycleStatus='active';
+        updated=edited;
+      }else if(!userCan('products')){
+        delete updated.alisFiyati;
+      }
       if(uploadImage)imageStatus('Görsel merkezi veritabanına kaydediliyor…','pending');
       await persist(updated,old?'edit'+(activate?'-activate':''):'create');
     }finally{
@@ -495,6 +535,7 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
     finally{$('manageBulkDeactivate').disabled=false;}
   }
   async function migrateLocalData() {
+    if(!userCan('products'))return;
     const button=$('migrateLocalToServer');
     button.disabled=true;
     try {
@@ -531,8 +572,9 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
     finally{button.disabled=false;}
   }
   async function exportLocalBackup() {
+    if(!userCan('products'))return;
     try {
-      const local=await getLocalSnapshot();
+      const local=await getLocalSnapshot({legacy:true});
       const blob=new Blob([JSON.stringify({exportedAt:now(),source:'device',
         ...local})],{type:'application/json'});
       const url=URL.createObjectURL(blob),a=document.createElement('a');
@@ -543,6 +585,7 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
     }catch(error){announce('Yerel yedek indirilemedi: '+error.message,'error');}
   }
   function exportBackup() {
+    if(!may('product.export'))return;
     const payload={exportedAt:now(),products:state.products};
     const blob=new Blob([JSON.stringify(payload)],{type:'application/json'});
     const url=URL.createObjectURL(blob);
@@ -551,6 +594,7 @@ export function createProductManager({state,serializeMutation,refresh,announce,c
   }
   function attach() {
     const button=document.createElement('button');
+    button.hidden=!userCan('products');
     button.id='migrateLocalToServer';button.type='button';
     button.textContent='Eski Cihaz Kayıtlarını Veritabanına Taşı';
     $('manageExportBackup').after(button);

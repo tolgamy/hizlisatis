@@ -1,7 +1,8 @@
+import {accountStorage130} from './account-storage-v130.js';
 const key='hizlisatis-local-print-v98';
-export function config(){try{return JSON.parse(localStorage.getItem(key)||'{}')}catch{return {}}}
+export function config(){try{return JSON.parse(accountStorage130().getItem(key)||'{}')}catch{return {}}}
 export function autoPrint(){return config().enabled===true}
-export function saveConfig(enabled,token){if(enabled&&!/^[a-f0-9]{64}$/.test(token))throw Error('64 karakterli bağlantı kodu gerekli.');localStorage.setItem(key,JSON.stringify({enabled,token:enabled?token:''}));}
+export function saveConfig(enabled,token){if(enabled&&!/^[a-f0-9]{64}$/.test(token))throw Error('64 karakterli bağlantı kodu gerekli.');accountStorage130().setItem(key,JSON.stringify({enabled,token:enabled?token:''}));}
 let busy=false;
 export async function sendPrint(kind,name,pdf){
  if(busy)throw Error('Baskı devam ediyor.');if(!autoPrint())throw Error('Otomatik baskı kapalı.');

@@ -1,9 +1,10 @@
+import {accountId130} from './account-storage-v130.js';
 import { overlayLifecycleBackup } from './lifecycle-backup.js';
 import { fetchRemoteProducts, saveRemoteProduct, deactivateRemoteProducts, importRemoteProducts, checkRemoteProductStates } from './remote-products.js';
 
 const DB_NAME = 'cep-hizli-satis-db';
-const DB_VERSION = 4;
-let singleton;
+const DB_VERSION = 5;
+const connections=new Map();
 
 /** A separate ledger prevents catalog refresh/import from resetting passive/deleted states. */
 function lifecycleRecord(product) {
@@ -26,9 +27,15 @@ function requestPromise(request) {
 }
 
 export function openDB() {
-  if (singleton) return singleton;
-  singleton = new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, DB_VERSION);
+  const account=accountId130();
+  const name=account?DB_NAME+':'+account:DB_NAME;
+  return openDatabase(name);
+}
+
+function openDatabase(name){
+  if(connections.has(name))return connections.get(name);
+  const opening=new Promise((resolve, reject) => {
+    const req = indexedDB.open(name, DB_VERSION);
     req.onupgradeneeded = () => {
       const db = req.result;
       if (!db.objectStoreNames.contains('products')) db.createObjectStore('products', { keyPath: 'id' });
@@ -37,6 +44,7 @@ export function openDB() {
         sales.createIndex('createdAt', 'createdAt');
       }
       if (!db.objectStoreNames.contains('adjustments')) db.createObjectStore('adjustments', { keyPath: 'id' });
+      if (!db.objectStoreNames.contains('outbox')) db.createObjectStore('outbox', {keyPath:'id'});
       if (!db.objectStoreNames.contains('meta')) db.createObjectStore('meta', { keyPath: 'key' });
       if (!db.objectStoreNames.contains('productHistory')) {
         const history = db.createObjectStore('productHistory', { keyPath: 'id', autoIncrement: true });
@@ -59,16 +67,104 @@ export function openDB() {
         };
       }
     };
-    req.onsuccess = () => resolve(req.result);
+    req.onsuccess = () => {
+      req.result.onversionchange=()=>{req.result.close();connections.delete(name);};
+      resolve(req.result);
+    };
     req.onerror = () => reject(req.error);
     req.onblocked = () => reject(new Error('Veritabanı başka bir sekmede kullanımda.'));
-  }).catch(error => { singleton = null; throw error; });
-  return singleton;
+  }).catch(error=>{connections.delete(name);throw error;});
+  connections.set(name,opening);
+  return opening;
 }
 
-export async function getLocalSnapshot() {
-  const db = await openDB();
-  const tx = db.transaction(['excelProducts', 'adjustments', 'meta', 'productLifecycle'], 'readonly');
+export async function migrateLocalAccount130(){
+  const account=accountId130();
+  if(!account)return;
+  try{globalThis.localStorage.removeItem('hizlisatis-active-products-v1');}catch{}
+  const db=await openDB();
+  if(await requestPromise(db.transaction('meta').objectStore('meta').get('scoped-v130')))return;
+  const legacy=await openDatabase(DB_NAME);
+  // Product edits and unknown-owner receipts stay in the original device archive.
+  // Strip known cost fields before opening any workspace on a shared device.
+  const stores=['products','excelProducts','productHistory','sales'];
+  const retained=await new Promise((resolve,reject)=>{
+    const tx=legacy.transaction(stores,'readwrite');
+    const owned=[];
+    tx.oncomplete=()=>resolve(owned);
+    tx.onabort=()=>reject(tx.error||Error('Eski cihaz arşivi hazırlanamadı.'));
+    for(const name of stores){
+      const scan=tx.objectStore(name).openCursor();
+      scan.onsuccess=()=>{
+        const cursor=scan.result;
+        if(!cursor)return;
+        const record=cursor.value;
+        if(stripCost130(record))cursor.update(record);
+        if(name==='sales'&&record.cashierId===account)owned.push(record);
+        cursor.continue();
+      };
+    }
+  });
+  await new Promise((resolve,reject)=>{
+    const tx=db.transaction(['sales','meta'],'readwrite');
+    const sales=tx.objectStore('sales');
+    tx.oncomplete=resolve;
+    tx.onabort=()=>reject(tx.error||Error('Kasiyer arşivi hazırlanamadı.'));
+    for(const record of retained)sales.put(record);
+    tx.objectStore('meta').put({key:'scoped-v130',value:true});
+  });
+}
+
+function stripCost130(value){
+  if(!value||typeof value!=='object')return false;
+  let changed=false;
+  for(const key of Object.keys(value)){
+    if(/^(alış|alis)fiyat|^maliyet|^cost|^internalcost|^purchaseprice/i.test(key)){
+      delete value[key];
+      changed=true;
+    }else if(stripCost130(value[key]))changed=true;
+  }
+  return changed;
+}
+
+function cacheableProduct130(product){
+  if(!accountId130())return product;
+  const cached=structuredClone(product);
+  stripCost130(cached);
+  return cached;
+}
+
+export async function putPendingSale130(record){
+  await writeLocal130('outbox',store=>store.put(record));
+}
+
+export async function removePendingSale130(id){
+  await writeLocal130('outbox',store=>store.delete(id));
+}
+
+export async function pendingSales130(){
+  const db=await openDB();
+  return requestPromise(db.transaction('outbox').objectStore('outbox').getAll());
+}
+
+export async function mirrorCentralSale130(record){
+  await writeLocal130('sales',store=>store.put(record));
+}
+
+async function writeLocal130(name,write){
+  const db=await openDB();
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction(name,'readwrite');
+    tx.oncomplete=resolve;
+    tx.onabort=()=>reject(tx.error||Error('Cihaz kaydı yazılamadı.'));
+    write(tx.objectStore(name));
+  });
+}
+
+export async function getLocalSnapshot({legacy=false}={}) {
+  const db = await (legacy?openDatabase(DB_NAME):openDB());
+  const tx = db.transaction(['excelProducts', 'adjustments', 'meta', 'productLifecycle','sales'], 'readonly');
+  const sales=legacy?requestPromise(tx.objectStore('sales').getAll()):Promise.resolve(undefined);
   const products = requestPromise(tx.objectStore('excelProducts').getAll());
   const adjustments = requestPromise(tx.objectStore('adjustments').getAll());
   const lifecycle = requestPromise(tx.objectStore('productLifecycle').getAll());
@@ -78,8 +174,8 @@ export async function getLocalSnapshot() {
   const [stored, stock, statuses, bundled, imported, firstPass] =
     await Promise.all([products, adjustments, lifecycle, bundledMeta, excelMeta, lifecycleMeta]);
   const ledger = new Map(statuses.map(row => [row.id, row]));
-  const catalog = overlayLifecycleBackup(stored.map(product => mergeProductLifecycle(product, ledger.get(product.id))));
-  return { products: catalog, adjustments: stock, meta: null,
+  const catalog = overlayLifecycleBackup(stored.map(product => mergeProductLifecycle(product, ledger.get(product.id))),legacy?globalThis.localStorage:undefined);
+  return { products: catalog, adjustments: stock, meta: null,...(legacy?{sales:await sales}:{}),
     excelCount: catalog.filter(p => p.source !== 'bundle').length,
     bundleCount: catalog.filter(p => p.source === 'bundle').length,
     bundleMeta: bundled?.value ?? null, excelMeta: imported?.value ?? null,
@@ -211,7 +307,7 @@ export async function upsertExcelProducts(products, filename) {
           const previous = old && product.lifecycleStatus === undefined
             ? { ...target, lifecycleStatus: old.lifecycleStatus, everActivated: old.everActivated,
                 deletedFrom: old.deletedFrom, statusChangedAt: old.statusChangedAt } : target;
-          store.put(mergeProductLifecycle(previous, ledger.get(target.id)));
+          store.put(cacheableProduct130(mergeProductLifecycle(previous, ledger.get(target.id))));
         };
       }
       tx.objectStore('meta').put({ key: 'excelImport', value: {
@@ -252,7 +348,7 @@ export async function saveSale(record) {
       productReq.onsuccess=()=>{
         const product=current.products.get(productId)||productReq.result;
         if(!product){tx.abort();return;}
-        if(!productReq.result)catalog.put(product);
+        if(!productReq.result)catalog.put(cacheableProduct130(product));
         const stockReq=stock.get(productId);
         stockReq.onsuccess=()=>{
           const sold=stockReq.result?.soldQuantity||0;
@@ -337,7 +433,7 @@ export async function saveManagedProduct(product, action = 'edit') {
       const previous=previousReq.result;
       const check = product.barkod ? store.index('barkod').get(product.barkod) : null;
       const write=()=>{
-        store.put(product);
+        store.put(cacheableProduct130(product));
         lifecycle.put(lifecycleRecord(product));
         const summary=p=>p ? { name:p.baslik, barcode:p.barkod, price:p.satisFiyati,
           category:p.kategori, vat:p.kdv, status:p.lifecycleStatus||'active' } : null;

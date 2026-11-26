@@ -201,13 +201,14 @@ function labelPdfBlob(product,count,canvasFactory){
   if(!Number.isInteger(count)||count<1||count>20)throw Error('Bir baskıda en fazla 20 etiket.');
   return pdfFromLabelJpeg(renderLabelImage(product,canvasFactory,true),count);
 }
-function createPriceLabelFeature({getProducts,findBarcode,openCamera,onCreateProduct,onEditProduct,notify}){
+function createPriceLabelFeature({getProducts,findBarcode,openCamera,onCreateProduct,onEditProduct,notify,canPrint=()=>true}){
   const $=id=>document.getElementById(id);
   const dialog=$('priceLabelDialog'),missing=$('priceLabelMissingDialog');
   const input=$('priceLabelInput'),list=$('priceLabelMatches');
   const result=$('priceLabelResult'),paper=$('priceLabelTicketPreview');
   const status=$('priceLabelStatus'),printButton=$('priceLabelPrint');
   let selected=null,pending='',typingTimer=null;
+  $('priceLabelAddQueue').hidden=!canPrint();
   const clearResults=()=>{
     selected=null;$('priceLabelQueueFeedback').hidden=true;list.replaceChildren();result.hidden=true;paper.replaceChildren();printButton.disabled=true;
   };
@@ -224,7 +225,7 @@ function createPriceLabelFeature({getProducts,findBarcode,openCamera,onCreatePro
       preview.alt='USMAR MARKET 38 × 100 mm etiket önizlemesi';
       preview.src=renderLabelImage(product);
       paper.replaceChildren(preview);
-      printButton.disabled=false;
+      printButton.disabled=!canPrint();
       status.textContent='Ürün bulundu.';
     }catch(error){
       paper.replaceChildren();printButton.disabled=true;
@@ -307,7 +308,7 @@ function createPriceLabelFeature({getProducts,findBarcode,openCamera,onCreatePro
   missing.addEventListener('cancel',event=>{event.preventDefault();missing.close();clear();});
   $('priceLabelEdit').addEventListener('click',()=>{if(selected)onEditProduct?.(selected);});
   $('priceLabelAddQueue').addEventListener('click',async()=>{
-    if(!selected)return;
+    if(!selected||!canPrint())return;
     const button=$('priceLabelAddQueue'),product=selected;
     button.disabled=true;
     const feedback=$('priceLabelQueueFeedback');feedback.hidden=false;feedback.textContent='Merkeze kaydediliyor…';feedback.classList.remove('lq-error');
@@ -315,12 +316,12 @@ function createPriceLabelFeature({getProducts,findBarcode,openCamera,onCreatePro
     catch(e){feedback.textContent=e.message;feedback.classList.add('lq-error');status.textContent=e.message;notify(e.message,'error');}finally{button.disabled=false;}
   });
   $('priceLabelPrint').addEventListener('click',async()=>{
-    if(!selected)return;
+    if(!selected||!canPrint())return;
     try{
       const count=Number($('priceLabelCopies').value);if(!Number.isInteger(count)||count<1||count>20)throw Error('Bir baskıda en fazla 20 etiket.');
       // The native PDF page is one 38×100 mm die-cut label.
       // Chrome HTML headers (date, about:blank) are not part of a PDF page.
-      const pdf=labelPdfBlob(selected,count);if(autoPrint()){printButton.disabled=true;try{await sendPrint('label',readPrinterProfiles().label,pdf);status.textContent='Etiket yazıcı kuyruğuna gönderildi.';}finally{printButton.disabled=false;}return;}const url=URL.createObjectURL(pdf);
+      const pdf=labelPdfBlob(selected,count);if(autoPrint()){printButton.disabled=true;try{await sendPrint('label',readPrinterProfiles().label,pdf);status.textContent='Etiket yazıcı kuyruğuna gönderildi.';}finally{printButton.disabled=!canPrint();}return;}const url=URL.createObjectURL(pdf);
       const tab=window.open(url,'_blank');
       if(!tab){
         URL.revokeObjectURL(url);

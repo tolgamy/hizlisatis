@@ -1,10 +1,22 @@
 // Shared menu; never converts a configured future right to a broad effective right.
-import {lookup125,reportScope125} from './auth-ui-v125.js';
+import {fine125,lookup125,reportScope125} from './auth-ui-v125.js';
 const $=id=>document.getElementById(id);
 let account=null,hooks=null,bypass=null;
 export const admin122=()=>account?.role==='admin';
 export const effective122=p=>admin122()||Boolean(account?.permissions?.includes(p));
-const allowedOperation125=(id,p)=>id==='settingsCustomers'?lookup125():id==='settingsHistory'?Boolean(reportScope125()):effective122(p);
+const customerWorkspace=()=>lookup125()||['customer.create','customer.limit','customer.opening'].some(id=>fine125(id,'customers'));
+const fineProductActions=['product.price','product.stock.in','product.stock.out','product.barcode',
+ 'product.category','product.tax.origin','product.cost','product.activate.initial','product.activate.later','product.delete.restore'];
+const allowProductManagement=()=>fineProductActions.some(id=>fine125(id,'products'));
+function allowedOperation125(id,p){
+ if(id==='settingsCustomers')return customerWorkspace();
+ if(id==='settingsHistory')return Boolean(reportScope125());
+ if(id==='settingsManage')return allowProductManagement();
+ if(id==='settingsAdd')return fine125('product.create','products');
+ if(id==='settingsExcel')return fine125('product.import','products');
+ if(id==='exportProducts100')return fine125('product.export','products');
+ return effective122(p);
+}
 export const printer122=()=>admin122()||(Array.isArray(account?.permissionProfile)?account.permissionProfile.includes('system.printer'):effective122('sales'));
 const workflow={
  settingsExcel:['Excel Ürün Yükle','Excel dosyası seç ve ürünleri yükle','products'],
@@ -65,7 +77,7 @@ export function installCommonMenu122(user,options){
  const p=printer122();
  for(const id of ['settingsLabelPrinterName','settingsReceiptPrinterName','testLabelPrint','testReceiptPrint','settingsPrinterProfilesSave','settingsReceiptAction'])disable(id,!p);
  for(const id of ['localPrintEnabled','localPrintToken','settingsPrintWidth','settingsPrintContent109','settingsReceiptTitle','settingsReceiptFooter106','settingsReceiptPhone','settingsReceiptWebsite','settingsReceiptSave'])disable(id,!admin122());
- for(const [id,allowed,note] of [['settingsPrintingGroup',p,'Yazıcı seçme ve test baskısı yetkiniz yok.'],['settingsPrinterDetails',admin122(),'Fiş tasarımını yalnız yönetici değiştirebilir.'],['settingsCustomerGroup',lookup125(),'Müşteri sorgulama yetkisi yok.'],['settingsAdminGroup',admin122(),'Kullanıcı listesi ve düzenleme yalnız yöneticiye açıktır.']]){
+ for(const [id,allowed,note] of [['settingsPrintingGroup',p,'Yazıcı seçme ve test baskısı yetkiniz yok.'],['settingsPrinterDetails',admin122(),'Fiş tasarımını yalnız yönetici değiştirebilir.'],['settingsCustomerGroup',customerWorkspace(),'Müşteri sorgulama yetkisi yok.'],['settingsAdminGroup',admin122(),'Kullanıcı listesi ve düzenleme yalnız yöneticiye açıktır.']]){
   if(allowed)continue;const el=$(id),n=document.createElement('p');n.className='lock-note122';n.textContent='🔒 '+note;el?.append(n);
  }
  document.addEventListener('click',event=>{

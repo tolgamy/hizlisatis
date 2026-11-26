@@ -1,3 +1,4 @@
+import {setAccountStorage130,accountId130} from './account-storage-v130.js';
 import {portraitReceiptHeight,portraitReceiptPage,useNativeReceipt107} from './receipt-portrait-v107.js';
 import {setupOriginReview107} from './origin-review-v107.js';
 import {createSaleScanner,installCategoryFit} from './sale-input-v106.js';
@@ -8,7 +9,7 @@ import {autoPrint,sendPrint,receiptRollPdf} from './local-print-v110.js';
 import {pdfFromLabelJpegs} from './argox-pdf-v99.js';
 // v99: Correct Argox label and use native 38x100 PDF printing; POS behavior preserved.
 // v88: Pinned central-sales module avoids stale production exports and restores secure login.
-import { getSnapshot, getLocalSnapshot, upsertExcelProducts, installBundledProducts, saveSale, getSales, restoreSalesBackup, openDB, saveManagedProduct } from './idb.js';
+import { getSnapshot, getLocalSnapshot, upsertExcelProducts, installBundledProducts, saveSale, getSales, restoreSalesBackup, openDB, saveManagedProduct, migrateLocalAccount130, putPendingSale130, removePendingSale130, pendingSales130, mirrorCentralSale130 } from './idb.js';
 import { createDeviceBackup, parseDeviceBackup } from './device-backup.js';
 import { readXlsxRows } from './xlsx-reader.js';
 import { parseExcelProducts } from './excel-products.js';
@@ -34,16 +35,15 @@ import { createPriceLabelFeature,renderLabelImage } from './price-label-v106.js'
 import { checkRemoteProductStates } from './remote-products.js';
 import { createCustomerManager } from './customer-ui-v125.js';
 import { recordCustomerCredit } from './customer-api.js';
-import { isCentralSalesEnabled,saveCentralSale,getSalesForReports,voidCentralSale,readDaily125,readRecent125 } from './central-sales-v125.js';
+import { isCentralSalesEnabled,saveCentralSale,getSalesForReports,voidCentralSale,readDaily125,readRecent125,readCentralStock130 } from './central-sales-v125.js';
 import { filterReportSales,quickReportRange } from './report-filters.js';
 import { readReceiptSettings,saveReceiptSettings,receiptPrintLayout,readReceiptAction,saveReceiptAction } from './receipt-settings-v111.js';
 import { parseBasketDiscountPercent,calculateBasketTotals } from './basket-pricing.js';
 import { readPickerMode,savePickerMode } from './picker-preferences.js';
 import { next200Cash } from './cash-change.js';
 import { isWeightProduct,scaleSupported,ScaleSerialConnection,parseManualGrams,scaleGramsToQuantity,calculateWeightTotal } from './scale-serial.js';
-import { writeActiveProductsLocalStorage } from './active-products-cache.js';
 import {installApprovals125,installAudit125,requestApproval125} from './approvals-v125.js';
-import { requireAccess,authorizeCheckout,userCan,lookup125,credit125,reportScope125,daily125,canReprint125,payment125 } from './auth-ui-v125.js';
+import { requireAccess,authorizeCheckout,userCan,lookup125,credit125,reportScope125,daily125,canReprint125,payment125,fine125 } from './auth-ui-v125.js';
 import {installScreenLock112,screenBlocked112} from './screen-lock-v119.js';
 import { sameProductRecord,prepareStockEdit } from './stock-editor.js';
 
@@ -69,7 +69,8 @@ const dom = {
   historyDialog: $('historyDialog'), historyItems: $('historyItems'),
   scanDialog: $('scanDialog'), scanMessage: $('scanMessage')
 };
-const channel = 'BroadcastChannel' in window ? new BroadcastChannel('cep-pos-changes') : null;
+let channel=null;
+let centralMode130, pendingCount130=0, pendingIssue130='', syncing130=false;
 let toastTimer,cartToastTimer;
 let productManager,customerManager,pendingScanProduct=null,priceLabelFeature=null,openApprovals125=()=>{},openAudit125=()=>{};
 let weightProduct=null,scaleConnection=null,scaleLatest=null,scaleCapturedAt=0,weightInputMode='manual';
@@ -179,6 +180,12 @@ function setSyncStatus() {
   const count=state.products.length.toLocaleString('tr-TR');
   $('syncLabel').textContent = state.centralReadOnly ? count+' ürün · Salt okunur' :
     (state.bundleLoading ? 'Ürünler yükleniyor…' : count+' ürün');
+  if(pendingCount130) $('syncLabel').textContent+=' · '+pendingCount130+' bekleyen fiş';
+  const pending=$('pendingSales130');
+  pending.hidden=!pendingCount130;
+  pending.textContent=pendingCount130?
+    pendingCount130+' fiş merkezi onay bekliyor.'+(pendingIssue130?' '+pendingIssue130:''):'';
+
   $('catalogSource').textContent = state.centralReadOnly
     ? count+' yerleşik ürün · Merkezi bağlantı yok, sadece görüntüleme'
     : `${count} ürün · Excel kataloğu${state.excelCount ? ` · ${state.excelCount} cihaz içi düzenleme` : ''}`;
@@ -209,9 +216,6 @@ function setCatalog(products, adjustments, meta, excelCount = 0, bundleCount = 0
     }
   }
   state.categoryProductPhotos = picturePaths;
-  // Mirror only verified ACTIVE product records after every successful D1 refresh.
-  // A localStorage write failure must not change the authoritative catalog.
-  if (verified) writeActiveProductsLocalStorage(products.map(({alisFiyati,alisFiyatiBelirsiz,maliyet,maliyetFiyati,cost,...p})=>p));
   renderAll();
 }
 
@@ -382,6 +386,7 @@ function openSale({preferCamera=false}={}) {
 // chooses to cancel the sale and clear it in the confirmation dialog.
 let pendingSaleExitTarget='previous';
 function finishSaleExit({discard=false}={}) {
+  if(discard&&!fine125('sale.clear','sales'))return announce('Sepeti temizleme yetkiniz yok.','error');
   if($('saleExitDialog').open)$('saleExitDialog').close();
   if(discard) {
     state.cart.clear();
@@ -390,7 +395,8 @@ function finishSaleExit({discard=false}={}) {
     state.pendingSale=null;
     dom.cash.value='';
     customerManager?.clearSelection();
-    document.querySelector('input[name="payment"][value="Nakit"]').checked=true;
+    const nextPayment=[...document.querySelectorAll('input[name="payment"]')].find(el=>!el.disabled);
+    if(nextPayment)nextPayment.checked=true;
     $('basketDiscountPanel').hidden=true;
     $('checkoutDiscountToggle').setAttribute('aria-expanded','false');
     renderCartBar();renderCart();
@@ -558,6 +564,7 @@ function renderWeightPreview(){
   }
 }
 function openWeightProduct(product){
+  if(!fine125('sale.weight','sales'))return announce('Tartılı satış yetkiniz yok.','error');
   if(!product||!isWeightProduct(product))return;
   if(state.centralReadOnly||!isActive(product)||product.fiyatBelirsiz||remaining(product)<=0){
     announce('Tartılı ürün şu an satışa uygun değil.','error');return;
@@ -1024,7 +1031,7 @@ function renderProducts() {
     row.innerHTML=`<div class="product-photo"><span class="product-emoji" aria-hidden="true">${productPictureEmoji(p)}</span></div>
       <div class="product-info"><div class="product-title">${esc(p.baslik)}</div>${stockDetail}</div>
       <div class="product-right"><span class="price">${esc(priceLabel(p))}</span><button class="add-button" type="button" aria-label="${esc(p.baslik)} sepete ekle" ${available?'':'disabled'}>+</button></div>`;
-    if(userCan('products')&&!state.centralReadOnly){const edit=document.createElement('button');edit.type='button';edit.className='quick-price-button';edit.textContent='✎ Fiyat Değiştir';edit.onclick=()=>openQuickPrice(p);row.append(edit);}
+    if(fine125('product.price','products')&&!state.centralReadOnly){const edit=document.createElement('button');edit.type='button';edit.className='quick-price-button';edit.textContent='✎ Fiyat Değiştir';edit.onclick=()=>openQuickPrice(p);row.append(edit);}
     const pic=row.querySelector('.product-photo');
     if(p.gorsel){
       const img=document.createElement('img');img.className='product-thumb';
@@ -1212,7 +1219,7 @@ async function saveStockEditor(event){
 }
 let quickPriceProduct=null,quickPriceBusy=false,quickPriceSaved=null;
 function openQuickPrice(p){
- if(!userCan('products')||state.centralReadOnly)return announce('Ürün düzenleme yetkisi gerekli.','error');
+ if(!fine125('product.price','products')||state.centralReadOnly)return announce('Ürün düzenleme yetkisi gerekli.','error');
  quickPriceProduct={...p};quickPriceSaved=null;
  $('quickPriceName').textContent=p.baslik;$('quickPriceCode').textContent=p.barkod||p.urunKodu||'';
  $('quickPriceOld').textContent=priceLabel(p);$('quickPriceValue').value=p.fiyatBelirsiz?'':String(p.satisFiyati).replace('.',',');
@@ -1222,7 +1229,7 @@ async function saveQuickPrice(e){
  e.preventDefault();if(quickPriceBusy||!quickPriceProduct)return;
  const button=$('quickPriceSave'),msg=$('quickPriceMessage');quickPriceBusy=true;button.disabled=true;
  try{
-  if(!userCan('products')||state.centralReadOnly)throw Error('Ürün düzenleme yetkisi veya merkezi bağlantı yok.');
+  if(!fine125('product.price','products')||state.centralReadOnly)throw Error('Ürün düzenleme yetkisi veya merkezi bağlantı yok.');
   if(!quickPriceSaved){
    const raw=$('quickPriceValue').value.trim();if(!/^\d+(?:[,.]\d{1,2})?$/.test(raw))throw Error('Geçerli bir fiyat girin.');
    const price=Number(raw.replace(',','.'));if(!Number.isFinite(price)||price>1e9)throw Error('Geçersiz fiyat.');
@@ -1301,6 +1308,7 @@ function updateCart(id, field, value) {
   const line = state.cart.get(id);
   if (!line) return;
   if (field === 'quantity') {
+    if(!fine125('sale.quantity','sales'))return;
     const num = Number(value);
     const weighted=['kg','g','litre'].includes(line.product.birim);
     if (!Number.isFinite(num) || num < 0 || (!weighted && !Number.isInteger(num)) || (weighted && Math.round(num*1000)!==num*1000)) { announce('Miktar geçersiz.', 'error'); renderCart(); return; }
@@ -1315,10 +1323,12 @@ function updateCart(id, field, value) {
       line.weighCount=1; // The manual edit replaces the recorded weighing count.
     }
   } else if (field === 'price') {
+    if(!fine125('sale.price','discounts'))return;
     const num = parseLocaleNumber(value, NaN);
     if (!Number.isFinite(num) || num < 0) { announce('Geçerli bir birim fiyat girin.', 'error'); renderCart(); return; }
     line.unitPrice = round2(num);
   } else if (field === 'discount') {
+    if(!fine125('sale.discount','discounts'))return;
     const num = value.trim()===''?0:parseLocaleNumber(value, NaN);
     if (!Number.isFinite(num) || num < 0 || num > 100) {
       announce('İskonto %0 ile %100 arasında olmalı.', 'error'); renderCart(); return;
@@ -1398,14 +1408,21 @@ function renderCart() {
     }
     // Cashiers without a price/discount right must not be invited to edit it.
     // The D1 checkout gate independently verifies every changed unit price.
-    el.querySelector('[data-edit-price]').hidden=!userCan('discounts');
-    el.querySelector('.sale-line-more').hidden=!userCan('discounts');
+    const mayPrice=fine125('sale.price','discounts'),mayDiscount=fine125('sale.discount','discounts');
+    const mayQuantity=fine125('sale.quantity','sales');
+    el.querySelector('[data-edit-price]').hidden=!mayPrice;
+    el.querySelector('.sale-line-more').hidden=!(mayPrice||mayDiscount);
+    el.querySelector('[data-field="price"]').disabled=!mayPrice;
+    el.querySelector('[data-field="discount"]').disabled=!mayDiscount;
+    for(const control of el.querySelectorAll('[data-field="quantity"],[data-step],[data-remove]'))
+      control.disabled=!mayQuantity;
     el.querySelector('[data-edit-price]').addEventListener('click',()=>{
       el.querySelector('.sale-line-more').open=true;
       const price=el.querySelector('[data-field="price"]');
       price.focus({preventScroll:true});price.select();
     });
     el.querySelector('[data-remove]').addEventListener('click', () => {
+      if(!mayQuantity)return;
       if(!confirm(line.product.baslik+' sepetten silinsin mi?'))return;
       state.cart.delete(line.cartKey||line.id); playCartSound('decrease'); renderCart(); renderCartBar();
     });
@@ -1458,7 +1475,8 @@ function updatePayment() {
 }
 function openCashPayment(){
   if(!state.cart.size){announce('Önce sepete ürün ekleyin.','error');return;}
-  document.querySelector('input[name="payment"][value="Nakit"]').checked=true;
+  const nextPayment=[...document.querySelectorAll('input[name="payment"]')].find(el=>!el.disabled);
+    if(nextPayment)nextPayment.checked=true;
   $('cashModeButtons').hidden=false;
   $('cashManualPanel').hidden=true;
   dom.cash.value='';
@@ -1559,8 +1577,7 @@ async function confirmExcelImport() {
   $('confirmExcelImport').textContent = 'Yükleniyor...';
   try {
     await serializeMutation(() => upsertExcelProducts(pending.products, pending.filename));
-    const snapshot = await getSnapshot();
-    setCatalog(snapshot.products, snapshot.adjustments, snapshot.meta, snapshot.excelCount, snapshot.bundleCount, snapshot.lifecycleMeta);
+    await refreshManagedData();
     channel?.postMessage('excel-updated');
     state.excelPreview = null;
     $('excelDialog').close();
@@ -1570,6 +1587,42 @@ async function confirmExcelImport() {
     state.excelUploading = false;
     $('confirmExcelImport').textContent = 'Ürünleri Yükle';
     $('confirmExcelImport').disabled = !state.excelPreview || state.excelPreview.errors.length > 0;
+  }
+}
+
+async function refreshStock130(){
+  if(!centralMode130)return;
+  const adjustments=await readCentralStock130();
+  if(adjustments.length===state.sold.size&&adjustments.every(({id,soldQuantity})=>state.sold.get(id)===soldQuantity))return;
+  state.sold=new Map(adjustments.map(({id,soldQuantity})=>[id,soldQuantity]));
+  renderAll();
+}
+
+async function syncSales130(){
+  if(syncing130||state.saving||!centralMode130||screenBlocked112())return;
+  syncing130=true;
+  try{
+    const records=await pendingSales130();
+    pendingCount130=records.length;
+    pendingIssue130='';
+    if(navigator.onLine){
+      for(const record of records){
+        try{
+          await saveCentralSale(record);
+          await mirrorCentralSale130(record);
+          await removePendingSale130(record.id);
+          pendingCount130--;
+        }catch(error){
+          const issue='Fiş '+record.id+': '+error.message;
+          if(!pendingIssue130)pendingIssue130=issue;
+          if(error.retryable)break;
+        }
+      }
+      await refreshStock130();
+    }
+  }finally{
+    syncing130=false;
+    setSyncStatus();
   }
 }
 
@@ -1601,6 +1654,7 @@ async function completeSale() {
   const previousReceipt=state.pendingSale?.fingerprint===saleFingerprint?
     state.pendingSale.record:null;
   const record = previousReceipt||{
+    ...(accountId130()?{cashierId:accountId130()}:{}),
     id: typeof crypto.randomUUID === 'function' ? crypto.randomUUID() :
       `sale-${Date.now()}-${Math.random().toString(36).slice(2)}`,
     createdAt: new Date().toISOString(), payment,
@@ -1623,27 +1677,45 @@ async function completeSale() {
   try {
     // Check server-side account/discount/veresiye rights before any central
     // customer ledger write or this device's IndexedDB sale mutation.
-    let localMirrorFailed=false;
-    if(await isCentralSalesEnabled()){
-      // Central receipt and credit ledger commit atomically; only then update
-      // optional device cache. Never redo the debt if local mirroring fails.
-      await saveCentralSale(record);
-      try{await serializeMutation(() => saveSale(record));}
-      catch{localMirrorFailed=true;}
+    let localMirrorFailed=false, waitingForSync=false;
+    if(centralMode130===undefined)centralMode130=await isCentralSalesEnabled();
+    if(centralMode130){
+      const queueable=payment==='Nakit'||payment==='Kart';
+      if(queueable)await putPendingSale130(record);
+      try{
+        await saveCentralSale(record);
+      }catch(error){
+        if(!queueable)throw error;
+        if(!error.retryable){
+          await removePendingSale130(record.id);
+          throw error;
+        }
+        waitingForSync=true;
+      }
+      if(waitingForSync){
+        pendingCount130=(await pendingSales130()).length;
+        pendingIssue130='Fiş '+record.id+' merkezi kayıt bekliyor.';
+      }else{
+        try{
+          await mirrorCentralSale130(record);
+          if(queueable)await removePendingSale130(record.id);
+        }catch{localMirrorFailed=true;}
+      }
+      if(!waitingForSync)await refreshStock130().catch(()=>{});
     }else{
-      // Legacy route stays available until explicit, tested central cutover.
       await authorizeCheckout(record);
       if(payment==='Veresiye')await recordCustomerCredit(creditCustomer.id,record);
       await serializeMutation(() => saveSale(record));
+      for(const line of record.items)state.sold.set(line.id,(state.sold.get(line.id)||0)+line.quantity);
     }
     state.pendingSale=null;
-    for (const line of record.items) state.sold.set(line.id, (state.sold.get(line.id) || 0) + line.quantity);
     state.lastSale = record; state.cart.clear();
     state.basketDiscountPct=0;state.basketDiscountInvalid=false;
     $('basketDiscountPct').value='';$('basketDiscountError').hidden=true;
     $('basketDiscountPanel').hidden=true;
     $('checkoutDiscountToggle').setAttribute('aria-expanded','false');
-    document.querySelector('input[name="payment"][value="Nakit"]').checked=true;
+    const nextPayment=[...document.querySelectorAll('input[name="payment"]')].find(el=>!el.disabled);
+    if(nextPayment)nextPayment.checked=true;
     dom.cash.value='';customerManager?.clearSelection();
     if($('cashPaymentDialog').open)$('cashPaymentDialog').close();
     if(useDesktopWorkspace() && state.view==='sale')navigate('#home');
@@ -1651,6 +1723,11 @@ async function completeSale() {
     renderProducts(); renderCartBar(); renderHome();
     refreshHomeSales().catch(()=>{});
     channel?.postMessage('sale-updated');
+    setSyncStatus();
+    if(waitingForSync){
+      announce('Satış bu kasada kaydedildi. Merkezi onay bekleniyor. Fiş: '+record.id,'success');
+      return;
+    }
     announce(localMirrorFailed?'Satış merkezi kaydedildi; bu cihazdaki kopya güncellenemedi.':'Satış kaydedildi: '+money(record.total,record.currency),localMirrorFailed?'error':'success');
     $('receiptActionsTotal').textContent = money(record.total, record.currency);
     $('receiptActionStatus').textContent = '';
@@ -1979,7 +2056,7 @@ function renderFilteredHistory(filters=currentReportFilters,keepPage=false){
       note.className='history-voided-note';
       note.textContent='İptal edildi · '+(sale.voidReason||'Test satışı')+' · Ciroya dahil değil';
       item.append(note);
-    }else if(centralReportMode && userCan('users') &&
+    }else if(centralReportMode && mayVoidSale130(sale) &&
       ['Nakit','Veresiye'].includes(sale.payment)){
       const cancel=document.createElement('button');
       cancel.type='button';cancel.className='history-void-button';
@@ -1991,12 +2068,17 @@ function renderFilteredHistory(filters=currentReportFilters,keepPage=false){
   }
 
 }
+function mayVoidSale130(sale){
+  return admin122()||sale.cashierId===accountId130()&&(fine125('sale.void')||fine125('sale.return'));
+}
 function openSaleVoidDialog(sale){
-  if(!sale?.id || sale.voided || !['Nakit','Veresiye'].includes(sale.payment))return;
+  if(!sale?.id || sale.voided || !mayVoidSale130(sale) || !['Nakit','Veresiye'].includes(sale.payment))return;
   pendingVoidSale={id:sale.id,payment:sale.payment};
   $('saleVoidInfo').textContent=money(sale.total,sale.currency)+' · '+sale.payment+
     ' · '+fmtDate(sale.createdAt);
-  $('saleVoidReason').value='wrong';
+  const reason=$('saleVoidReason');
+  for(const option of reason.options)option.disabled=!fine125(option.value==='returned'?'sale.return':'sale.void');
+  reason.value=[...reason.options].find(option=>!option.disabled)?.value||'';
   $('saleVoidWarning').textContent=sale.payment==='Veresiye'?
     'Fiş silinmez. Müşterinin borcundan bu satış tutarı tek seferde düşülür. Tahsilat yapılmışsa işlem reddedilebilir.':
     'Fiş silinmez, iptal kaydı saklanır ve tutar satış cirosundan çıkarılır. Varsa nakit iadesi kasada ayrıca yapılmalıdır.';
@@ -2019,6 +2101,7 @@ async function submitSaleVoid(event){
     pendingVoidSale=null;
     await showHistory();
     await refreshHomeSales();
+    await refreshStock130().catch(()=>{});
     announce('Satış kayıtları korunarak iptal edildi.','success');
   }catch(error){
     $('saleVoidError').textContent='İptal doğrulanamadı: '+error.message+
@@ -2551,6 +2634,8 @@ async function refreshManagedData(productId=null) {
       state.catalogProgress=received;
       if($('manageDialog')?.open)productManager?.render();
     });
+    if(centralMode130===undefined)centralMode130=await isCentralSalesEnabled();
+    if(centralMode130)snapshot.adjustments=await readCentralStock130();
     state.legacyPending=Boolean(snapshot.legacyPending);
     setCatalog(snapshot.products,snapshot.adjustments,snapshot.meta,
       snapshot.excelCount,snapshot.bundleCount,snapshot.lifecycleMeta);
@@ -2594,7 +2679,7 @@ async function setup() {
   $('historyPrev101').onclick=()=>{if(historyPage101>0){historyPage101--;renderFilteredHistory(currentReportFilters,true);$('historyItems').scrollIntoView({block:'start'});}};
   $('historyNext101').onclick=()=>{if((historyPage101+1)*HISTORY_PAGE_SIZE101<state.sales.length){historyPage101++;renderFilteredHistory(currentReportFilters,true);$('historyItems').scrollIntoView({block:'start'});}};
   $('saleDetailClose101').onclick=()=>$('saleDetail101').close();$('saleDetail101').addEventListener('close',()=>{detailSale101=null;});$('saleDetailSearch101').oninput=drawSaleDetail101;$('saleDetailPrint101').onclick=()=>{if(detailSale101&&!detailSale101.voided&&canReprint125(detailSale101))printSale(detailSale101);};
-  setupProductExport({canExport:()=>userCan("products")&&!state.centralReadOnly});
+  setupProductExport({canExport:()=>fine125("product.export","products")&&!state.centralReadOnly});
   setupPrinterProfiles(document,{canPrint:printer122,canConfigure:admin122});
   let namesBusy=false;
   async function runNames99(apply){
@@ -2629,13 +2714,14 @@ async function setup() {
     }catch(e){status.textContent=e.message;}
   };
   $('quickPriceForm').onsubmit=saveQuickPrice;$('quickPriceClose').onclick=()=>{if(!quickPriceBusy)$('quickPriceDialog').close();};$('quickPriceDialog').addEventListener('cancel',e=>{if(quickPriceBusy)e.preventDefault();});
-  setupLabelQueue(renderLabelImage);
+  if(fine125('product.label','sales')||userCan('products'))setupLabelQueue(renderLabelImage);
   customerManager=createCustomerManager({announce});
   openApprovals125=installApprovals125({announce,refresh:refreshManagedData});
   openAudit125=installAudit125();
   priceLabelFeature=createPriceLabelFeature({
     getProducts:()=>state.products,
     findBarcode:exactProduct,
+    canPrint:()=>fine125('product.label','sales')||userCan('products'),
     openCamera:()=>{openCamera();state.scanPurpose='price-label';},
     onEditProduct:product=>{if(state.centralReadOnly||!userCan('products')){announce('Ürün düzenleme yetkisi ve merkezi bağlantı gerekli.','error');return;} $('priceLabelDialog').close();openQuickPrice(product);},
     onCreateProduct:code=>{
@@ -3039,7 +3125,11 @@ async function setup() {
       if(el.checked)customerManager.load().catch(()=>{});
     });
   });
+  const firstPayment=[...document.querySelectorAll('input[name="payment"]')].find(el=>!el.disabled);
+  if(firstPayment&&document.querySelector('input[name="payment"]:checked')?.disabled)firstPayment.checked=true;
+  $('saleExitDiscard').disabled=!fine125('sale.clear','sales');
   $('basketDiscountPct').addEventListener('input',()=>{
+    if(!fine125('sale.discount','discounts'))return;
     const input=$('basketDiscountPct'),error=$('basketDiscountError');
     try{
       state.basketDiscountPct=parseBasketDiscountPercent(input.value);
@@ -3266,16 +3356,25 @@ async function setup() {
   let homePoll125=false;
   const pollHome125=async()=>{if(homePoll125||document.hidden||!navigator.onLine||screenBlocked112()||state.view!=='home')return;homePoll125=true;try{await refreshHomeSales()}finally{homePoll125=false}};
   setInterval(pollHome125,10000);window.addEventListener('focus',pollHome125);
+  const sync=()=>syncSales130().catch(()=>{});
+  setInterval(sync,10000);
+  window.addEventListener('online',sync);
+  window.addEventListener('focus',sync);
+  sync();
   channel?.addEventListener('message',async()=>{
-    try{const snapshot=await getSnapshot();setCatalog(snapshot.products,snapshot.adjustments,null,snapshot.excelCount,snapshot.bundleCount,snapshot.lifecycleMeta);}
+    try{await refreshManagedData();}
     catch{/* other tab closing */}
   });
 }
 // Do not mount the POS until a signed user session has been verified.
 requireAccess().then(async user=>{
+  setAccountStorage130(user.id);
+  await migrateLocalAccount130();
+  if('BroadcastChannel' in window)channel=new BroadcastChannel('cep-pos-changes:'+(user.id||'legacy'));
   await installScreenLock112(user,{onLock:()=>{if(dom.scanDialog.open)dom.scanDialog.close();stopScanner().catch(()=>{});}});
   installCommonMenu122(user,{openSettingsMenu,showSettingsMainMenu,showSettingsPreferences,openProductCategoryHome,openApprovals:()=>openApprovals125(),openAudit:()=>openAudit125()});
   await setup();
 }).catch(error=>{
   console.error('HızlıSatış girişi tamamlanamadı:',error);
+  announce(error.message,'error');
 });

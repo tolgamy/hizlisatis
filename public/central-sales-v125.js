@@ -6,9 +6,9 @@
 async function call(url,options={}){
   let response;
   try{response=await fetch(url,{cache:'no-store',credentials:'same-origin',...options});}
-  catch{throw Error('Merkezi satış sunucusuna ulaşılamıyor. İşlemi tekrar deneyin.');}
+  catch{throw Object.assign(Error('Merkezi satış sunucusuna ulaşılamıyor.'),{retryable:true});}
   const data=await response.json().catch(()=>({}));
-  if(!response.ok)throw Error(data.error||'Merkezi satış hatası: '+response.status);
+  if(!response.ok)throw Object.assign(Error(data.error||'Merkezi satış hatası: '+response.status),{retryable:response.status>=500});
   return data;
 }
 export async function isCentralSalesEnabled(){
@@ -20,7 +20,7 @@ export async function saveCentralSale(record){
     method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},
     body:JSON.stringify({record})
   });
-  if(!data.ok||data.id!==record.id)throw Error('Fişin merkezi kaydı doğrulanamadı.');
+  if(!data.ok||data.id!==record.id)throw Object.assign(Error('Fişin merkezi kaydı doğrulanamadı.'),{retryable:true});
   return data;
 }
 export async function voidCentralSale(saleId,reason){
@@ -55,3 +55,10 @@ export async function getSalesForReports(localReader,{centralOnly=false}={}){
 export async function readDaily125(){const d=await call('/api/sales?daily=1');if(!Number.isSafeInteger(d.totalCents)||d.totalCents<0)throw Error('Günlük ciro yanıtı geçersiz.');return d;}
 
 export async function readRecent125(){const d=await call('/api/sales?recent=1');if(!Array.isArray(d.sales))throw Error('Son satış yanıtı geçersiz.');return d.sales;}
+
+
+export async function readCentralStock130(){
+  const {adjustments}=await call('/api/sales?stock=1');
+  if(!Array.isArray(adjustments))throw Error('Merkezi stok yanıtı geçersiz.');
+  return adjustments;
+}

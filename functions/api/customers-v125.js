@@ -3,7 +3,7 @@
  */
 import {authorizedAdmin} from '../../lib/admin-auth.js';
 import {currentAccessUser} from '../../lib/user-access.js';
-import {lookup125} from '../../lib/rights-v125.js';
+import {lookup125,createCustomer125,limitCustomer125,openingCustomer125} from '../../lib/rights-v125.js';
 const h={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'};
 const ok=(data,status=200)=>Response.json(data,{status,headers:h});
 const fail=(message,status=400)=>ok({error:message},status);
@@ -42,7 +42,8 @@ async function balance(db,id) {
 export async function onRequestGet({request,env}) {
   const db=dbFor(env);if(!db)return fail('Müşteri veritabanı bağlı değil.',503);
   const broad=await authorizedAdmin(request,env,'customers');
-  if(!broad&&!lookup125(await currentAccessUser(request,env)))return fail('Müşteri sorgulama yetkisi gerekli.',403);
+  const user=broad?null:await currentAccessUser(request,env);
+  if(!broad&&!lookup125(user)&&!limitCustomer125(user)&&!openingCustomer125(user))return fail('Müşteri sorgulama yetkisi gerekli.',403);
   if(!broad&&env?.CENTRAL_SALES_ENABLED!=='true')return fail('Merkezi müşteri işlemleri etkin değil.',503);
   try {
     await ensure(db);
@@ -57,12 +58,18 @@ export async function onRequestGet({request,env}) {
       (c.opening_debt_cents+COALESCE((SELECT SUM(amount_cents) FROM pos_customer_ledger
         WHERE customer_id=c.id),0)) AS balance_cents
       FROM pos_customers c ORDER BY c.name COLLATE NOCASE LIMIT 5000`).all();
-    return ok({customers:broad?(rows.results||[]):(rows.results||[]).map(({id,name,phone,phone_key,credit_limit_cents,balance_cents})=>({id,name,phone,phone_key,credit_limit_cents,balance_cents}))});
+    return ok({customers:broad?(rows.results||[]):(rows.results||[]).map(({id,name,phone,phone_key,credit_limit_cents,balance_cents,opening_debt_cents})=>({id,name,phone,phone_key,credit_limit_cents,balance_cents,...(openingCustomer125(user)?{opening_debt_cents}:{})}))});
   } catch{return fail('Müşteri kayıtları okunamadı.',503);}
 }
 export async function onRequestPost({request,env}) {
   const db=dbFor(env);if(!db)return fail('Müşteri veritabanı bağlı değil.',503);
-  if(!await authorizedAdmin(request,env,'customers'))return fail('Yönetim oturumu gerekli.',401);
+  const broad=await authorizedAdmin(request,env,'customers');
+  const user=broad?null:await currentAccessUser(request,env);
+  if(!broad&&!user?.active)return fail('Yönetim oturumu gerekli.',401);
+  const mayCreate=broad||createCustomer125(user);
+  const mayLimit=broad||limitCustomer125(user);
+  const mayOpening=broad||openingCustomer125(user);
+  if(!broad&&env?.CENTRAL_SALES_ENABLED!=='true')return fail('Merkezi müşteri işlemleri etkin değil.',503);
   let data;try{data=await request.json();}catch{return fail('Geçersiz veri.');}
   try {
     await ensure(db);
@@ -72,19 +79,30 @@ export async function onRequestPost({request,env}) {
       return fail('Eski veresiye işlemi devre dışı. Sayfayı yenileyin.',409);
     if(action==='upsert') {
       const p=data.customer||{},name=trim(p.name,150),phone=trim(p.phone,25),key=phoneKey(phone);
-      if(!name||!key)return fail('Ad/işletme adı ve geçerli telefon zorunludur.');
-      if(!validMoney(p.creditLimit||0)||!validMoney(p.openingDebt||0))
+      const hasLimit=Object.hasOwn(p,'creditLimit'),hasOpening=Object.hasOwn(p,'openingDebt');
+      if((hasLimit&&!mayLimit)||(hasOpening&&!mayOpening))
+        return fail('Limit veya açılış borcu için ayrı yetki gerekli.',403);
+      if((hasLimit&&!validMoney(p.creditLimit))||(hasOpening&&!validMoney(p.openingDebt)))
         return fail('Limit veya açılış borcu geçersiz.');
       const id=trim(p.id,120)||crypto.randomUUID();
       if(!/^[a-zA-Z0-9:_-]{8,120}$/.test(id))return fail('Müşteri kodu geçersiz.');
       const before=await db.prepare('SELECT id FROM pos_customers WHERE id=?').bind(id).first();
+      const now=new Date().toISOString();
       if(before){
-        await db.prepare(`UPDATE pos_customers SET name=?,phone=?,phone_key=?,address=?,tax_office=?,
-          tax_number=?,credit_limit_cents=?,opening_debt_cents=?,notes=?,updated_at=? WHERE id=?`)
-          .bind(name,phone,key,trim(p.address,500),trim(p.taxOffice,100),trim(p.taxNumber,20),
-            cents(p.creditLimit||0),cents(p.openingDebt||0),trim(p.notes,500),new Date().toISOString(),id).run();
+        const fields=[],values=[];
+        if(broad){
+          if(!name||!key)return fail('Ad/işletme adı ve geçerli telefon zorunludur.');
+          fields.push('name=?','phone=?','phone_key=?','address=?','tax_office=?','tax_number=?','notes=?');
+          values.push(name,phone,key,trim(p.address,500),trim(p.taxOffice,100),trim(p.taxNumber,20),trim(p.notes,500));
+        }
+        if(hasLimit){fields.push('credit_limit_cents=?');values.push(cents(p.creditLimit));}
+        if(hasOpening){fields.push('opening_debt_cents=?');values.push(cents(p.openingDebt));}
+        if(!fields.length)return fail('Müşteri düzenleme yetkisi gerekli.',403);
+        await db.prepare('UPDATE pos_customers SET '+fields.join(',')+',updated_at=? WHERE id=?')
+          .bind(...values,now,id).run();
       }else{
-        const now=new Date().toISOString();
+        if(!mayCreate)return fail('Yeni müşteri oluşturma yetkisi gerekli.',403);
+        if(!name||!key)return fail('Ad/işletme adı ve geçerli telefon zorunludur.');
         await db.prepare(`INSERT INTO pos_customers
           (id,name,phone,phone_key,address,tax_office,tax_number,
             credit_limit_cents,opening_debt_cents,notes,created_at,updated_at)
@@ -95,6 +113,7 @@ export async function onRequestPost({request,env}) {
       return ok({ok:true,id});
     }
     if(action==='sale'||action==='collect') {
+      if(!broad)return fail('Yönetim oturumu gerekli.',403);
       const id=trim(data.customerId,120),ref=trim(data.id,120),amount=Number(data.amount);
       if(!id||!/^[a-zA-Z0-9:_-]{8,120}$/.test(ref)||!validMoney(amount)||amount===0)
         return fail('Müşteri, işlem kodu veya tutar geçersiz.');
@@ -121,7 +140,7 @@ export async function onRequestPost({request,env}) {
     }
     return fail('Bilinmeyen müşteri işlemi.');
   }catch(error){
-    if(/UNIQUE constraint/i.test(String(error?.message||'')))return fail('Telefon numarası başka müşteriye kayıtlı.',409);
+    if(error?.code==='ER_DUP_ENTRY'||/UNIQUE constraint/i.test(String(error?.message||'')))return fail('Telefon numarası başka müşteriye kayıtlı.',409);
     return fail('Müşteri işlemi tamamlanamadı.',503);
   }
 }

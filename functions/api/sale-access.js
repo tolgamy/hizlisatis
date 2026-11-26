@@ -4,6 +4,7 @@
  */
 import {allowAdminRequestOrigin} from '../../lib/admin-auth.js';
 import {accessEnabled,accessConfigError,currentAccessUser,hasPermission} from '../../lib/user-access.js';
+import {fine125,payment125} from '../../lib/rights-v125.js';
 const headers={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'};
 const reply=(v,status=200)=>Response.json(v,{status,headers});
 export async function onRequestPost({request,env}){
@@ -24,9 +25,10 @@ export async function onRequestPost({request,env}){
       !r.items.length||r.items.length>150||!Number.isFinite(r.total)||r.total<0||
       r.items.some(item=>!item||!item.id||!Number.isFinite(item.quantity)||item.quantity<=0))
     return reply({error:'Satış bilgileri geçersiz.'},400);
+  if(!payment125(user,r.payment))return reply({error:'Ödeme yöntemi için yetkiniz yok.'},403);
   const discounted=Number(r.basketDiscountPct)>0 ||
     r.items.some(line=>Number(line.discountPct)>0||Number(line.basketDiscount)>0);
-  if(discounted&&!hasPermission(user,'discounts'))
+  if(discounted&&!fine125(user,'sale.discount','discounts'))
     return reply({error:'Bu kullanıcıda indirim yetkisi bulunmuyor.'},403);
   if(r.payment==='Veresiye'&&!hasPermission(user,'customers'))
     return reply({error:'Bu kullanıcıda veresiye yetkisi bulunmuyor.'},403);
@@ -52,7 +54,9 @@ export async function onRequestPost({request,env}){
       return reply({error:'Ürün fiyatı geçersiz.'},400);
     if(!Number.isFinite(product.satisFiyati)||product.satisFiyati<0)
       return reply({error:'Merkezi ürün fiyatı geçersiz.'},503);
-    if(Math.abs(line.unitPrice-product.satisFiyati)>0.011&&!hasPermission(user,'discounts'))
+    if(['kg','g','litre'].includes(product.birim)&&!fine125(user,'sale.weight','sales'))
+      return reply({error:'Tartılı satış yetkiniz yok.'},403);
+    if(Math.abs(line.unitPrice-product.satisFiyati)>0.011&&!fine125(user,'sale.price','discounts'))
       return reply({error:'Birim fiyatını değiştirmek için indirim/fiyat yetkisi gerekli.'},403);
   }
   return reply({ok:true,authorizedBy:user.id});

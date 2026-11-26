@@ -1,6 +1,11 @@
 import {listCustomers,getCustomerAccount,upsertCustomer,collectCustomerDebt} from './customer-api.js';
 import {parseLocaleNumber} from './normalize.js';
-import {lookup125,credit125,collect125,userCan} from './auth-ui-v125.js';
+import {lookup125,credit125,collect125,userCan,fine125} from './auth-ui-v125.js';
+const mayCreate=()=>fine125('customer.create','customers');
+const mayLimit=()=>fine125('customer.limit','customers');
+const mayOpening=()=>fine125('customer.opening','customers');
+const mayEdit=()=>userCan('customers')||mayLimit()||mayOpening();
+const canList=()=>lookup125()||mayLimit()||mayOpening();
 const $=id=>document.getElementById(id);
 const fmt=n=>new Intl.NumberFormat('tr-TR',{style:'currency',currency:'TRY'}).format(n||0);
 const moneyFromCents=n=>fmt(Number(n||0)/100);
@@ -26,7 +31,7 @@ export function createCustomerManager({announce}) {
       button.addEventListener('click',()=>chooseSale(customer));
       box.append(button);
     }
-    if(!list.length)box.textContent=userCan('customers')?'Müşteri bulunamadı. Yeni Müşteri ile kaydedebilirsiniz.':'Müşteri bulunamadı. Yeni kayıt için yöneticiye başvurun.';
+    if(!list.length)box.textContent=mayCreate()?'Müşteri bulunamadı. Yeni Müşteri ile kaydedebilirsiniz.':'Müşteri bulunamadı. Yeni kayıt için yöneticiye başvurun.';
   }
   function chooseSale(customer) {
     if(!credit125())return announce('Veresiye yetkiniz yok.','error');
@@ -36,7 +41,7 @@ export function createCustomerManager({announce}) {
     $('creditCustomerResults').replaceChildren();
   }
   async function load() {
-    if(!lookup125())throw Error('Müşteri sorgulama yetkiniz yok.');
+    if(!canList())throw Error('Müşteri sorgulama yetkiniz yok.');
     try{
       customers=await listCustomers();renderList();renderSaleMatches();
       $('customerStatus').textContent=customers.length+' kayıtlı müşteri';
@@ -69,7 +74,7 @@ export function createCustomerManager({announce}) {
     renderList();
   }
   function editCustomer(customer=null) {
-    if(!userCan('customers'))return announce('Müşteri düzenleme yetkiniz yok.','error');
+    if(!(customer?mayEdit():mayCreate()))return announce('Müşteri düzenleme yetkiniz yok.','error');
     editingId=customer?.id||'';
     $('customerFormTitle').textContent=customer?'Müşteri Bilgilerini Düzenle':'Yeni Müşteri';
     for(const [name,id] of Object.entries(fields)){
@@ -77,10 +82,11 @@ export function createCustomerManager({announce}) {
         name==='openingDebt'?Number(customer?.opening_debt_cents||0)/100:
         customer?.[name==='taxOffice'?'tax_office':name==='taxNumber'?'tax_number':name]||'';
       $(id).value=value||'';
+      $(id).disabled=name==='creditLimit'?!mayLimit():name==='openingDebt'?!mayOpening():Boolean(customer&&!userCan('customers'));
     }
     form.hidden=false;account.hidden=true;$('customerList').hidden=true;
     document.querySelector('.customer-toolbar').hidden=true;
-    $('customerName').focus({preventScroll:true});
+    form.querySelector('input:not(:disabled)')?.focus({preventScroll:true});
   }
   async function showAccount(customer) {
     currentCustomer=customer;
@@ -108,18 +114,24 @@ export function createCustomerManager({announce}) {
   }
   async function save(event) {
     event.preventDefault();
-    if(!userCan('customers'))return announce('Müşteri düzenleme yetkiniz yok.','error');
-    const customer={id:editingId,...Object.fromEntries(Object.entries(fields).map(([name,id])=>[name,$(id).value.trim()]))};
-    if(!customer.name||customer.phone.replace(/\D/g,'').length<10) {
+    if(!(editingId?mayEdit():mayCreate()))return announce('Müşteri düzenleme yetkiniz yok.','error');
+    const customer={id:editingId,...Object.fromEntries(Object.entries(fields).filter(([,id])=>!$(id).disabled).map(([name,id])=>[name,$(id).value.trim()]))};
+    if(!$(fields.name).disabled&&(!customer.name||customer.phone.replace(/\D/g,'').length<10)) {
       announce('Müşteri adı ve geçerli telefon zorunlu.','error');return;
     }
-    const existing=customers.find(c=>c.id!==editingId&&c.phone.replace(/\D/g,'').slice(-10)===
+    for(const key of ['creditLimit','openingDebt']){
+      if(!Object.hasOwn(customer,key))continue;
+      const amount=customer[key]?parseLocaleNumber(customer[key],NaN):0;
+      if(!Number.isFinite(amount)||amount<0)return announce('Limit veya açılış borcu geçersiz.','error');
+      customer[key]=amount;
+    }
+    const existing=customer.phone&&customers.find(c=>c.id!==editingId&&c.phone.replace(/\D/g,'').slice(-10)===
       customer.phone.replace(/\D/g,'').slice(-10));
     if(existing){announce('Bu telefon numarası zaten kayıtlı.','error');return;}
     const button=form.querySelector('button[type="submit"]');button.disabled=true;
     try{
       const answer=await upsertCustomer(customer);
-      await load();
+      if(canList())await load();
       const saved=customers.find(c=>c.id===answer.id);
       announce('Müşteri kaydedildi.','success');
       if(fromSale&&saved){
@@ -145,16 +157,16 @@ export function createCustomerManager({announce}) {
     finally{button.disabled=false;}
   }
   async function open() {
-    if(!lookup125())return announce('Müşteri sorgulama yetkiniz yok.','error');
+    if(!canList()&&!mayCreate())return announce('Müşteri yetkiniz yok.','error');
     fromSale=false;showList();if(!dialog.open)dialog.showModal();
-    await load().catch(()=>{});
+    if(canList())await load().catch(()=>{});
   }
   async function openNewForSale(){
-    if(!userCan('customers'))return announce('Yeni müşteri oluşturma yetkiniz yok.','error');
+    if(!mayCreate())return announce('Yeni müşteri oluşturma yetkiniz yok.','error');
     fromSale=true;if(!dialog.open)dialog.showModal();editCustomer();
-    await load().catch(()=>{});
+    if(canList())await load().catch(()=>{});
   }
-  for(const id of ['customerNew','customerEdit','creditNewCustomer']){$(id).disabled=!userCan('customers');if($(id).disabled)$(id).title='Yetkiniz yok.';}
+  for(const id of ['customerNew','customerEdit','creditNewCustomer']){$(id).disabled=!(id==='customerEdit'?mayEdit():mayCreate());if($(id).disabled)$(id).title='Yetkiniz yok.';}
   $('customerCollect').disabled=!collect125();
   $('settingsCustomers').addEventListener('click',open);
   $('creditNewCustomer').addEventListener('click',openNewForSale);

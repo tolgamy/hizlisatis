@@ -16,6 +16,11 @@ try{
 }catch{/* Never break application startup during URL cleanup. */}
 const headers={'Content-Type':'application/json','Accept':'application/json'};
 let activeUser=null,enabled=false,initialResolved=false;
+const accountChannel=typeof window!=='undefined'&&'BroadcastChannel' in window?
+  new BroadcastChannel('hizlisatis-auth-v130'):null;
+accountChannel?.addEventListener('message',event=>{
+  if(activeUser&&event.data!==activeUser.id)location.reload();
+});
 const can=permission=>activeUser?.role==='admin'||activeUser?.permissions?.includes(permission);
 export function userCan(permission){return !enabled||Boolean(can(permission));}
 export function fine125(id,legacy){return activeUser?.role==='admin'||(Array.isArray(activeUser?.permissionProfile)?activeUser.permissionProfile.includes(id):Boolean(legacy&&can(legacy)));}
@@ -59,7 +64,7 @@ function applyUser(user){
   for(const id of ['settingsExcel','settingsAdd','settingsManage','settingsCategoryImages','settingsHistory','settingsExport','settingsBackup','settingsOpenPreferences','settingsCustomer122','settingsPrinter122','settingsUsers122','settingsSecurity122','homeQuickBarcode','homeQuickProducts','homeQuickReports','homeTodaySalesButton','navSale','homeQuickSale','navSettings','homeSettingsShortcut','settingsAdminGroup','settingsCustomers','settingsInnerExcel','settingsInnerManage','settingsInnerCategoryImages','settingsInnerExport','settingsInnerBackup']){
     const node=$(id);if(node)node.hidden=false;
   }
-  const discount=$('checkoutDiscountToggle');if(discount){discount.hidden=false;discount.disabled=!can('discounts');discount.title=can('discounts')?'':'İndirim yetkiniz yok.';}
+  const discount=$('checkoutDiscountToggle');if(discount){discount.hidden=false;discount.disabled=!fine125('sale.discount','discounts');discount.title=fine125('sale.discount','discounts')?'':'İndirim yetkiniz yok.';}
 }
 function release(){
   $('loginGate').hidden=true;
@@ -153,7 +158,7 @@ function renderPermissions121(){
  for(const [id,label] of catalog121.permissionGroups[group121][1]){
   const line=document.createElement('label'),input=document.createElement('input'),name=document.createElement('span'),status=document.createElement('small');
   input.type='checkbox';input.checked=profile121.has(id);input.disabled=catalog121.adminOnly.includes(id);
-  name.textContent=label;status.textContent=input.disabled?'Yalnız admin':catalog121.salesBundle.includes(id)?'Satış paketi':id==='product.activate.initial'?'Etkin · satış yetkisi gerekir':['customer.lookup','customer.credit','customer.collect','report.own','report.daily.own','report.all','report.other','sale.reprint.own','sale.reprint.other'].includes(id)?'Etkin · merkezi sistem':'Planlanan';
+  name.textContent=label;status.textContent=input.disabled?'Yalnız admin':['sale.cash','sale.card','sale.quantity','sale.clear','sale.void','sale.return','sale.weight','sale.discount','sale.price','product.label','product.price','product.stock.in','product.stock.out','product.create','product.delete.restore','product.barcode','product.category','product.tax.origin','product.cost','product.import','product.export','product.activate.later'].includes(id)?'Etkin':id==='product.activate.initial'?'Etkin · satış yetkisi gerekir':['customer.lookup','customer.credit','customer.collect','customer.create','customer.limit','customer.opening','report.own','report.daily.own','report.all','report.other','sale.reprint.own','sale.reprint.other'].includes(id)?'Etkin · merkezi sistem':'Planlanan';
   input.addEventListener('change',()=>{if(input.checked)profile121.add(id);else profile121.delete(id);renderPermissions121()});
   line.append(input,name,status);rows.append(line);
  }
@@ -257,6 +262,7 @@ function setupUserManager(){
     errorMessage.textContent='';
     try{
       await call('/api/auth',{method:'DELETE'});
+      accountChannel?.postMessage(null);
       location.reload();
     }catch(error){
       errorMessage.textContent=error.message;
@@ -312,6 +318,7 @@ export async function requireAccess(){
         })});
         $('loginPassword').value='';
         applyUser(response.user);
+        accountChannel?.postMessage(response.user.id);
         release();
         if(initialResolved)location.reload();
         else{initialResolved=true;resolve(response.user)}

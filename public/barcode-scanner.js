@@ -1,3 +1,4 @@
+import {accountStorage130} from './account-storage-v130.js';
 /** Retail barcode formats supported by the bundled ZXing/html5-qrcode decoder.
  * Includes 1D product barcodes plus explicitly requested QR and PDF417.
  * This PWA uses a local browser decoder, not native Android ML Kit.
@@ -34,7 +35,7 @@ export function isRepeatScan(code, previousCode, previousTime, time=Date.now(), 
   return Boolean(code && code===previousCode && time-previousTime>=0 &&
     time-previousTime<cooldown);
 }
-export function readScanHistory(storage=globalThis.localStorage) {
+export function readScanHistory(storage=accountStorage130()) {
   try {
     const rows=JSON.parse(storage?.getItem(SCAN_HISTORY_KEY)||'[]');
     if(!Array.isArray(rows))return [];
@@ -42,7 +43,7 @@ export function readScanHistory(storage=globalThis.localStorage) {
       typeof row.at==='number'&&Number.isFinite(row.at)).slice(0,20);
   } catch { return []; }
 }
-export function rememberScan(code,format='',storage=globalThis.localStorage,time=Date.now()) {
+export function rememberScan(code,format='',storage=accountStorage130(),time=Date.now()) {
   const value=String(code??'').trim();
   if(!value||value.length>512)return readScanHistory(storage);
   const items=readScanHistory(storage).filter(entry=>entry.code!==value);
